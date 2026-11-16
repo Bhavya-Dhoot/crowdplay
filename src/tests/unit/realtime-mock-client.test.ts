@@ -70,6 +70,19 @@ describe("mock realtime client", () => {
     expect(statuses).toEqual(["connecting", "connected"]);
   });
 
+  it("re-joining a live channel after a drop does not reopen the stream (no reconnect loop, B5)", async () => {
+    const { client, statuses } = await joined();
+    hook()!.drop(1000);
+    await vi.advanceTimersByTimeAsync(1000);
+    last().open(); // stream back: useRoom re-joins on "connected"
+    const before = FakeEventSource.instances.length;
+    await client.joinRoom(CHANNEL);
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(FakeEventSource.instances.length).toBe(before);
+    expect(last().closed).toBe(false);
+    expect(statuses).toEqual(["connecting", "connected", "disconnected", "connecting", "connected"]);
+  });
+
   it("joinRoom does not hang when the server never answers", async () => {
     const client = createMockClient();
     await client.connect(creds);

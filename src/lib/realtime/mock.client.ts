@@ -146,6 +146,9 @@ export function createMockClient(): RealtimeClient {
 
     joinRoom(channelId: string): Promise<void> {
       const existing = streams.get(channelId);
+      // Idempotent: re-joining a live or retrying stream must not tear it down, or every
+      // "connected" -> re-join -> reconnect cycle would loop forever (useRoom re-joins on reconnect).
+      if (existing && (existing.es || existing.timer)) return Promise.resolve();
       if (existing) closeEs(existing);
       const s: Stream = { channelId, es: null, attempts: 0, timer: null, status: "connecting" };
       streams.set(channelId, s);
