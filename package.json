@@ -16,11 +16,15 @@
     "load:sim": "tsx scripts/load-sim.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx scripts/migrate.ts",
-    "seed:demo": "tsx scripts/seed-demo.ts"
+    "seed:demo": "tsx scripts/seed-demo.ts",
+    "postinstall": "node scripts/build-nexconn-server-sdk.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.9.0",
     "@electric-sql/pglite": "^0.5.16",
+    "@nexconn/chat": "26.2.1",
+    "@nexconn/engine": "26.2.1",
+    "@nexconn/server-sdk": "github:NexconnAI-Dev/nexconn-server-sdk-node#v0.1.2",
     "canvas-confetti": "^1.9.4",
     "drizzle-orm": "^0.45.4",
     "framer-motion": "^14.14.0",

@@ -7,6 +7,8 @@ WORKDIR /app
 
 FROM base AS deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+# postinstall builds @nexconn/server-sdk (its git package ships no dist/)
+COPY scripts/build-nexconn-server-sdk.mjs ./scripts/
 RUN pnpm install --frozen-lockfile
 
 FROM base AS build
