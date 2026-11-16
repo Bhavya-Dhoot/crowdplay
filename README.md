@@ -196,7 +196,7 @@ Copy `.env.example` to `.env` (Next.js also reads `.env.local`). Empty values co
 | `DISTILL_HARD_CAP_MS` | `10000` | Hard cap on DISTILL before the no-LLM path is forced. | Optional |
 | `ROOM_PLAYER_CAP` | `450` | Maximum players per room; keeps headroom under the 500-connection plan limit. | Optional |
 
-Read by the code but not yet listed in `.env.example`:
+More variables (the first five are in `.env.example`; the rest are for tests, builds and hosting):
 
 | Variable | Default | What it does |
 |---|---|---|
@@ -206,6 +206,9 @@ Read by the code but not yet listed in `.env.example`:
 | `LOG_LEVEL` | `info` | pino log level (`silent` under tests). |
 | `NEXT_PUBLIC_REPO_URL` | - | Shows a GitHub link in the footer. Read at build time (Docker build arg). |
 | `PORT` | `3000` | Port for `next start` in the Docker image. |
+| `MOCK_DISTILL_DELAY_MS` | `0` | Only with `LLM_MODE=mock`: simulated distill latency (max 10 s) so DISTILL is visible in e2e. |
+| `E2E_PORT` | first free of 3100–3199 | Port for the e2e server (`scripts/e2e-server.mjs`). |
+| `NEXT_DIST_DIR` | `.next` | Build output folder; lets a second build (Lighthouse runs) sit beside the e2e build. |
 
 ## Scripts
 
@@ -232,7 +235,7 @@ Read by the code but not yet listed in `.env.example`:
 ```bash
 pnpm test                         # unit + integration (Vitest; PGlite, mock realtime, mock LLM)
 pnpm exec playwright install chromium   # once, for the browser the e2e suite uses
-pnpm e2e                          # Playwright suite (mock modes)
+pnpm e2e                          # Playwright suite (mock modes) against the existing production build: run `pnpm build` first
 pnpm verify                       # everything below, in order
 ```
 
