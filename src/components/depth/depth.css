@@ -1,0 +1,136 @@
+/* Plain (global) CSS for the loop diagram. next.config.ts sends every *.css file through the Tailwind loader,
+   which turns off CSS Modules scoping, so these classes carry a "dp-" prefix instead of relying on a module.
+   Colours come from the shared tokens (src/styles/tokens.css). */
+
+.dp-loop {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.dp-step {
+  position: relative;
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  column-gap: 16px;
+  padding-bottom: 24px;
+}
+.dp-step:last-child {
+  padding-bottom: 0;
+}
+/* Vertical rail between nodes on phones. */
+.dp-step:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  left: 27px;
+  top: 56px;
+  bottom: 0;
+  width: 2px;
+  background: var(--line);
+}
+
+.dp-node {
+  grid-row: span 2;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  border: 2px solid var(--line);
+  background: var(--surface);
+  color: var(--accent);
+  animation: dp-chase 12s linear infinite backwards;
+  animation-delay: calc(var(--i) * 2s);
+}
+
+.dp-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* A highlight walks Prompt -> Storm -> Distill -> Vote -> Reveal -> Finale: it shows the direction of the loop. */
+@keyframes dp-chase {
+  0%,
+  13% {
+    border-color: var(--accent);
+    background: var(--surface-2);
+    box-shadow: 0 0 0 5px rgb(255 210 63 / 0.16);
+  }
+  17%,
+  100% {
+    border-color: var(--line);
+    background: var(--surface);
+    box-shadow: 0 0 0 0 rgb(255 210 63 / 0);
+  }
+}
+
+@media (min-width: 768px) {
+  .dp-loop {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    column-gap: 8px;
+  }
+  .dp-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding-bottom: 0;
+    row-gap: 10px;
+  }
+  .dp-node {
+    grid-row: auto;
+  }
+  .dp-text {
+    align-items: center;
+  }
+  /* Horizontal connector from this node to the next. */
+  .dp-step:not(:last-child)::before {
+    left: calc(50% + 36px);
+    right: calc(-50% + 36px);
+    top: 27px;
+    bottom: auto;
+    width: auto;
+    height: 2px;
+  }
+}
+
+/* Bracket under the first five steps: the loop repeats once per round. */
+.dp-repeat {
+  display: none;
+}
+@media (min-width: 768px) {
+  .dp-repeat {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+    /* spans the first five of six columns */
+    width: calc(5 / 6 * 100%);
+    padding: 10px 16px 0;
+    border: 2px solid var(--line);
+    border-top: 0;
+    border-radius: 0 0 var(--r-card) var(--r-card);
+    color: var(--muted);
+    font-size: 14px;
+    position: relative;
+  }
+  .dp-repeat::before {
+    /* arrowhead on the left, pointing back up to Prompt */
+    content: "";
+    position: absolute;
+    left: calc(10% - 7px);
+    top: -9px;
+    border: 7px solid transparent;
+    border-bottom: 9px solid var(--line);
+    border-top: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dp-node {
+    animation: none;
+  }
+}
