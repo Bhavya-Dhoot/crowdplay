@@ -1,7 +1,8 @@
 // In-process deadline ticker (TECH_SPEC §5.3). Lazy advance on reads covers hosts without a long-lived process.
-import { isNotNull, lte, and } from "drizzle-orm";
+import { and, eq, isNotNull, lt, lte } from "drizzle-orm";
 import { getDb, schema } from "../db/client";
 import { log } from "../log";
+import { getRealtimeServer } from "../realtime/index";
 import { advance, engineNow } from "./advance";
 import { isRoomBusy } from "./lock";
 
@@ -35,11 +36,41 @@ export async function tickOnce(now: number = engineNow(), wait = true): Promise<
   return work.length;
 }
 
+// The Free plan caps concurrent Open Channels (50): release rooms that ended over 2 minutes ago
+// (the grace lets screens receive the final ENDED state). Restart-safe: one claim row per room.
+const CHANNEL_GRACE_MS = 2 * 60_000;
+const SWEEP_EVERY_TICKS = Math.round(60_000 / TICK_INTERVAL_MS);
+
+export async function sweepEndedChannels(now: number = engineNow()): Promise<number> {
+  const db = await getDb();
+  const ended = await db
+    .select({ roomId: schema.rooms.id, channelId: schema.rooms.channelId })
+    .from(schema.engineState)
+    .innerJoin(schema.rooms, eq(schema.rooms.id, schema.engineState.roomId))
+    .where(and(eq(schema.engineState.phase, "ENDED"), lt(schema.engineState.updatedAt, new Date(now - CHANNEL_GRACE_MS))));
+  let destroyed = 0;
+  for (const r of ended) {
+    const claimed = await db
+      .insert(schema.events)
+      .values({ id: `${r.roomId}:channel-destroyed`, roomId: r.roomId, type: "channel-destroyed" })
+      .onConflictDoNothing()
+      .returning({ id: schema.events.id });
+    if (!claimed.length) continue;
+    await getRealtimeServer()
+      .destroyChannel(r.channelId)
+      .catch((err) => log.warn({ err, roomId: r.roomId }, "channel destroy failed"));
+    destroyed++;
+  }
+  return destroyed;
+}
+
 /** Start the 250 ms ticker once per process (guarded on globalThis: dev reloads and bundles share it). */
 export function startTicker(): void {
   if (g.__cpTicker) return;
   let scanning = false;
+  let ticks = 0;
   const timer = setInterval(() => {
+    if (++ticks % SWEEP_EVERY_TICKS === 0) sweepEndedChannels().catch((err) => log.warn({ err }, "channel sweep failed"));
     if (scanning) return;
     scanning = true;
     tickOnce(engineNow(), false)

@@ -19,7 +19,6 @@ import { features } from "../config";
 import { getDb, schema, type Db } from "../db/client";
 import { newId } from "../ids";
 import { log } from "../log";
-import { getRealtimeServer } from "../realtime/index";
 import { sendReceipts } from "../receipts";
 import type { OptionSlot, PresetId } from "../realtime/types";
 import { advance, bumpVersion, engineNow, loadEngineState } from "./advance";
@@ -160,7 +159,6 @@ export async function runEffects(ctx: EffectContext, effects: Effect[], opts: { 
     try {
       if (eff.type === "PUBLISH") {
         await publishRoomState(ctx.roomId, eff.phaseChanged);
-        if (eff.phaseChanged && ctx.state.phase === "ENDED") scheduleChannelDestroy(db, ctx.roomId);
         continue;
       }
       const { roundNo, disc } = keyOf(eff, ctx.state);
@@ -180,21 +178,6 @@ export async function runEffects(ctx: EffectContext, effects: Effect[], opts: { 
       log.error({ err, effect: eff.type, roomId: ctx.roomId }, "effect dispatch failed");
     }
   }
-}
-
-// The Free plan caps concurrent Open Channels (50); release ended rooms after a grace period
-// so screens still receive the final ENDED state.
-const CHANNEL_DESTROY_GRACE_MS = 2 * 60_000;
-function scheduleChannelDestroy(db: Db, roomId: string): void {
-  const t = setTimeout(async () => {
-    try {
-      const [room] = await db.select({ channelId: schema.rooms.channelId }).from(schema.rooms).where(eq(schema.rooms.id, roomId));
-      if (room) await getRealtimeServer().destroyChannel(room.channelId);
-    } catch (err) {
-      log.warn({ err, roomId }, "channel destroy failed");
-    }
-  }, CHANNEL_DESTROY_GRACE_MS);
-  t.unref?.();
 }
 
 async function execute(db: Db, ctx: EffectContext, eff: Exclude<Effect, { type: "PUBLISH" }>): Promise<void> {

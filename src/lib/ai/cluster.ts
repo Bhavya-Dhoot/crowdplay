@@ -65,6 +65,27 @@ export function dot(a: ArrayLike<number>, b: ArrayLike<number>): number {
   return s;
 }
 
+/** Positions of the non-zero entries, or null when the vector is dense (provider embeddings), where a plain dot is as fast. */
+function nonZero(v: Vec): Int32Array | null {
+  let n = 0;
+  for (let i = 0; i < v.length; i++) if (v[i] !== 0) n++;
+  if (n * 4 > v.length) return null;
+  const idx = new Int32Array(n);
+  let k = 0;
+  for (let i = 0; i < v.length; i++) if (v[i] !== 0) idx[k++] = i;
+  return idx;
+}
+
+/** dot(a, b) when b is non-zero only at `idx`: the same terms added in the same order as dot(), so the same value, in O(nnz). */
+function dotAt(a: ArrayLike<number>, b: ArrayLike<number>, idx: Int32Array): number {
+  let s = 0;
+  for (let k = 0; k < idx.length; k++) {
+    const i = idx[k];
+    s += a[i] * b[i];
+  }
+  return s;
+}
+
 export function l2normalize(v: Vec): Vec {
   let s = 0;
   for (let i = 0; i < v.length; i++) s += v[i] * v[i];
@@ -99,7 +120,7 @@ export const THRESHOLDS: { provider: Thresholds; local: Thresholds } = {
   local: { assign: 0.25, merge: 0.3 },
 };
 
-type Work = { members: ClusterItem[]; sum: Float32Array; unit: Float32Array };
+type Work = { members: ClusterItem[]; sum: Float32Array; unit: Float32Array; nz?: Int32Array | null };
 
 function addTo(w: Work, vec: Vec): void {
   for (let i = 0; i < vec.length; i++) w.sum[i] += vec[i];
@@ -119,8 +140,10 @@ export function clusterIdeas(items: ClusterItem[], th: Thresholds): Cluster[] {
   for (const item of sorted) {
     let best = -1;
     let bestSim = -Infinity;
+    // Hashed bag-of-words vectors have ~10 non-zeros in 512: compare over those only (hundreds of singleton clusters stay cheap).
+    const nz = nonZero(item.vec);
     for (let i = 0; i < works.length; i++) {
-      const s = dot(item.vec, works[i].unit);
+      const s = nz ? dotAt(works[i].unit, item.vec, nz) : dot(item.vec, works[i].unit);
       if (s > bestSim) {
         bestSim = s;
         best = i;
@@ -143,10 +166,14 @@ export function clusterIdeas(items: ClusterItem[], th: Thresholds): Cluster[] {
     if (absorbed.has(i)) continue;
     for (let j = i + 1; j < works.length; j++) {
       if (absorbed.has(j)) continue;
-      if (dot(works[i].unit, works[j].unit) >= th.merge) {
-        works[i].members.push(...works[j].members);
-        for (let k = 0; k < dim; k++) works[i].sum[k] += works[j].sum[k];
+      const wj = works[j];
+      if (wj.nz === undefined) wj.nz = nonZero(wj.unit); // wj only changes once it becomes an absorber, after its last use here
+      const sim = wj.nz ? dotAt(works[i].unit, wj.unit, wj.nz) : dot(works[i].unit, wj.unit);
+      if (sim >= th.merge) {
+        works[i].members.push(...wj.members);
+        for (let k = 0; k < dim; k++) works[i].sum[k] += wj.sum[k];
         works[i].unit = l2normalize(Float32Array.from(works[i].sum));
+        works[i].nz = undefined;
         absorbed.add(j);
       }
     }

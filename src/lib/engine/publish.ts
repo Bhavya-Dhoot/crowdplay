@@ -1,10 +1,13 @@
 // Assembles the single PublicState shape from the database and pushes it through the realtime transport.
 import { and, asc, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
+import { translateBundle, type TranslateInput } from "../ai/translate";
+import { features } from "../config";
 import { getDb, schema, type Db } from "../db/client";
 import { log } from "../log";
 import { getRealtimeServer } from "../realtime/index";
 import type {
   Credit,
+  I18nBundle,
   OptionSlot,
   Phase,
   PresetId,
@@ -170,6 +173,7 @@ export async function buildPublicState(roomId: string): Promise<PublicState> {
       canonMakers: await topCanonMakers(db, show.id, 5),
     } satisfies PublicFinale;
   }
+  if (features().multilingual) await attachTranslations(db, roomId, show.lang, state);
   return state;
 }
 
@@ -241,6 +245,129 @@ export async function publishRoomState(roomId: string, phaseChanged: boolean): P
     await withTimeout(getRealtimeServer().publishState(room.channelId, state, { phaseChanged }), PUBLISH_TIMEOUT_MS, "publishState");
   } catch (err) {
     log.error({ err, roomId }, "publish state failed");
+  }
+}
+
+// ---------- multilingual (FEATURE_MULTILINGUAL, AI_PROMPTS §9) ----------
+// Players in other languages get state.i18n. Translation never delays a publish: the state goes out without
+// it, one batched translateBundle call per (room, round, language set, prompt/options/narration version)
+// runs in the background (3 s cap), and a second publish (new version) carries the bundle when it lands.
+
+const I18N_TIMEOUT_MS = 3000;
+const I18N_MAX_LANGS = 6;
+/** An empty result (provider down, mock mode) is not retried before this has passed. */
+const I18N_RETRY_MS = 15_000;
+const I18N_CACHE_CAP = 300;
+
+type I18nBundles = Record<string, I18nBundle>;
+type I18nCache = {
+  done: Map<string, { bundles: I18nBundles; at: number }>;
+  pending: Set<string>;
+  /** Newest successful translation per room, so a changed version keeps showing what is still valid. */
+  last: Map<string, { roundNo: number; input: TranslateInput; bundles: I18nBundles }>;
+  inflight: Set<Promise<void>>;
+};
+const gi = globalThis as unknown as { __cpI18n?: I18nCache };
+const i18nCache = (): I18nCache => (gi.__cpI18n ??= { done: new Map(), pending: new Set(), last: new Map(), inflight: new Set() });
+
+function remember<V>(map: Map<string, V>, key: string, value: V): void {
+  map.delete(key);
+  map.set(key, value);
+  if (map.size > I18N_CACHE_CAP) map.delete(map.keys().next().value as string);
+}
+
+/** "pt-BR" -> "pt": the same short code the client looks bundles up by. */
+const shortLang = (l: string | null | undefined): string => /^[a-zA-Z]{2,3}/.exec((l ?? "").trim())?.[0].toLowerCase() ?? "en";
+
+/** Languages of joined, not-banned players that differ from the show language: most players first, max 6. */
+async function activeLanguages(db: Db, roomId: string, showLang: string): Promise<string[]> {
+  const rows = await db
+    .select({ lang: schema.participants.lang, n: sql<number>`count(*)::int` })
+    .from(schema.participants)
+    .where(and(eq(schema.participants.roomId, roomId), eq(schema.participants.banned, false)))
+    .groupBy(schema.participants.lang);
+  const base = shortLang(showLang);
+  const count = new Map<string, number>();
+  for (const r of rows) {
+    const l = shortLang(r.lang);
+    if (l !== base) count.set(l, (count.get(l) ?? 0) + r.n);
+  }
+  return [...count].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, I18N_MAX_LANGS).map(([l]) => l);
+}
+
+/** The parts of an older bundle whose source text has not changed since (keeps the prompt translated while the options translate). */
+function unchangedParts(prev: { input: TranslateInput; bundles: I18nBundles }, input: TranslateInput, langs: string[]): I18nBundles {
+  const out: I18nBundles = {};
+  for (const lang of langs) {
+    const b = prev.bundles[lang];
+    if (!b) continue;
+    const kept: I18nBundle = {};
+    if (b.prompt && input.prompt && prev.input.prompt?.title === input.prompt.title && prev.input.prompt.text === input.prompt.text) kept.prompt = b.prompt;
+    if (b.options && input.options) {
+      const same = Object.entries(b.options).filter(([id]) => prev.input.options?.[id] !== undefined && prev.input.options[id] === input.options?.[id]);
+      if (same.length > 0) kept.options = Object.fromEntries(same);
+    }
+    if (b.narration && input.narration && prev.input.narration === input.narration) kept.narration = b.narration;
+    if (Object.keys(kept).length > 0) out[lang] = kept;
+  }
+  return out;
+}
+
+async function translateInBackground(roomId: string, roundNo: number, key: string, input: TranslateInput, langs: string[]): Promise<void> {
+  const c = i18nCache();
+  c.pending.add(key);
+  const bundles: I18nBundles = {};
+  try {
+    const got = await withTimeout(translateBundle(input, langs), I18N_TIMEOUT_MS, "translateBundle");
+    for (const l of langs) if (got[l]) bundles[l] = got[l];
+  } catch (err) {
+    log.warn({ err, roomId, roundNo }, "translation failed; players see the original text");
+  } finally {
+    c.pending.delete(key);
+  }
+  remember(c.done, key, { bundles, at: Date.now() });
+  if (Object.keys(bundles).length === 0) return;
+  remember(c.last, roomId, { roundNo, input, bundles });
+  try {
+    await bumpVersion(roomId);
+    // i18n has no Open Channel metadata key, so it travels in the CP:State message: send that (phaseChanged = priority message).
+    await publishRoomState(roomId, true);
+  } catch (err) {
+    log.warn({ err, roomId }, "translated state not published");
+  }
+}
+
+/** Fill state.i18n from the cache and start a background translation when this version has none. Never throws, never waits for the model. */
+async function attachTranslations(db: Db, roomId: string, showLang: string, state: PublicState): Promise<void> {
+  try {
+    const input: TranslateInput = {};
+    if (state.prompt) input.prompt = { title: state.prompt.title, text: state.prompt.text };
+    if (state.options?.length) input.options = Object.fromEntries(state.options.map((o) => [o.id, o.label]));
+    if (state.outcome?.narration) input.narration = state.outcome.narration;
+    if (!input.prompt && !input.options && !input.narration) return;
+    const langs = await activeLanguages(db, roomId, showLang);
+    if (langs.length === 0) return;
+
+    const c = i18nCache();
+    const key = `${roomId}:${state.roundNo}:${langs.join(",")}:${JSON.stringify(input)}`;
+    const hit = c.done.get(key);
+    if (hit && Object.keys(hit.bundles).length > 0) {
+      state.i18n = hit.bundles;
+      return;
+    }
+    const prev = c.last.get(roomId);
+    if (prev && prev.roundNo === state.roundNo) {
+      const kept = unchangedParts(prev, input, langs);
+      if (Object.keys(kept).length > 0) state.i18n = kept;
+    }
+    if ((!hit || Date.now() - hit.at > I18N_RETRY_MS) && !c.pending.has(key)) {
+      const job: Promise<void> = translateInBackground(roomId, state.roundNo, key, input, langs)
+        .catch((err) => log.warn({ err, roomId }, "translation job failed"))
+        .finally(() => c.inflight.delete(job));
+      c.inflight.add(job);
+    }
+  } catch (err) {
+    log.warn({ err, roomId }, "translations skipped; state published without i18n");
   }
 }
 
@@ -329,11 +456,17 @@ export async function flushDirtyPublishes(): Promise<boolean> {
       await c.running;
     }
   }
+  const translating = i18nCache().inflight;
+  if (translating.size > 0) {
+    any = true; // a finished translation re-publishes, so the caller loops once more
+    await Promise.allSettled([...translating]);
+  }
   return any;
 }
 
-/** Tests: drop timers and pending coalesced work, as a restart would. */
+/** Tests: drop timers, pending coalesced work and cached translations, as a restart would. */
 export function resetPublishQueues(): void {
   for (const c of queues().values()) if (c.timer) clearTimeout(c.timer);
   g.__cpPublishQ = undefined;
+  gi.__cpI18n = undefined;
 }
