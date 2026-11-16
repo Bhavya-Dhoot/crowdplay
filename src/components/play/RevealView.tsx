@@ -99,10 +99,14 @@ export function RevealView({ state, narration, label, mineIds, reduced }: Props)
 
             <div className="mt-3 min-h-[96px]">
               {text ? (
-                <p data-testid="narration" className="text-[17px] leading-relaxed">
-                  <span>{text.slice(0, typed.shown)}</span>
-                  {typed.done ? null : <span aria-hidden="true" className={styles.caret} />}
-                  <span className="text-transparent select-none">{text.slice(typed.shown)}</span>
+                <p data-testid="narration" className="relative text-[17px] leading-relaxed">
+                  {/* The full text reserves the final layout (and is what screen readers get); the typed
+                      text is an out-of-flow overlay, so typing never shifts anything (CLS). */}
+                  <span className="text-transparent select-none">{text}</span>
+                  <span aria-hidden="true" className="absolute inset-0">
+                    {text.slice(0, typed.shown)}
+                    {typed.done ? null : <span className={styles.caret} />}
+                  </span>
                 </p>
               ) : (
                 <div data-testid="narration-pending" role="status" className="space-y-2.5">
