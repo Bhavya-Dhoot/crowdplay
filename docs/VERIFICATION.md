@@ -163,7 +163,24 @@ needs a live call, and lists the exact commands. Adapter behaviour is covered of
 
 ## 6. Docker image
 
-See the "Docker" line below (filled from the real `docker build` output).
+`docker build -t crowdplay:verify .` on Docker 29.5.3: exit 0 (image 1.44 GB; the deps stage ran the postinstall SDK build).
+Boot test, real output:
+
+```
+$ docker run -p 3377:3000 -e REALTIME_MODE=mock -e LLM_MODE=mock -e ALLOW_MOCK_IN_PROD=1 -e SESSION_SECRET=… crowdplay:verify
+GET /api/health          {"ok":true,"realtimeMode":"mock","llmMode":"mock","db":"pglite","version":"0.1.0"}
+POST /api/session        {"ok":true,"user":{"id":"u_wfrybpxta4hmhvo7","displayName":"Docker Check"…
+POST /api/rooms          {"ok":true,"code":"ASPJJ",…}
+POST host {start}        phase PROMPT
+GET /play/ASPJJ          200
+docker inspect health    healthy
+
+$ docker run -e REALTIME_MODE=mock -e SESSION_SECRET=… crowdplay:verify     # no ALLOW_MOCK_IN_PROD
+Refusing to start: REALTIME_MODE=mock in production. Set REALTIME_MODE=nexconn (or ALLOW_MOCK_IN_PROD=1 for a local production test only).
+exit code 1
+```
+
+Not tested: the image with a real Postgres (`DATABASE_URL`) or on Railway/Fly.
 
 ## 7. Human steps left (cannot be done without credentials / people)
 
