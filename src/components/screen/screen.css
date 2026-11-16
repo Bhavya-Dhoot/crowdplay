@@ -1,0 +1,167 @@
+/* CROWDPLAY big screen: only what Tailwind cannot say (keyframes, masks, stage lighting).
+   Everything here is prefixed cps- and scoped to the screen components. */
+
+/* The stage: a dark floor with two warm lights and one cool one. Not used in OBS mode. */
+.cps-bg {
+  background:
+    radial-gradient(70% 55% at 50% -14%, rgb(255 210 63 / 0.14), transparent 70%),
+    radial-gradient(42% 38% at 100% 104%, rgb(255 77 141 / 0.1), transparent 70%),
+    radial-gradient(40% 34% at 0% 104%, rgb(91 140 255 / 0.09), transparent 70%),
+    var(--bg);
+}
+.cps-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(104deg, transparent 30%, rgb(255 255 255 / 0.022) 36%, transparent 44%),
+    linear-gradient(76deg, transparent 58%, rgb(255 255 255 / 0.018) 64%, transparent 71%);
+}
+
+/* OBS: text must stay readable over any video behind it. */
+.cps-obs {
+  text-shadow:
+    0 0 3px rgb(0 0 0 / 0.85),
+    0 2px 16px rgb(0 0 0 / 0.8);
+}
+.cps-obs-panel {
+  background: rgb(11 11 18 / 0.72);
+  backdrop-filter: blur(6px);
+}
+
+/* Idea rain: the oldest cards sink and fade into the floor. */
+.cps-rain-col {
+  -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 64%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0, #000 64%, transparent 100%);
+}
+.cps-new {
+  animation: cps-new 1.6s var(--ease-out) 1 both;
+}
+@keyframes cps-new {
+  0% {
+    box-shadow:
+      0 0 0 3px var(--accent),
+      0 0 46px rgb(255 210 63 / 0.7);
+  }
+  100% {
+    box-shadow:
+      0 0 0 0 transparent,
+      0 0 0 transparent;
+  }
+}
+
+/* Wildcard column: a slow pink pulse. */
+.cps-wild-glow {
+  animation: cps-wild 2.6s ease-in-out infinite;
+}
+@keyframes cps-wild {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 2px var(--wild),
+      0 0 38px rgb(255 77 141 / 0.32);
+  }
+  50% {
+    box-shadow:
+      0 0 0 2px var(--wild),
+      0 0 78px rgb(255 77 141 / 0.6);
+  }
+}
+
+/* Winner: a gold halo that breathes. */
+.cps-win-glow {
+  animation: cps-win 3s ease-in-out infinite;
+}
+@keyframes cps-win {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 3px var(--accent),
+      0 0 60px rgb(255 210 63 / 0.28);
+  }
+  50% {
+    box-shadow:
+      0 0 0 3px var(--accent),
+      0 0 110px rgb(255 210 63 / 0.5);
+  }
+}
+
+/* Typing dots for "the narrator is writing" / "writing the finale". */
+.cps-dots span {
+  display: inline-block;
+  width: 0.28em;
+  height: 0.28em;
+  margin-left: 0.22em;
+  border-radius: 999px;
+  background: currentColor;
+  animation: cps-dot 1.2s ease-in-out infinite;
+}
+.cps-dots span:nth-child(2) {
+  animation-delay: 0.16s;
+}
+.cps-dots span:nth-child(3) {
+  animation-delay: 0.32s;
+}
+@keyframes cps-dot {
+  0%,
+  70%,
+  100% {
+    opacity: 0.25;
+    transform: translateY(0);
+  }
+  35% {
+    opacity: 1;
+    transform: translateY(-0.18em);
+  }
+}
+
+/* Credits roll: the list starts below the panel and climbs out of the top, then loops. */
+.cps-roll {
+  animation: cps-roll var(--roll, 30s) linear infinite;
+}
+@keyframes cps-roll {
+  from {
+    transform: translateY(var(--roll-from, 100%));
+  }
+  to {
+    transform: translateY(-100%);
+  }
+}
+.cps-fade-y {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 12%, #000 88%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 12%, #000 88%, transparent 100%);
+}
+
+/* Room code tiles in the lobby. */
+.cps-tile {
+  background: linear-gradient(180deg, var(--surface-2), var(--surface));
+  box-shadow:
+    0 0 0 1px var(--line),
+    0 14px 34px -14px rgb(0 0 0 / 0.7),
+    inset 0 1px 0 rgb(255 255 255 / 0.06);
+}
+
+/* Reduced motion: everything settles where it would have ended up. */
+@media (prefers-reduced-motion: reduce) {
+  .cps-new,
+  .cps-wild-glow,
+  .cps-win-glow,
+  .cps-roll,
+  .cps-dots span {
+    animation: none;
+  }
+  .cps-wild-glow {
+    box-shadow:
+      0 0 0 2px var(--wild),
+      0 0 44px rgb(255 77 141 / 0.4);
+  }
+  .cps-win-glow {
+    box-shadow:
+      0 0 0 3px var(--accent),
+      0 0 70px rgb(255 210 63 / 0.35);
+  }
+  .cps-dots span {
+    opacity: 0.8;
+  }
+}

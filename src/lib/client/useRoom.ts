@@ -212,7 +212,7 @@ function createController(code: string, role: RoomRole, publish: (v: View) => vo
       noteOk();
       dispatch({ type: "state", state: r.state });
     } else if (transient(r.code)) noteFail(r);
-    else if (r.code === "NOT_FOUND") fatal(r);
+    else if (r.code === "NOT_FOUND" || r.code === "ROOM_NOT_FOUND") fatal(r);
   }
 
   /** First load and every "give me everything again": join (players) or read state (screen/host). */

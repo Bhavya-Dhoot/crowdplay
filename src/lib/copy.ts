@@ -60,6 +60,7 @@ export type ClientErrorCode =
   | "ROOM_FULL"
   | "BAD_HOST_KEY"
   | "NOT_FOUND"
+  | "ROOM_NOT_FOUND"
   | "INTERNAL"
   | "NETWORK"
   | "BAD_REQUEST"
@@ -81,6 +82,7 @@ export const ERROR_COPY: Record<ClientErrorCode, string> = {
   ROOM_FULL: "This show is full. Watch it on the big screen instead.",
   BAD_HOST_KEY: "That host link isn't valid. Open the link from the setup screen again.",
   NOT_FOUND: "We can't find that show. Check the code and try again.",
+  ROOM_NOT_FOUND: "We can't find that show. Check the code and try again.",
   INTERNAL: "Something went wrong on our side. Try again in a moment.",
   NETWORK: "Can't reach the show. Check your connection and try again.",
   BAD_REQUEST: "That didn't go through. Check what you typed and try again.",
