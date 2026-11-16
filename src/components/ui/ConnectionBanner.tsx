@@ -5,24 +5,28 @@
 // never pushes the page around.
 //   <ConnectionBanner status={connection} />
 import { Check, LoaderCircle } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { COPY } from "@/lib/copy";
 import type { ConnectionStatus } from "@/lib/realtime/types";
 import { cn } from "./cn";
 
 const SHOW_AFTER_MS = 1000;
+// The very first connect gets a longer grace: a slow cold start is not a "reconnect".
+const FIRST_CONNECT_GRACE_MS = 4000;
 const ONLINE_MS = 2000;
 
 type Kind = "hidden" | "reconnecting" | "online";
 
 export function ConnectionBanner({ status }: { status: ConnectionStatus }) {
   const [kind, setKind] = useState<Kind>("hidden");
+  const everConnected = useRef(false);
 
   useEffect(() => {
+    if (status === "connected") everConnected.current = true;
     const t =
       status === "connected"
         ? setTimeout(() => setKind((k) => (k === "reconnecting" ? "online" : "hidden")), 0)
-        : setTimeout(() => setKind("reconnecting"), SHOW_AFTER_MS);
+        : setTimeout(() => setKind("reconnecting"), everConnected.current ? SHOW_AFTER_MS : FIRST_CONNECT_GRACE_MS);
     return () => clearTimeout(t);
   }, [status]);
 
