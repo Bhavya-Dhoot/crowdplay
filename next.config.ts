@@ -8,8 +8,8 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
-  // PGlite ships wasm + data files; keep it (and pg/pino) out of the server bundle.
-  serverExternalPackages: ["@electric-sql/pglite", "pg", "pino"],
+  // PGlite ships wasm + data files; keep it (and pg/pino, the CJS Nexconn server SDK) out of the server bundle.
+  serverExternalPackages: ["@electric-sql/pglite", "pg", "pino", "@nexconn/server-sdk"],
   poweredByHeader: false,
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
