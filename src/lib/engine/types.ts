@@ -67,6 +67,8 @@ export type Effect =
   | { type: "REPLACE_OPTION"; roundNo: number; optionId: string }
   | { type: "GEN_FINALE" }
   | { type: "START_BOTS"; roundNo: number }
+  /** Demo rooms: bots cast weighted-random votes when VOTE opens. */
+  | { type: "START_BOT_VOTES"; roundNo: number }
   | { type: "PUBLISH"; phaseChanged: boolean };
 
 export type MachineResult = { state: EngineState; effects: Effect[]; changed: boolean };

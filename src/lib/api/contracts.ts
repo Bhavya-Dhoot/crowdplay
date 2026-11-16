@@ -18,7 +18,7 @@ export type SessionRes = Ok<{
   user: { id: string; displayName: string };
   /** Same JWT as the cookie; stored in localStorage only as a cookies-blocked fallback (x-cp-session). */
   sessionToken: string;
-  realtime: { mode: "mock" | "nexconn"; appKey?: string; token?: string; area?: string };
+  realtime: { mode: "mock" | "nexconn"; ingest: "dual" | "webhook" | "post"; appKey?: string; token?: string; area?: string };
   features: Features;
 }>;
 
