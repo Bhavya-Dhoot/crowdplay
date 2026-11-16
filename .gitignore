@@ -54,3 +54,4 @@ next-env.d.ts
 # installed agent skills (restore with: npx skills add ... --skill nexconn-chat; pinned in skills-lock.json)
 /.agents/
 /.claude/
+/.next-lh/

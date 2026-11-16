@@ -3,7 +3,14 @@
 export async function register(): Promise<void> {
   if (process.env.NEXT_RUNTIME === "nodejs") {
     const { assertBootable } = await import("@/lib/config");
-    assertBootable(); // refuses REALTIME_MODE=mock in production
+    try {
+      assertBootable(); // refuses REALTIME_MODE=mock in production
+    } catch (err) {
+      // Next logs instrumentation errors but keeps listening; a misconfigured deploy must die instead.
+      console.error(err instanceof Error ? err.message : err);
+      if (process.env.NODE_ENV === "production") process.exit(1);
+      throw err;
+    }
     if (process.env.NEXT_PHASE === "phase-production-build") return;
 
     const { log } = await import("@/lib/log");

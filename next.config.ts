@@ -11,6 +11,8 @@ const nextConfig: NextConfig = {
   // PGlite ships wasm + data files; keep it (and pg/pino, the CJS Nexconn server SDK) out of the server bundle.
   serverExternalPackages: ["@electric-sql/pglite", "pg", "pino", "@nexconn/server-sdk"],
   poweredByHeader: false,
+  // Lets a second build (e.g. Lighthouse runs) live beside the e2e build. Default stays .next.
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
