@@ -1,0 +1,47 @@
+/*
+ * CROWDPLAY design tokens (UX_SPEC §1). Late-night game show: a dark stage, one bright accent.
+ * Plain CSS variables so non-Tailwind code (canvas, SVG, inline styles) can use them too;
+ * globals.css wires them into Tailwind 4 through @theme.
+ *
+ * Contrast on --bg (WCAG, computed): text 18.1, muted 7.1, accent 13.6, ok 11.1, warn 8.4,
+ * danger 6.4, option A 6.2, option C 6.3; muted on --surface-2 is 6.0. Text on a bright fill is --ink.
+ */
+:root {
+  --bg: #0b0b12;
+  --surface: #15151f;
+  --surface-2: #1e1e2b;
+  --line: #2a2a3a;
+  --text: #f5f5fa;
+  --muted: #9a9ab0;
+
+  --accent: #ffd23f; /* crowd / primary */
+  --wild: #ff4d8d; /* wildcard */
+  --ok: #3ddc97;
+  --warn: #ff8a3d;
+  --danger: #ff5a5a;
+  --ink: #0b0b12; /* text on any bright fill */
+
+  /* Option colours are always paired with a letter or icon, never colour-only. */
+  --opt-a: #5b8cff;
+  --opt-b: #3ddc97;
+  --opt-c: #ff4d8d;
+
+  --r-card: 16px;
+  --r-pill: 999px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+
+  --dur-phase: 250ms;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  /* Set by next/font in layout.tsx; the fallbacks keep text readable while fonts load. */
+  --f-display: var(--font-bricolage), "Arial Black", ui-sans-serif, system-ui, sans-serif;
+  --f-body: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
