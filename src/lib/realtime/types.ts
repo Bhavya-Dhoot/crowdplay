@@ -191,14 +191,14 @@ export interface RealtimeClient {
 
 // ---------- Open Channel metadata encoding (NEXCONN_INTEGRATION.md §5) ----------
 
-export const META_KEYS = ["cp.phase", "cp.prompt", "cp.options", "cp.tally", "cp.outcome", "cp.stats", "cp.story"] as const;
+export const META_KEYS = ["cp_phase", "cp_prompt", "cp_options", "cp_tally", "cp_outcome", "cp_stats", "cp_story"] as const;
 export type MetaKey = (typeof META_KEYS)[number];
 
 /** Split a PublicState into metadata values (JSON strings, each carrying v). */
 export function encodeMetadata(s: PublicState): Record<MetaKey, string> {
   const v = s.v;
   return {
-    "cp.phase": JSON.stringify({
+    "cp_phase": JSON.stringify({
       v,
       phase: s.phase,
       roundNo: s.roundNo,
@@ -210,12 +210,12 @@ export function encodeMetadata(s: PublicState): Record<MetaKey, string> {
       showId: s.showId,
       title: s.title,
     }),
-    "cp.prompt": JSON.stringify({ v, ...(s.prompt ?? {}) }),
-    "cp.options": JSON.stringify({ v, options: s.options ?? [] }),
-    "cp.tally": JSON.stringify({ v, tally: s.tally ?? {}, total: s.votesTotal ?? 0 }),
-    "cp.outcome": JSON.stringify({ v, ...(s.outcome ?? {}) }),
-    "cp.stats": JSON.stringify({ v, ...s.stats }),
-    "cp.story": JSON.stringify({ v, beats: s.storySoFar }),
+    "cp_prompt": JSON.stringify({ v, ...(s.prompt ?? {}) }),
+    "cp_options": JSON.stringify({ v, options: s.options ?? [] }),
+    "cp_tally": JSON.stringify({ v, tally: s.tally ?? {}, total: s.votesTotal ?? 0 }),
+    "cp_outcome": JSON.stringify({ v, ...(s.outcome ?? {}) }),
+    "cp_stats": JSON.stringify({ v, ...s.stats }),
+    "cp_story": JSON.stringify({ v, beats: s.storySoFar }),
   };
 }
 
@@ -234,7 +234,7 @@ export function decodeMetadata(kv: Record<string, string>): { v: number; fields:
       return null;
     }
   };
-  const ph = read("cp.phase");
+  const ph = read("cp_phase");
   if (ph) {
     Object.assign(fields, {
       phase: ph.phase,
@@ -248,18 +248,18 @@ export function decodeMetadata(kv: Record<string, string>): { v: number; fields:
       title: ph.title,
     } as Partial<PublicState>);
   }
-  const pr = read("cp.prompt");
+  const pr = read("cp_prompt");
   if (pr && typeof pr.title === "string") fields.prompt = { title: pr.title, text: String(pr.text ?? "") };
-  const op = read("cp.options");
+  const op = read("cp_options");
   if (op && Array.isArray(op.options)) fields.options = op.options as PublicOption[];
-  const ta = read("cp.tally");
+  const ta = read("cp_tally");
   if (ta) {
     fields.tally = (ta.tally ?? {}) as Record<string, number>;
     fields.votesTotal = Number(ta.total ?? 0);
   }
-  const oc = read("cp.outcome");
+  const oc = read("cp_outcome");
   if (oc && typeof oc.optionId === "string") fields.outcome = oc as unknown as PublicOutcome;
-  const st = read("cp.stats");
+  const st = read("cp_stats");
   if (st) {
     fields.stats = {
       players: Number(st.players ?? 0),
@@ -268,7 +268,7 @@ export function decodeMetadata(kv: Record<string, string>): { v: number; fields:
       canonMakers: Number(st.canonMakers ?? 0),
     };
   }
-  const sy = read("cp.story");
+  const sy = read("cp_story");
   if (sy && Array.isArray(sy.beats)) fields.storySoFar = sy.beats as string[];
   return v < 0 ? null : { v, fields };
 }

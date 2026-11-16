@@ -15,3 +15,4 @@ Choices where the spec was silent or had to be refined. Precedence: GOAL > TECH_
 | D9 | Votes are HTTP-only (secret, authoritative); everything players *see* is delivered through the realtime transport. | As designed in NEXCONN_INTEGRATION §6. |
 | D10 | AI modules are DB-free (`src/lib/ai/types.ts`); the engine loads inputs, persists outputs and recomputes counts/credits from the DB. | FR-14: LLM output is untrusted; keeps AI code unit-testable with fixtures. |
 | D11 | Process singletons (DB, mock bus, ticker, mutexes, rate limiters, embedding cache) live on `globalThis`. | Next bundles `instrumentation.ts` and route handlers separately; module-level state would not be shared. |
+| D12 | Open Channel metadata keys use `cp_phase`, `cp_prompt`, … (underscore) instead of `cp.phase`. | Nexconn metadata key charset is letters, digits and `+ = - _` (docs/NEXCONN_SDK_NOTES.md). |
