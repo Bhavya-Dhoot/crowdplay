@@ -15,7 +15,7 @@ import {
 } from "./cluster";
 import { getVectors } from "./embed";
 import { heuristicOptions, SIMILAR, WILD_MAX_SHARE, type Candidate, type PickedOption } from "./heuristics";
-import { mockDistillOut } from "./mock";
+import { mockDistillOut, mockDistillThink } from "./mock";
 import { availableProviders, callJSON, type LlmProvider } from "./providers";
 import { fenceIdea, ideaVerdict, safeLabel, UNTRUSTED_NOTE } from "./safety";
 import type { DistillIdea, DistillInput, DistillResult, DistilledOption, Provider } from "./types";
@@ -437,6 +437,7 @@ export async function distillRound(input: DistillInput): Promise<DistillResult> 
   const providers = availableProviders();
   if (providers.length === 0) {
     // LLM_MODE=mock (or no key): deterministic mock distiller, same validator.
+    await mockDistillThink(); // 0 ms unless MOCK_DISTILL_DELAY_MS is set (e2e)
     const out = mockDistillOut({
       crowd: p.crowd,
       wild: p.wild,

@@ -279,9 +279,20 @@ describe("instrumentation", () => {
     stopTicker();
     await settleEffects();
 
+    // In production a misconfigured deploy must die (process.exit(1)) instead of listening; the thrown error
+    // is the fallback for non-production runs. Stub the exit so the test process survives it.
     vi.stubEnv("NODE_ENV", "production");
     resetConfig();
-    await expect(register()).rejects.toThrow(/Refusing to start/);
+    const exit = vi.spyOn(process, "exit").mockImplementation((() => undefined) as unknown as typeof process.exit);
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      await expect(register()).rejects.toThrow(/Refusing to start/);
+      expect(exit).toHaveBeenCalledWith(1);
+      expect(logged).toHaveBeenCalledWith(expect.stringMatching(/Refusing to start/));
+    } finally {
+      exit.mockRestore();
+      logged.mockRestore();
+    }
     expect(g.__cpTicker).toBeUndefined();
     vi.unstubAllEnvs();
     resetConfig();

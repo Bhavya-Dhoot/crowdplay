@@ -171,7 +171,7 @@ function WizardBody() {
   const minutes = estimateMinutes(form.rounds, form.stormS, form.voteS);
 
   return (
-    <form noValidate onSubmit={(e) => void submit(e)} className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_360px]" data-testid="host-wizard">
+    <form noValidate onSubmit={(e) => void submit(e)} className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_360px]" data-testid="host-wizard">
       <fieldset disabled={submitting} className="min-w-0 space-y-6">
         <legend className="sr-only">Set up your show</legend>
 

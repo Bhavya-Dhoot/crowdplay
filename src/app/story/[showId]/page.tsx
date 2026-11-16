@@ -81,20 +81,20 @@ function RoundEntry({ round, last }: { round: StoryRound; last: boolean }) {
         {last ? null : <span className="mt-2 w-px flex-1 bg-line" />}
       </div>
       <div className={last ? "pb-0" : "pb-10"}>
-        <h3 className="font-display text-2xl leading-tight md:text-3xl">
+        <h3 className="font-display text-2xl leading-tight break-words md:text-3xl">
           <span className="sr-only">Round {round.roundNo}: </span>
           {round.prompt.title}
         </h3>
-        <p className="mt-2 max-w-[60ch] text-[15px] leading-relaxed text-muted">{round.prompt.text}</p>
+        <p className="mt-2 max-w-[60ch] text-[15px] leading-relaxed break-words text-muted">{round.prompt.text}</p>
 
         <Card tone={WINNER_TONE[kind] ?? "default"} className="mt-4 space-y-3 p-4 md:p-5">
           <div className="flex items-center gap-2">
             <KindPill kind={kind} />
             <span className="text-sm text-muted">won this round</span>
           </div>
-          {round.winner ? <p className="font-display text-xl leading-snug font-bold md:text-2xl">{round.winner.label}</p> : null}
+          {round.winner ? <p className="font-display text-xl leading-snug font-bold break-words md:text-2xl">{round.winner.label}</p> : null}
           {round.narration ? (
-            <p className="max-w-[62ch] text-base leading-relaxed md:text-lg">{round.narration}</p>
+            <p className="max-w-[62ch] text-base leading-relaxed break-words md:text-lg">{round.narration}</p>
           ) : (
             <p className="text-muted italic">The narrator is still writing this part.</p>
           )}
@@ -182,12 +182,12 @@ export default async function StoryPage({ params }: Params) {
             ) : null}
           </div>
 
-          <h1 className="mt-4 font-display text-[clamp(2.5rem,9.5vw,5.5rem)] leading-[0.95] font-extrabold tracking-[-0.04em] text-balance">
+          <h1 className="mt-4 font-display text-[clamp(2.5rem,9.5vw,5.5rem)] leading-[0.95] font-extrabold tracking-[-0.04em] break-words text-balance">
             {heading}
           </h1>
 
           {tagline ? (
-            <p className="mt-4 max-w-[36ch] text-xl text-muted md:text-2xl">{tagline}</p>
+            <p className="mt-4 max-w-[36ch] text-xl break-words text-muted md:text-2xl">{tagline}</p>
           ) : pending ? (
             <p className="mt-4 text-lg text-muted">The narrator is writing the tagline…</p>
           ) : null}
@@ -204,7 +204,7 @@ export default async function StoryPage({ params }: Params) {
           <h2 id="setup-h" className="font-display text-2xl md:text-3xl">
             The setup
           </h2>
-          <p className="mt-3 max-w-[62ch] text-lg leading-relaxed text-muted">{show.premise}</p>
+          <p className="mt-3 max-w-[62ch] text-lg leading-relaxed break-words text-muted">{show.premise}</p>
         </section>
 
         {hasRecap ? (
@@ -213,7 +213,7 @@ export default async function StoryPage({ params }: Params) {
               <h2 id="recap-h" className="font-display text-2xl md:text-3xl">
                 The story, start to finish
               </h2>
-              <p className="mt-3 max-w-[62ch] text-lg leading-relaxed">{show.recap}</p>
+              <p className="mt-3 max-w-[62ch] text-lg leading-relaxed break-words">{show.recap}</p>
             </Card>
           </section>
         ) : pending ? (

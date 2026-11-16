@@ -1,8 +1,26 @@
 // Deterministic stand-in for the distiller LLM (LLM_MODE=mock, AI_PROMPTS §10). It produces the same
 // shape the real model must return, so the output still goes through validateDistill.
+import { env } from "@/lib/config";
 import type { DistillOutput } from "./distill";
 import { heuristicOptions, type Candidate } from "./heuristics";
 import { passFilter } from "./safety";
+
+const MOCK_DELAY_CAP_MS = 10_000;
+
+/**
+ * e2e only: how long the mock distiller "thinks" (MOCK_DISTILL_DELAY_MS, default 0). Ignored unless LLM_MODE=mock,
+ * so a live deployment can never be slowed by it. Lets the DISTILL phase stay on screen long enough to be observed.
+ */
+export function mockDistillDelayMs(): number {
+  if (env().LLM_MODE !== "mock") return 0;
+  const n = Number(process.env.MOCK_DISTILL_DELAY_MS);
+  return Number.isFinite(n) && n > 0 ? Math.min(Math.round(n), MOCK_DELAY_CAP_MS) : 0;
+}
+
+export async function mockDistillThink(): Promise<void> {
+  const ms = mockDistillDelayMs();
+  if (ms > 0) await new Promise<void>((resolve) => setTimeout(resolve, ms));
+}
 
 export type MockDistillArgs = {
   crowd: Candidate[];

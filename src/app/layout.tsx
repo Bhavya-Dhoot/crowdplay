@@ -5,6 +5,11 @@ import { Bricolage_Grotesque, Inter } from "next/font/google";
 import type { ReactNode } from "react";
 import { ToastProvider } from "@/components/ui/Toast";
 import "./globals.css";
+// Route-specific stylesheets live in the root bundle on purpose: a <Link> prefetch (landing -> /host, /how-it-works)
+// preloads a route's own CSS chunk, and Chrome warns about every preloaded stylesheet that is not used within a few
+// seconds. These two are tiny (about 7 KB before compression), so one shared bundle beats a console warning on the landing page.
+import "@/components/depth/depth.css";
+import "@/components/host/host.css";
 
 const display = Bricolage_Grotesque({
   subsets: ["latin"],

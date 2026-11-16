@@ -1,0 +1,68 @@
+// Starts the production build for the Playwright suite (playwright.config.ts runs this as its webServer).
+// Mock realtime + mock LLM, a fresh database, and short phase timers. It never builds: `pnpm verify`
+// builds once and the suite then tests exactly that build.
+import { spawn } from "node:child_process";
+import { existsSync, rmSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const port = process.env.E2E_PORT || "3100";
+const dataDir = path.join(root, ".data", "e2e");
+
+if (!existsSync(path.join(root, ".next", "BUILD_ID"))) {
+  console.error("e2e: no production build found in .next. Run `pnpm build` first (`pnpm verify` does this for you).");
+  process.exit(1);
+}
+const nextBin = path.join(root, "node_modules", "next", "dist", "bin", "next");
+if (!existsSync(nextBin)) {
+  console.error("e2e: next is not installed. Run `pnpm install` first.");
+  process.exit(1);
+}
+
+rmSync(dataDir, { recursive: true, force: true });
+
+// No credentials, whatever the developer's shell or .env holds. An empty string counts as unset in config.ts and
+// stops Next from filling the variable in from a .env file.
+const NO_CREDENTIALS = [
+  "ANTHROPIC_API_KEY",
+  "OPENAI_API_KEY",
+  "OPENAI_FAST_MODEL",
+  "NEXCONN_APP_KEY",
+  "NEXCONN_APP_SECRET",
+  "NEXCONN_PRIMARY_API_DOMAIN",
+  "NEXCONN_SECONDARY_API_DOMAIN",
+  "NEXCONN_WEBHOOK_SECRET",
+  "NEXT_PUBLIC_NEXCONN_APP_KEY",
+  "NEXT_PUBLIC_NEXCONN_AREA",
+  "DATABASE_URL",
+  "FEATURE_TTS",
+  "FEATURE_MULTILINGUAL",
+];
+
+const env = {
+  ...process.env,
+  ...Object.fromEntries(NO_CREDENTIALS.map((k) => [k, ""])),
+  NODE_ENV: "production",
+  REALTIME_MODE: "mock",
+  LLM_MODE: "mock",
+  INGEST_MODE: "dual",
+  ALLOW_MOCK_IN_PROD: "1",
+  FEATURE_CHEERS: "1",
+  TIMING_SCALE: "0.3",
+  MOCK_DISTILL_DELAY_MS: "1500",
+  PGLITE_DIR: ".data/e2e",
+  APP_URL: `http://localhost:${port}`,
+  SESSION_SECRET: "e2e-session-secret-0123456789-abcdefghij",
+  ADMIN_TOKEN: "e2e-admin-token",
+  LOG_LEVEL: "warn",
+  PORT: port,
+};
+
+const child = spawn(process.execPath, [nextBin, "start", "-p", port], { cwd: root, env, stdio: "inherit" });
+
+const stop = () => child.kill();
+process.on("SIGTERM", stop);
+process.on("SIGINT", stop);
+process.on("exit", stop);
+child.on("exit", (code, signal) => process.exit(code ?? (signal ? 1 : 0)));
