@@ -61,6 +61,14 @@ After `.env` was created (Nexconn/AI lines still empty), `pnpm verify` was run a
 Two earlier re-runs exposed timing flakes that were fixed rather than retried: the DISTILL screenshot race (mock
 DISTILL widened to 3 s in the e2e server) and two wall-clock unit bounds that failed under parallel load.
 
+### Re-run on design v3 "Live Sketchnote" (2026-11-17, after the redesign and the dead-code sweep)
+
+`pnpm verify`, real result lines: `Test Files 65 passed | 1 skipped (66)`, `Tests 1059 passed | 14 skipped (1073)`,
+`check:secrets: OK — 10 secret value(s) checked across 70 client-visible file(s).`, `10 passed (5.1m)`,
+`verify: all gates passed`. Then `pnpm e2e` twice more on the same build: `10 passed (4.4m)` and `10 passed (4.1m)`.
+`tsc --noEmit --noUnusedLocals --noUnusedParameters`: 0 errors; `node scripts/find-dead-exports.mjs`: 0 unused exports,
+0 files nothing imports.
+
 Live checks are one command once the Nexconn lines in `.env` are filled: `pnpm live:check` (smoke → Nexconn
 contract → build into `.next-live` → two headless phones + big screen play one full round over Nexconn; results are
 written to `docs/live-results/`). Its spec was dry-run against the mock server (`E2E_LIVE=1 LIVE_DRY_RUN=1`): passed.
@@ -143,9 +151,13 @@ Reports: `docs/lighthouse/*.report.html` / `.json`.
 
 | Page | Phase | Performance | Accessibility | Best practices | LCP | TBT | CLS |
 |---|---|---|---|---|---|---|---|
-| `/` | — | 97 | 100 | 100 | 2.6 s | 60 ms | 0 |
-| `/play/CODE` | STORM | 100 | 100 | 100 | 1.4 s | 60 ms | 0 |
-| `/play/CODE` | REVEAL | 98 | 100 | 100 | 1.1 s | 180 ms | 0 |
+| `/` | — | 98 | 100 | 100 | 2.4 s | 60 ms | 0 |
+| `/play/CODE` | STORM | 93 | 100 | 100 | 1.9 s | 300 ms | 0 |
+| `/play/CODE` | REVEAL | 99 | 100 | 100 | 1.1 s | 100 ms | 0 |
+
+Measured on design v3 (2026-11-17), Lighthouse 12.8.2, with the show held in each phase by a host pause; the joined
+player's page was measured (final URL `/play/QHCDA` in both `/play` reports). Design v2 scored 97 / 100 / 98 on the same
+three pages.
 
 The first `/play` run (REVEAL) found CLS 0.173 from the narration typewriter; fixed (out-of-flow overlay) and re-measured.
 
@@ -199,6 +211,17 @@ LIVE_RESULTS {"server":{"realtimeMode":"nexconn","llmMode":"live"},"ideaLatencyM
 ```
 
 All three runs are tabulated in `docs/NEXCONN_FINDINGS.md` ("Live show results"); raw JSON is in `docs/live-results/`.
+
+**Design v3 re-run (2026-11-17, 16:00 UTC), on a degraded network.** `pnpm live:check`: smoke `11 passed, 0 load-bearing
+failed`, contract `19 passed | 7 skipped`, build OK. The first live show failed: this machine's outbound calls were
+timing out (13 Nexconn server calls over their 4 s timeout, OpenAI embeddings over 2.5 s), so ideas stopped arriving and
+the 40 s storm ran out before the spec had sent all six. The same spec passed against the mock server
+(`LIVE_DRY_RUN=1`: `1 passed`), and the live show re-run passed (`1 passed (1.6m)`) while the network was still poor
+(19 Nexconn call timeouts in the log): idea delivery 3.96–7.50 s, storm end to options 16.3 s, narration 5.4 s after
+REVEAL, ballot toast seen, receipts on `/me` (3 and 1), finale "Moonlight Misfits and the Ballroom Vault". The one
+console line is a 409 for an idea sent after the storm closed (`NOT_STORM`). These numbers measure the network that
+afternoon, not the app; the normal-network figures are the three runs above. Raw JSON:
+`docs/live-results/live-2026-11-17T16-01-57-778Z.json`.
 Idea delivery over Nexconn was 0.93–1.04 s in 13 of 14 samples (one 3.0 s outlier), so the ≤1 s target holds at the
 median, not at p95. STORM deadline → options on the phones: 2.8–3.1 s with live AI (target ≤8 s p95).
 
@@ -229,13 +252,13 @@ Refusing to start: REALTIME_MODE=mock in production. Set REALTIME_MODE=nexconn (
 exit code 1
 ```
 
-Not tested: the image with a real Postgres (`DATABASE_URL`) or on Railway/Fly.
+Not tested: the image with a real Postgres (`DATABASE_URL`) or on a hosting platform (the Render Blueprint in `render.yaml` is written from Render's docs and not yet applied).
 
 ## 7. Human steps left (need a deploy or people)
 
-Done on 2026-11-17: `.env` with the Nexconn and OpenAI keys; `pnpm live:check` steps 1–4 (section 5).
+Done on 2026-11-17: `.env` with the Nexconn and OpenAI keys; `pnpm live:check` steps 1–4 (section 5); the public repo github.com/Bhavya-Dhoot/crowdplay.
 
-1. Deploy (README → Railway / Fly) with the same `.env` values as service variables (`APP_URL` = the https URL, `DATABASE_URL` = Postgres), then set the webhook URL `https://<host>/api/nexconn/webhook` (event `message:send`) in the Console and re-run `pnpm smoke:nexconn` to see the U5 webhook check.
+1. Deploy on Render's free tier from the Blueprint (README → Deploy → Render): New → Blueprint → `Bhavya-Dhoot/crowdplay`, paste the four asked values (Nexconn App Key twice, App Secret, OpenAI key). Then set the webhook URL `https://<service>.onrender.com/api/nexconn/webhook` (event `message:send`) in the Nexconn Console and re-run `pnpm smoke:nexconn` with `APP_URL` set to that URL to see the U5 webhook check.
 2. One show with real people on real phones on the deployed URL; record it here.
 3. Run real sessions; capture `/impact` afterwards (the `impact-*.png` screenshots in `docs/screens/` are test data).
 4. Optional: add `ANTHROPIC_API_KEY` to make Claude the primary model (OpenAI then becomes the fallback).

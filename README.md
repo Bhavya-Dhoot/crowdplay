@@ -6,12 +6,12 @@ Built for the Nexconn Build Challenge 2026, track **Gaming & Live Streams**.
 
 ## Links
 
-Fill these in before submitting (see [Before submitting](#before-submitting)). Nothing below is deployed or recorded yet.
+Fill these in before submitting (see [Before submitting](#before-submitting)). The repo is public; nothing else below is deployed or recorded yet.
 
 ```
 Live app:          <add after deploy>
 Judge Mode (/try): <add after deploy>/try
-Repo:              <add public GitHub URL>
+Repo:              https://github.com/Bhavya-Dhoot/crowdplay
 Demo video:        <add after upload>   (3:00 max, public or unlisted)
 Write-up PDF:      <export docs/WRITEUP.md to PDF>
 Nexconn App Key:   <add: the public App Key, never the App Secret>
@@ -127,7 +127,7 @@ Bots and demo rooms are excluded from `/impact` by construction.
 1. Laptop: open `<APP>/host`. Pick a story (six presets; title and premise are prefilled and editable) and press **Create show**. Everything else has a default: a one-line **Pace and rules** summary opens to change rounds (3 to 10), storm (20 / 30 / 45 s), vote (10 / 12 / 20 s), auto-advance and the strict filter, and your host name is prefilled with a dice button. You land on `/host/<CODE>?k=<host key>`. Keep that URL private: the key runs the show.
 2. In the lobby a **Get people in** card fills the centre: a large QR code, the 5-letter code, **Copy join link**, and chips for the screen, OBS and host links. Once the show starts the card moves, smaller, to the **Room** column. **Big screen** in the top bar opens `/screen/<CODE>`; put it on a projector or share the window.
 3. Phone: scan the QR (it opens `/join/<CODE>`), enter a name, press **I'm in**. More players: more phones, or separate incognito windows (one browser profile is one player).
-4. Laptop: press **Start show**. The gold key then follows the phase (Start storm now, End storm now, Reveal now, Next round, Finale, End show), and a timeline under it marks the round and phase. During VOTE you can **Veto** an option (replaced within seconds), **Force win**, or **Re-roll** once. Players can be muted or banned and ideas deleted at any time.
+4. Laptop: press **Start show**. The yellow key then follows the phase (Start storm now, End storm now, Reveal now, Next round, Finale, End show), and a timeline under it marks the round and phase. During VOTE you can **Veto** an option (replaced within seconds), **Force win**, or **Re-roll** once. Players can be muted or banned and ideas deleted at any time.
 5. After the finale, open the story page (`/story/<showId>`, linked from the host console) and, on the phone, `/me` for receipts.
 
 ### C. OBS overlay
@@ -140,11 +140,11 @@ Add a Browser Source in OBS with URL `<APP>/screen/<CODE>?obs=1`, 1920 x 1080. T
 
 ## Local setup
 
-Requirements: Node 22 or newer, pnpm 10 (`corepack enable` picks the version pinned in `package.json`), and internet access for the first `pnpm install` (the Nexconn server SDK is a GitHub dependency) and for `pnpm build` (`next/font` downloads Bricolage Grotesque and Inter and self-hosts them).
+Requirements: Node 22 or newer, pnpm 10 (`corepack enable` picks the version pinned in `package.json`), and internet access for the first `pnpm install` (the Nexconn server SDK is a GitHub dependency) and for `pnpm build` (`next/font` downloads Kalam and Patrick Hand and self-hosts them).
 
 ```bash
-git clone <repo URL>
-cd <repo folder>
+git clone https://github.com/Bhavya-Dhoot/crowdplay.git
+cd crowdplay
 pnpm install
 pnpm dev          # http://localhost:3000
 ```
@@ -256,7 +256,18 @@ The real output of the latest run is in [docs/VERIFICATION.md](docs/VERIFICATION
 
 ## Deploy
 
-CrowdPlay is designed for **one long-running Node container** (the round ticker, rate limiters and embedding cache live in the process) plus a managed Postgres. Railway, Fly.io and Render all work with the included `Dockerfile` (multi-stage, Node 22, runs `next start`, `HEALTHCHECK` on `/api/health`, runs as the non-root `node` user). None of the steps below has been exercised against a real platform yet.
+CrowdPlay is designed for **one long-running Node container** (the round ticker, rate limiters and embedding cache live in the process) plus a managed Postgres. Render, Railway and Fly.io all work with the included `Dockerfile` (multi-stage, Node 22, runs `next start`, `HEALTHCHECK` on `/api/health`, runs as the non-root `node` user). The Docker image was built and run locally; the platform steps below have not yet been exercised against a real account.
+
+### Render, free tier (recommended: one Blueprint)
+
+[`render.yaml`](render.yaml) describes everything: a Docker web service and a Render Postgres, both on the free plan in `singapore` (next to Nexconn's SG data center), with the health check, the non-secret settings, and a generated `SESSION_SECRET` and `ADMIN_TOKEN`.
+
+1. Render dashboard: **New, Blueprint**, connect GitHub, pick `Bhavya-Dhoot/crowdplay`.
+2. Render asks for four values once: `NEXCONN_APP_KEY`, `NEXT_PUBLIC_NEXCONN_APP_KEY` (the same App Key again: Render passes it to the Docker build, which inlines it into the browser bundle), `NEXCONN_APP_SECRET` and `OPENAI_API_KEY`. Press **Apply**.
+3. Wait for the first build (several minutes) and open `https://<service>.onrender.com/api/health`: it should show `"realtimeMode":"nexconn"` and `"llmMode":"live"`. `APP_URL` is not needed: the app falls back to Render's `RENDER_EXTERNAL_URL`, so QR codes and share links already use the public URL.
+4. Nexconn console: set the webhook URL to `https://<service>.onrender.com/api/nexconn/webhook` with `message:send` (with `INGEST_MODE=dual` ideas also arrive over HTTP, so a show works before the webhook is set).
+
+Free-tier facts to know before a demo: the web service sleeps after 15 minutes without traffic and takes about a minute to wake (open the URL a minute before you need it); nothing is lost while it sleeps because all state is in Postgres. A free Render Postgres expires 30 days after creation, then has a 14-day grace period to upgrade before Render deletes it. One instance only, which is what the free plan gives you.
 
 ### What every deploy needs
 
@@ -405,14 +416,15 @@ Platform limits and design trade-offs:
   - Server: Drizzle ORM, PGlite (`@electric-sql/pglite`), `pg`, zod, jose, pino, nanoid
   - AI SDKs: `@anthropic-ai/sdk`, `openai`
   - Tooling: TypeScript, ESLint, Vitest, Playwright, tsx, drizzle-kit
-  - Fonts: Bricolage Grotesque and Inter via `next/font/google`
+  - Fonts: Kalam and Patrick Hand via `next/font/google` (the share image embeds Patrick Hand from `src/components/depth/fonts`, SIL OFL 1.1, licence file alongside)
+  - Design: the visual language follows the "Sketchnote" style description in the brag video-style catalogue (hand-drawn notes on dot-grid paper, a black pen, a grey marker, one yellow marker). The hand-drawn SVG paths come from our own generators in `src/components/ui/doodle.ts`
 - The idea blocklist, bot personas, canned bot ideas, story presets, prompts and every screen were written for this project. There are no bundled image or audio assets (sounds are synthesised in the browser).
 
 ## Before submitting
 
 Placeholders that must be replaced by a human, and things only a human can do:
 
-- [ ] Deploy (Railway or Fly.io above), then fill **Live app**, **Judge Mode** and **Nexconn App Key** in the Links block and in `docs/WRITEUP.md` section 1.
+- [ ] Deploy (Render Blueprint above), then fill **Live app**, **Judge Mode** and **Nexconn App Key** in the Links block and in `docs/WRITEUP.md` section 1.
 - [ ] Make the repo public, fill **Repo** here and in `docs/WRITEUP.md`; set `NEXT_PUBLIC_REPO_URL` and redeploy so the footer links to it.
 - [ ] Record the demo video (script: [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md)), upload it, fill **Demo video** here and in the write-up.
 - [ ] Record the 20-second GIF and fill **20-second GIF**.

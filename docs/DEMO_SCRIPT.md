@@ -7,7 +7,7 @@ Fields in `<angle brackets>` are filled by whoever records.
 
 1. **Real numbers only.** Every number you say must be visible on screen in the same shot (the players counter, the host console's distill time, `/impact`). If a number is not on screen, do not say it.
 2. **Label bot footage.** Anything recorded in `/try` is simulated players. Its banner ("Demo room — 30 🤖 simulated players. Live shows use real people.") must stay visible in every `/try` shot, and the voice-over must say the crowd is bots in the first `/try` segment. Never call bot footage "a real session".
-3. **Capture the receipt on a real phone.** The gold "Your idea became canon" moment lasts 2.5 s: the phone's screen recording must already be running before the VOTE phase.
+3. **Capture the receipt on a real phone.** The full-screen "Your idea became canon" moment (yellow pen loop, CANON ribbon, doodle confetti) lasts 2.5 s: the phone's screen recording must already be running before the VOTE phase.
 4. **Do not stage the win.** The host console has **Force win**. Do not use it to manufacture the receipt shot. If you do, say so in the voice-over and caption it ("host forced this result for the recording").
 5. **Say "runs on Nexconn" only for footage from a deployment where `/api/health` shows `"realtimeMode":"nexconn"`.** Footage from a local mock-mode run cannot back that line.
 6. **Never show the host URL.** `/host/<CODE>?k=...` carries the secret host key. Record the host console full screen (F11) or crop the address bar, and end that show afterwards.
@@ -32,7 +32,7 @@ Fields in `<angle brackets>` are filled by whoever records.
 | 0:45 to 1:10 | STORM: ideas raining | `/screen/<CODE>`; cut to a phone typing an idea | **Real people** |
 | 1:10 to 1:30 | DISTILL, then three options, wildcard glowing | `/screen/<CODE>` | **Real people** |
 | 1:30 to 1:50 | VOTE: live bars | `/screen/<CODE>`; cut to a phone tapping an option | **Real people** |
-| 1:50 to 2:15 | REVEAL, then the receipt close-up | `/screen/<CODE>`; cut to the phone screen recording of the gold moment, then `/me` | **Real person, real phone** |
+| 1:50 to 2:15 | REVEAL, then the receipt close-up | `/screen/<CODE>`; cut to the phone screen recording of the canon moment, then `/me` | **Real person, real phone** |
 | 2:15 to 2:40 | How it runs on Nexconn | `/how-it-works`, slow scroll through Under the hood and What runs on Nexconn | Product UI; any number must be live-measured and on screen |
 | 2:40 to 2:55 | `/impact`, then `/try` | `/impact` as displayed; `/try` intro and a few seconds of play | `/impact` real numbers only; `/try` is labelled demo |
 | 2:55 to 3:00 | End card with the URL | Static card | `<live app URL>` |
@@ -62,7 +62,7 @@ Setup before recording (see pre-flight): a show created on the deployed app, in 
 
 - **Host action (off camera):** on the host console press **Start show**. The PROMPT scene plays for 6 s, then the storm opens.
 - **Big screen:** ideas rain in as cards (up to 40 visible), countdown ring running.
-- **Phone:** the composer is live. Type an idea, send (the send button shows a 2 s cooldown ring). The idea appears in your own feed with a gold outline.
+- **Phone:** the composer is live. Type an idea, send (the send button shows a 2 s cooldown ring). The idea appears in your own feed as a paper note with a yellow edge, and a pen tick draws on when it is delivered.
 - **Voice-over:** "`<30>` seconds. Everyone types what happens next." Say the storm length you actually configured. The wizard default is 30 s; `/try` uses 20 s.
 - Do not script what people type. Ask everyone to type freely, one idea at a time.
 
@@ -80,10 +80,10 @@ Setup before recording (see pre-flight): a show created on the deployed app, in 
 
 ### 1:50 to 2:15: REVEAL and the receipt (real phone)
 
-- **Big screen:** the winning card lands in the middle with a CANON stamp, the narration types out on it, and the byline reads "Written by @name, @name + N others".
+- **Big screen:** the pen draws a yellow loop around the winning card, the CANON ribbon is written in, the narration is written out on it, and the byline reads "Written by @name, @name + N others".
 - **Phone (screen recording started before VOTE):**
   1. Around the start of VOTE a toast says "Your idea is on the ballot" if your idea fed an option. (If Nexconn's direct message does not reach the phone, the app asks the server once during REVEAL and the toast appears then.)
-  2. If your idea won and the receipt arrives while that round's REVEAL is on screen: a full-screen gold "Your idea became canon" for 2.5 s (confetti unless the phone has Reduce Motion on), then a gold toast. A receipt that arrives later is a toast only.
+  2. If your idea won and the receipt arrives while that round's REVEAL is on screen: a full-screen "Your idea became canon" for 2.5 s (confetti unless the phone has Reduce Motion on), then a toast with "canon" swashed in yellow. A receipt that arrives later is a toast only.
   3. Open `/me`: the receipt is listed under your show.
 - Get the shot with a second phone filming over the shoulder if you want a hand-held close-up; the screen recording is the safer capture.
 - **Voice-over:** "The `<wildcard / crowd option>` wins. The story turns, and `<the player's name as shown on screen>`'s phone tells them: your idea became canon." Say "wildcard" only if the winning option carries the Wildcard tag. Use a real player's name only with their consent.

@@ -1,8 +1,9 @@
 # Render Blueprint: one Docker web service + Render Postgres, both in Singapore (next to Nexconn's SG data centre).
 # Deploy: Render dashboard -> New -> Blueprint -> pick this repo. Render asks once for every `sync: false` value.
 # Migrations run on boot; GET /api/health is the health check. APP_URL defaults to RENDER_EXTERNAL_URL.
-# Plans: `free` web services sleep after 15 min idle (about a minute to wake) and free Postgres expires after 30 days.
-# For judging, switch the web plan to `0.5c-512mb` and the database plan to `0.1c-256mb` (paid, no sleep, no expiry).
+# Free tier: the web service sleeps after 15 min without traffic and takes about a minute to wake; a free Postgres
+# expires 30 days after creation (14-day grace to upgrade). The app keeps no state on local disk, so sleeping loses
+# nothing: every show lives in Postgres and the round engine catches up on the first request after waking.
 services:
   - type: web
     name: crowdplay

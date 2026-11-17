@@ -1,0 +1,58 @@
+{
+  "at": "2026-11-17T16:01:57.778Z",
+  "dryRun": false,
+  "server": {
+    "ok": true,
+    "realtimeMode": "nexconn",
+    "llmMode": "live",
+    "db": "pglite",
+    "version": "0.1.0"
+  },
+  "roomCode": "QMMNA",
+  "ideaLatencyMs": [
+    {
+      "toPhone": 6022,
+      "toScreen": 6023
+    },
+    {
+      "toPhone": 3961,
+      "toScreen": 3960
+    },
+    {
+      "toPhone": 4952,
+      "toScreen": 4951
+    },
+    {
+      "toPhone": 6483,
+      "toScreen": 6485
+    },
+    {
+      "toPhone": 5947,
+      "toScreen": 5947
+    },
+    {
+      "toPhone": 6993,
+      "toScreen": 7497
+    }
+  ],
+  "stormEndToOptionsMs": 16314,
+  "distill": {
+    "ms": null,
+    "provider": null,
+    "fallbackUsed": false
+  },
+  "narrationVisibleAfterRevealMs": 5426,
+  "ballotToastSeenOnAPhone": true,
+  "receiptsOnMe": {
+    "ada": 3,
+    "bo": 1
+  },
+  "finale": {
+    "storyTitle": "Moonlight Misfits and the Ballroom Vault",
+    "recapChars": 931,
+    "tagline": "A heist goes sideways and lands in the fanciest room on the moon."
+  },
+  "consoleProblems": [
+    "Bo Live: Failed to load resource: the server responded with a status of 409 (Conflict)"
+  ]
+}

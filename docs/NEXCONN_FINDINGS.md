@@ -145,3 +145,28 @@ What this settles:
 - **Ids with `_`** (`u_…`, `cp_narrator`) work end to end.
 - **Latency:** idea delivery is about 0.93–1.0 s with one 3.0 s outlier in 14 samples, measured from India to the Singapore data center. Our client sends over Nexconn immediately (in parallel with the HTTP post), so this is the provider path. It meets the 1 s target at the median, not at p95. Untested lever: ideas are registered as low-priority types (`CP:Idea`, `CP:Cheer`).
 - **Still not live-tested:** the message webhook (needs the deployed https URL in the Console; with `INGEST_MODE=dual` the HTTP path carries ideas meanwhile), more than 3 concurrent clients, and real phones on mobile networks.
+
+## Live smoke results (2026-11-17T15:55:58.309Z)
+
+Run by `pnpm smoke:nexconn` against api.sg-light-api.com (primary) / api-b.sg-light-api.com (backup). Test channel `cpsmokemwkvjl6l` was created and destroyed.
+
+| Check | U | Result | Load-bearing | Detail |
+|---|---|---|---|---|
+| issueAccessToken for a plain user id | U1 | PASS | yes | token of 104 chars |
+| user ids the app really uses: u_<id> and cp_narrator (underscore) | U1 | PASS | yes | both accepted |
+| ensureChannel: create + longest keep-alive + priority sender | U9 | PASS | yes | destroyType 0, ttlMinutes 10080 |
+| publishState: metadata batch set + CP:State message, metadata read back | U2/U3/U4 | PASS | yes | 7 keys read back; CP:State accepted |
+| metadata key charset: is a '.' key (cp.phase) accepted? | U3 | INFO | no | 'cp.dot' -> code 1002 (rejected: keep underscores); 'cp_ok-1' -> 0; 4000-char value -> 0 |
+| RC:TxtMsg fallback envelope accepted by the server (NEXCONN_TEXT_ENVELOPE=1) | U4 | INFO | no | fallback sent; a never-registered custom type -> code 0. Whether Web clients receive it needs the two-browser show. |
+| publishTally + sendRoomMessage (bot idea, cheer, notice, moderation) | U4 | PASS | yes | all accepted by the server (client delivery needs the two-browser show) |
+| configurePriorities: CP:State/CP:Moderation priority, CP:Idea/CP:Cheer low priority | U6 | PASS | no | registered and read back |
+| narrator is on the channel's priority sender list | U6 | PASS | no | cp_narrator listed |
+| sendReceipt: direct message from the narrator, system message as fallback | U7 | PASS | yes | adapter returned true; direct code 0, system code 0. Accepted is not shown: confirm in a browser that the toast appears for a user who never opened that channel. |
+| countParticipants (participant list total) | U8 | PASS | yes | total 0 (an empty channel) |
+| mute / unmute / ban / unban a test user, read back from the lists | U8 | PASS | yes | all four actions accepted and visible in the lists |
+| profanity list: blocklist synced by configurePriorities, provider quota | U10 | INFO | no | 50 words on the provider list (list code 0); adding one more -> code 1019 (quota full or not permitted: the app-level filter stays authoritative) |
+| webhook URL reachability from this machine (the Console setting itself cannot be read) | U5 | INFO | no | http://localhost:3000/api/nexconn/webhook: unsigned POST -> HTTP 401 (rejected as it should be). APP_URL is local: Nexconn cannot call it; use the deployed https URL in Console > Chat > Chat settings > Webhooks and subscribe to message:send. |
+| Web SDK facts (package versions; metadata subscribe and join need a browser) | U1/U2 | INFO | no | @nexconn/chat 26.2.1, @nexconn/engine 26.2.1. Client behaviour is confirmed only by the two-browser live show. |
+| destroyChannel removes the test channel | U9 | PASS | yes | getOpenChannel now answers 23410 (does not exist) |
+
+All load-bearing checks passed.
