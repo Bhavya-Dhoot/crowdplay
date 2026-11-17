@@ -1,17 +1,16 @@
-// Footer: How it works · Impact · GitHub (only when NEXT_PUBLIC_REPO_URL is set) · NexconnBadge.
-// Server component: NEXT_PUBLIC_REPO_URL is read at build time.
+// Footer: How it works · Impact · GitHub (only when NEXT_PUBLIC_REPO_URL is set) · NexconnBadge, under a dashed pen line
+// like the footer of a sketchnote page. Server component: NEXT_PUBLIC_REPO_URL is read at build time.
 import Link from "next/link";
 import { COPY } from "@/lib/copy";
 import { cn } from "./cn";
 import { NexconnBadge } from "./NexconnBadge";
 
-const LINK =
-  "press inline-flex min-h-11 items-center rounded-pill px-3 text-small font-medium text-muted-on-stage [--press-overlay:rgb(255_255_255/0.08)] hover:text-on-stage";
+const LINK = "scribble inline-flex min-h-11 items-center px-3 text-small text-ink-notes hover:text-ink";
 
 export function Footer({ className }: { className?: string }) {
   const repo = process.env.NEXT_PUBLIC_REPO_URL;
   return (
-    <footer className={cn("border-t border-stage-line", className)}>
+    <footer className={cn("border-t-2 border-dashed border-ink-faint", className)}>
       <div className="mx-auto flex w-full max-w-6xl flex-col items-start gap-3 px-4 py-6 md:flex-row md:items-center md:justify-between md:px-8">
         <nav aria-label="Footer" className="-ml-3 flex flex-wrap items-center">
           <Link href="/how-it-works" className={LINK}>

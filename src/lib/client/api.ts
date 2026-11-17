@@ -9,12 +9,10 @@ import type {
   CreateRoomInput,
   CreateRoomRes,
   Err,
-  HealthRes,
   HostActionInput,
   HostFeedRes,
   HostRes,
   IdeaRes,
-  ImpactRes,
   JoinRes,
   MeInRoom,
   MeRes,
@@ -149,7 +147,5 @@ export const startTry = (displayName?: string) =>
   request<TryRes>("/api/try", { method: "POST", body: displayName ? { displayName } : {} });
 export const getMe = () => request<MeRes>("/api/me");
 export const getStory = (showId: string) => request<StoryRes>(`/api/story/${enc(showId)}`);
-export const getImpact = () => request<ImpactRes>("/api/impact");
 
 export const getTime = () => request<{ ok: true; now: number }>("/api/time", { timeoutMs: 4_000 });
-export const getHealth = () => request<{ ok: true } & Omit<HealthRes, "ok">>("/api/health", { timeoutMs: 4_000 });

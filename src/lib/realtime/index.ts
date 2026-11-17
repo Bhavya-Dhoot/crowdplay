@@ -13,8 +13,3 @@ export function getRealtimeServer(): RealtimeServer {
   }
   return g.__cpRealtime;
 }
-
-/** Tests: drop the cached instance so the next call re-reads REALTIME_MODE. */
-export function resetRealtimeServer(): void {
-  g.__cpRealtime = undefined;
-}

@@ -11,7 +11,6 @@ const key32 = customAlphabet("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmn
 
 export const newRoomCode = (): string => code();
 export const newUserId = (): string => `u_${id16()}`;
-export const newBotId = (): string => `b_${id16()}`;
 export const newId = (prefix: string): string => `${prefix}_${id16()}`;
 export const newHostKey = (): string => key32();
 

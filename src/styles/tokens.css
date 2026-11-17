@@ -1,131 +1,112 @@
 /*
- * CROWDPLAY design tokens, v2 "The Writers' Room" (plans/design-v2.md).
- * Warm paper cards on a tinted ink stage, lit by a stage light whose hue changes every round.
+ * CROWDPLAY design tokens, v3 "Live Sketchnote" (plans/design-v3.md).
+ * One page of notes: warm dot-grid paper, a black fineliner, a grey marker for volume and ONE yellow marker that
+ * follows the thread (your idea, your vote, the winner, canon, the one primary action). Light only.
  * Plain CSS variables so non-Tailwind code (canvas, SVG, inline styles) can use them too;
  * globals.css wires them into Tailwind 4 through @theme.
  *
- * Measured contrast (WCAG): text on stage 16.8, muted on stage 7.8 (6.4 on stage-2), ink on paper 15.3,
- * muted ink on paper 6.1 (5.5 on paper-2), ink on gold 11.2, ink on gel A 4.7 / B 7.8 / C 5.2, white on gel A 3.7 /
- * C 3.4 (large bold only), ink on ok/warn/danger 9+/10+/5.7, danger-on-paper 4.9. Gels on stage 5.2-8.7.
- * Colour never carries meaning alone: gels come with a letter, status with an icon and words.
- *
- * Legacy token names (--bg, --surface, --accent, --opt-a ...) live at the bottom as aliases.
+ * Measured contrast (WCAG): ink on paper 15.9 (raised 16.5), ink-notes on paper 6.8 (raised 7.0; the floor for
+ * text), ink-faint on paper 3.5 (decoration, outlines and large text only, never body copy), ink on yellow
+ * (--hl-solid) 11.5, ink on --hl-deep 8.4, danger on paper 5.9 (raised 6.1).
+ * Colour never carries meaning alone: status comes with an icon and words, options with a letter.
  */
 
-/* Registered so a round change cross-fades the whole page's light instead of snapping. */
-@property --light {
-  syntax: "<color>";
-  inherits: true;
-  initial-value: #ffb547;
-}
-
 :root {
-  /* Stage: tinted, never pure black. Higher number = raised = lighter. */
-  --stage-0: #0f0d16; /* page */
-  --stage-1: #191724; /* raised panel */
-  --stage-2: #232032; /* raised more */
-  --stage-line: #34304a;
-  --ink-on-stage: #f3efe6; /* text on stage */
-  --muted-on-stage: #a7a1bc; /* secondary text on stage */
+  color-scheme: light;
 
-  /* Paper: the one signature surface (idea cards, script cards, the narration page). */
-  --paper: #f6f0e4;
-  --paper-2: #ede4d3; /* pressed / stacked */
-  --paper-edge: #d9cdb6;
-  --ink: #1c1828; /* text on paper AND on any bright fill (gold, gels, status) */
-  --ink-muted: #5e566f;
+  /* Paper and ink. The page is --paper; a card is paper laid on top (--paper-raised), so it hides the dots. */
+  --paper: #fbfaf6;
+  --paper-raised: #fffefa;
+  --dots: #d9d4c9;
+  --ink: #1e1e22; /* lines, words, primary text */
+  --ink-notes: #5b5852; /* secondary text */
+  --ink-faint: #8a867d; /* decoration and large text only */
 
-  /* Stage light per round: backdrop spotlight, countdown ring and small highlights ONLY.
-     <StageBackdrop roundNo> sets --light on the document root. Round 1 amber, 2 teal, 3 lilac, then cycle. */
-  --light-1: #ffb547;
-  --light-2: #4fd1c5;
-  --light-3: #b892ff;
-  --light: var(--light-1);
+  /* Dot grid: the page itself (html carries it, so it scrolls with the notes). One static grain layer is drawn by
+     <StageBackdrop>. */
+  --dot-grid: radial-gradient(circle, var(--dots) 1.3px, transparent 1.5px) 0 0 / 26px 26px;
 
-  /* Option gels. Always shown with the letter (A, B, bolt for the wildcard C). */
-  --gel-a: #4c7dff;
-  --gel-b: #22c58b;
-  --gel-c: #ff3d7f;
+  /* Markers: translucent, so overlaps darken into streaks. */
+  --marker-1: rgb(100 100 110 / 0.16); /* volume, fills */
+  --marker-2: rgb(80 80 92 / 0.28); /* shadows, ribbon tails */
+  --marker-3: rgb(52 52 64 / 0.45); /* folds, small dark parts */
+  --hl: rgb(255 205 40 / 0.8); /* the yellow marker */
+  --hl-solid: #ffd23f; /* opaque yellow where multiply is impossible: the primary button face */
+  --hl-deep: #f5aa00; /* sparks, the canon loop, the yellow edge of "your" note */
 
-  /* Gold: "canon" and the single primary action per view. Nothing else is gold. */
-  --gold: #ffc83d;
+  /* Status: the only extra colour. Error text, the destructive confirm and "removed". Small areas only. */
+  --danger: #b4321f;
 
-  /* Status: always with an icon and words. */
-  --ok: #34d399;
-  --warn: #ffb547;
-  --danger: #ff5c5c;
-  --danger-on-paper: #c4262b; /* danger borders and text on paper (4.9:1) */
+  /* Lines. Cards and boxes 2.5, chips and inputs 2, buttons 3. */
+  --line: 2.5px solid var(--ink);
+  --line-2: 2px solid var(--ink);
+  --line-3: 3px solid var(--ink);
 
-  /* Concentric radii: nested radius = outer minus the gap. */
-  --r-inner: 6px;
-  --r-element: 10px;
-  --r-card: 16px;
-  --r-sheet: 24px;
-  --r-pill: 9999px;
+  /* Hand-drawn radii: nothing is a perfect round. Alternate --r-card-alt on siblings. */
+  --r-card: 18px 24px 16px 22px / 22px 16px 24px 18px;
+  --r-card-alt: 24px 16px 22px 18px / 16px 22px 18px 24px;
+  --r-pill: 255px 18px 225px 18px / 18px 225px 18px 255px;
+  --r-blob: 52% 48% 55% 45% / 48% 55% 45% 52%;
+  --r-element: 12px 10px 13px 9px / 10px 13px 9px 12px;
+  --r-inner: 6px 8px 5px 7px / 7px 5px 8px 6px;
+  --r-sheet: 26px 20px 24px 18px / 20px 24px 18px 26px;
 
-  /* 4 px grid. Gap tiers: 8 inside a control, 12 between controls (min between vote cards),
-     20 between groups, 32 between sections. */
+  /* Shadow is grey marker, always down-right, no blur. */
+  --sh-marker: 6px 7px 0 var(--marker-2); /* cards */
+  --sh-pen: 4px 4px 0 var(--ink); /* buttons; pressed: 0 0 0 and translate 4px 4px */
+  --sh-poster: 9px 10px 0 var(--marker-2); /* big poster boxes */
+  --sh-slip: 4px 5px 0 var(--marker-2); /* small slips: toasts, chips, the composer bar */
+
+  /* 4 px grid. Gap tiers: 8 inside a control, 12 between controls, 20 between groups, 32 between sections. */
   --gap-control: 8px;
   --gap-between: 12px;
   --gap-group: 20px;
   --gap-section: 32px;
 
-  /* Paper gets a crisp contact shadow. No coloured glows, no wide diffuse shadows on stage elements. */
-  --contact-shadow: 0 1px 0 var(--paper-edge), 0 8px 18px -10px rgb(0 0 0 / 0.55);
-  --paper-highlight: inset 0 1px 0 rgb(255 255 255 / 0.55);
-
-  /* Glass: ONLY on floating layers (composer bar, toasts, connection banner, host top bar, sheets). Never on cards. */
-  --glass-bg: color-mix(in srgb, var(--stage-1) 72%, transparent);
-  --glass-filter: blur(24px) saturate(1.4);
-
-  /* Motion (mirrors motionTokens.ts). Only transform and opacity animate. */
-  --dur-fast: 175ms; /* press release, chips, vote confirm, exits */
-  --dur-medium: 410ms; /* phase change, sheet */
+  /* Motion (mirrors motionTokens.ts). Things are drawn or placed, never slid across. */
+  --dur-fast: 175ms; /* press release, exits, vote confirm */
+  --dur-medium: 410ms; /* placing a card, the marker swipe */
   --dur-slow: 975ms; /* the reveal moment, once per round */
   --ease-arrive: cubic-bezier(0.24, 1, 0.4, 1);
   --ease-exit: cubic-bezier(0.3, 0, 0.6, 0.6);
+  --ease-pen: cubic-bezier(0.55, 0, 0.35, 1);
 
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-top: env(safe-area-inset-top, 0px);
 
   /* Set by next/font in layout.tsx; the fallbacks keep text readable while fonts load. */
-  --f-display: var(--font-bricolage), "Arial Black", ui-sans-serif, system-ui, sans-serif;
-  --f-body: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --f-script: var(--font-fraunces), "Iowan Old Style", "Palatino Linotype", Georgia, serif;
-
-  transition: --light var(--dur-slow) var(--ease-arrive);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  :root {
-    transition-duration: var(--dur-fast);
-  }
+  --f-display: var(--font-kalam), "Segoe Print", "Bradley Hand", "Comic Sans MS", cursive;
+  --f-body: var(--font-patrick), "Segoe Print", "Bradley Hand", "Comic Sans MS", cursive;
+  --f-script: var(--f-body);
 }
 
 /* ------------------------------------------------------------------ */
-/* Legacy aliases. Pages that have not been restyled yet keep using    */
-/* these names; each maps to the closest v2 value so nothing breaks.   */
+/* v2 aliases: removed in the dead-code sweep.                          */
+/* Pages that have not been restyled yet keep using the v2 names; each  */
+/* maps to a v3 value so they render as readable ink on paper. Move to  */
+/* the v3 names above, then delete this block (and its twin in the      */
+/* @theme and utilities blocks of globals.css).                         */
 /* ------------------------------------------------------------------ */
 :root {
-  --bg: var(--stage-0);
-  --surface: var(--stage-1);
-  --surface-2: var(--stage-2);
-  --line: var(--stage-line);
-  --text: var(--ink-on-stage);
-  --muted: var(--muted-on-stage);
-  --accent: var(--gold);
-  --wild: var(--gel-c);
-  --opt-a: var(--gel-a);
-  --opt-b: var(--gel-b);
-  --opt-c: var(--gel-c);
-  /* --r-card, --r-pill, --ok, --warn, --danger, --ink, --safe-bottom keep their names (new values). */
+  --stage-0: var(--paper);
+  --stage-1: var(--paper-raised);
+  --stage-2: #efece3;
+  --stage-line: var(--ink-faint);
+  --ink-on-stage: var(--ink);
+  --muted-on-stage: var(--ink-notes);
+  --ink-muted: var(--ink-notes);
+  --paper-2: #f1eee4;
+  --paper-edge: var(--ink-faint);
+  --gold: var(--hl-solid);
+  /* Option gels become three greys (ink on each is 4.9 to 9.3). The letter was always the real signal. */
+  --gel-a: #a9a7a2;
+  --gel-b: #c4c2bd;
+  --gel-c: #8e8c87;
+  --ok: var(--ink-notes);
+  --warn: var(--hl-solid);
+  --danger-on-paper: var(--danger);
+  --light: var(--ink);
   --ease-out: var(--ease-arrive);
-  --dur-phase: var(--dur-medium);
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-6: 24px;
-  --space-8: 32px;
-  --space-12: 48px;
+  --contact-shadow: 3px 4px 0 var(--marker-2);
+  --paper-highlight: 0 0 0 0 transparent;
 }

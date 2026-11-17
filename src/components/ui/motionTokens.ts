@@ -1,5 +1,5 @@
-// Motion tokens (design-v2 "Motion"). Pure data and helpers: safe on the server, the client and in tests.
-// CSS twins live in src/styles/tokens.css (--dur-*, --ease-*). Only transform and opacity ever animate.
+// Motion tokens (design-v3 "Motion"). Pure data and helpers: safe on the server, the client and in tests.
+// CSS twins live in src/styles/tokens.css (--dur-*, --ease-*). Things are drawn or placed, never slid across.
 //   import { DURATION, EASE, SPRING, TRANSITION } from "@/components/ui/motionTokens";
 //   <m.div transition={SPRING.stamp} />   <m.div transition={TRANSITION.medium} />
 //   springToLinear(420, 22)               { easing: "linear(...)", durationMs } -> a CSS spring with no JS animation lib
@@ -12,8 +12,10 @@ export const DURATION = { fast: 0.175, medium: 0.41, slow: 0.975 } as const;
 export const DURATION_MS = { fast: 175, medium: 410, slow: 975 } as const;
 
 /** Arrivals and state changes ease out; exits accelerate away. */
-export const EASE = { arrive: [0.24, 1, 0.4, 1], exit: [0.3, 0, 0.6, 0.6] } as const;
-export const EASE_CSS = { arrive: "cubic-bezier(0.24, 1, 0.4, 1)", exit: "cubic-bezier(0.3, 0, 0.6, 0.6)" } as const;
+export const EASE = { arrive: [0.24, 1, 0.4, 1], exit: [0.3, 0, 0.6, 0.6], pen: [0.55, 0, 0.35, 1] } as const;
+
+/** How long the pen takes (ms): an outline, a check, the canon loop, the yellow marker swipe. */
+export const DRAW_MS = { outline: 400, check: 220, loop: 700, swipe: 410 } as const;
 
 /** Spring params (mass 1). Stiffness/damping from the Apple/Astryx response-damping pairs, see plans/design-sources.md. */
 export const SPRING = {
@@ -36,7 +38,7 @@ export const TRANSITION = {
 } as const;
 
 /** Vibration patterns in ms. Optional polish: iOS Safari ignores them, so never depend on one. */
-export const HAPTIC_MS = { tap: 12, reject: 30, canon: 60 } as const;
+const HAPTIC_MS = { tap: 12, reject: 30, canon: 60 } as const;
 
 /** Short buzz for a vote or send (tap), a rejected idea (reject) and for becoming canon. Muted by reduced motion. */
 export function haptic(kind: keyof typeof HAPTIC_MS): void {
@@ -45,7 +47,7 @@ export function haptic(kind: keyof typeof HAPTIC_MS): void {
   navigator.vibrate(HAPTIC_MS[kind]);
 }
 
-export type SpringCss = { easing: string; durationMs: number };
+type SpringCss = { easing: string; durationMs: number };
 
 /**
  * A damped spring (step response from 0 to 1, mass 1 by default) as a CSS `linear()` easing, so

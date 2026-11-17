@@ -7,7 +7,6 @@ export const PRESET_IDS = ["heist", "fantasy", "space", "mystery", "classroom", 
 
 export type Ok<T> = { ok: true } & T;
 export type Err = { ok: false; code: string; message: string };
-export type ApiResult<T> = Ok<T> | Err;
 
 // ---- POST /api/session ----
 export const SessionBody = z.object({

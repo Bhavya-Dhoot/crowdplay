@@ -1,16 +1,16 @@
 "use client";
-// PhaseHeader: "Round 2 / 6", the phase label and the circular countdown, in a fixed-height row
-// so phases never shift the layout. It also announces every phase change through an aria-live
-// region, so pages get that for free.
+// PhaseHeader: the numbered banner ("2 Vote") with the scene count above it and the hand-drawn countdown, in a
+// fixed-height row so phases never shift the layout. It also announces every phase change through an aria-live region,
+// so pages get that for free.
 //   <PhaseHeader state={state} offsetMs={offsetMs} />
-// LOBBY and FINALE show no round number; phases without a deadline show an empty ring. The small dot before the
-// round is this round's stage light (see <StageBackdrop>), the ring is the same hue.
+// LOBBY and FINALE show no scene number (a plain title instead); phases without a deadline show an empty ring. The banner
+// is placed (not slid) whenever the phase changes.
 import { phaseAnnouncement, PHASE_LABEL } from "@/lib/copy";
 import type { PublicState } from "@/lib/realtime/types";
 import { Countdown } from "./Countdown";
 import { cn } from "./cn";
 import { LiveRegion } from "./LiveRegion";
-import { AnimatePresence, m, MotionScope, PHASE_TRANSITION } from "./motion";
+import { NumberBanner } from "./Banner";
 
 type Props = {
   state: Pick<PublicState, "phase" | "roundNo" | "roundsTotal" | "phaseStartedAt" | "phaseEndsAt" | "paused">;
@@ -21,35 +21,19 @@ type Props = {
 export function PhaseHeader({ state, offsetMs, className }: Props) {
   const showRound = state.phase !== "LOBBY" && state.phase !== "FINALE" && state.phase !== "ENDED";
   return (
-    <MotionScope>
-      <header className={cn("flex h-[72px] items-center justify-between gap-4", className)}>
-        <div className="relative min-w-0 flex-1">
-          <p className="flex h-5 items-center gap-2 text-fine font-medium tabular-nums text-muted-on-stage">
-            {showRound ? (
-              <>
-                <span aria-hidden="true" className="size-1.5 rounded-full bg-light" />
-                {`Round ${state.roundNo} / ${state.roundsTotal}`}
-              </>
-            ) : null}
-          </p>
-          <div className="relative h-8">
-            <AnimatePresence mode="popLayout" initial={false}>
-              <m.h2
-                key={state.phase}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={PHASE_TRANSITION}
-                className="truncate font-display text-h3 leading-8 font-extrabold"
-              >
-                {PHASE_LABEL[state.phase]}
-              </m.h2>
-            </AnimatePresence>
-          </div>
+    <header className={cn("flex h-[76px] items-center justify-between gap-4", className)}>
+      <div className="min-w-0 flex-1">
+        <p className="h-5 text-fine tabular-nums text-ink-notes">{showRound ? `Scene ${state.roundNo} of ${state.roundsTotal}` : null}</p>
+        <div key={state.phase} className="placed mt-1 h-10 pl-3">
+          {showRound ? (
+            <NumberBanner n={state.roundNo} label={PHASE_LABEL[state.phase]} size="md" className="max-w-full" />
+          ) : (
+            <h2 className="truncate font-display text-h3 leading-10">{PHASE_LABEL[state.phase]}</h2>
+          )}
         </div>
-        <Countdown endsAt={state.phaseEndsAt} startedAt={state.phaseStartedAt} offsetMs={offsetMs} paused={state.paused} size={56} />
-        <LiveRegion message={phaseAnnouncement(state)} />
-      </header>
-    </MotionScope>
+      </div>
+      <Countdown endsAt={state.phaseEndsAt} startedAt={state.phaseStartedAt} offsetMs={offsetMs} paused={state.paused} size={56} />
+      <LiveRegion message={phaseAnnouncement(state)} />
+    </header>
   );
 }

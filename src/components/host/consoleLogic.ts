@@ -121,8 +121,6 @@ export function optionTag(o: Pick<PublicOption, "kind">): string | null {
   return null;
 }
 
-export const OPTION_TONE = { A: "a", B: "b", C: "c" } as const;
-
 export function filterPlayers<P extends Pick<HostFeedPlayer, "name">>(players: readonly P[], query: string): P[] {
   const q = query.trim().toLowerCase();
   return q ? players.filter((p) => p.name.toLowerCase().includes(q)) : [...players];

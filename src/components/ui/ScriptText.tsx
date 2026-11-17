@@ -1,12 +1,12 @@
 "use client";
-// ScriptText: the "script" voice (Fraunces) with an optional typewriter reveal that never shifts layout.
+// ScriptText: the note hand (Patrick Hand) written out by the "pen": an optional typewriter reveal that never shifts layout.
 //   <ScriptText text={narration} className="text-lead" cps={34} delayMs={0} play onDone={() => ...} as="p" />
 // The WHOLE text is always in the flow: the typed part is visible, the rest is transparent in the same flow, so line
 // breaks and height are final from the first frame. Screen readers get the full sentence immediately (the page's own
 // aria-live region does the announcing). Under prefers-reduced-motion (CSS, so it holds before hydration too) the
 // full text shows at once and onDone fires on mount.
 //   cps       characters per second (default 34); the clock is wall time, so a throttled tab catches up
-//   play      false holds at the start (e.g. wait for the CANON stamp); flip it to true to begin
+//   play      false holds at the start (e.g. wait for the CANON ribbon); flip it to true to begin
 //   delayMs   wait after play turns true
 //   caret     blinking caret while typing (default true), removed when done
 //   onDone    called once per `text`, when the last character is shown

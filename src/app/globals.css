@@ -1,25 +1,38 @@
 @import "tailwindcss";
 @import "../styles/tokens.css";
 
-/* Tokens (src/styles/tokens.css) become Tailwind utilities. v2 names:
-   bg-stage-0/1/2, border-stage-line, text-on-stage, text-muted-on-stage, bg-paper, bg-paper-2, border-paper-edge,
-   text-ink, text-ink-muted, bg-gel-a/b/c, bg-gold, bg-light / text-light (this round's stage light),
-   text-ok/warn/danger, rounded-inner/element/card/sheet/pill, shadow-contact, font-display / font-sans / font-script,
-   text-fine/small/body/lead/h3/h2/h1 (phone scale), text-screen-sm..3xl (show-screen scale), ease-arrive / ease-exit.
+/* Tokens (src/styles/tokens.css) become Tailwind utilities. v3 names:
+   bg-paper / bg-paper-raised, text-ink / text-ink-notes / text-ink-faint, bg-marker-1/2/3, bg-hl (yellow marker) /
+   bg-hl-solid / text-hl-deep, text-danger, rounded-card / rounded-card-alt / rounded-pill / rounded-blob /
+   rounded-element / rounded-inner / rounded-sheet, shadow-marker / shadow-pen / shadow-poster / shadow-slip,
+   font-display (Kalam 700: titles, banners, keywords, big numbers, buttons) / font-sans (Patrick Hand: everything else),
+   text-fine/small/body/lead/h3/h2/h1/display (phone scale), text-screen-sm..5xl (show-screen scale), ease-arrive / ease-pen.
    Spacing keeps Tailwind's 4 px step: gap-2 (8, inside a control), gap-3 (12, between controls), gap-5 (20, groups),
-   gap-8 (32, sections). The legacy names (bg-bg, bg-surface, text-text, text-muted, bg-accent, bg-opt-a ...) map to
-   the closest v2 value until a page is restyled. */
+   gap-8 (32, sections). */
 @theme inline {
+  --color-paper: var(--paper);
+  --color-paper-raised: var(--paper-raised);
+  --color-dots: var(--dots);
+  --color-ink: var(--ink);
+  --color-ink-notes: var(--ink-notes);
+  --color-ink-faint: var(--ink-faint);
+  --color-marker-1: var(--marker-1);
+  --color-marker-2: var(--marker-2);
+  --color-marker-3: var(--marker-3);
+  --color-hl: var(--hl);
+  --color-hl-solid: var(--hl-solid);
+  --color-hl-deep: var(--hl-deep);
+  --color-danger: var(--danger);
+
+  /* v2 aliases: removed in the dead-code sweep */
   --color-stage-0: var(--stage-0);
   --color-stage-1: var(--stage-1);
   --color-stage-2: var(--stage-2);
   --color-stage-line: var(--stage-line);
   --color-on-stage: var(--ink-on-stage);
   --color-muted-on-stage: var(--muted-on-stage);
-  --color-paper: var(--paper);
   --color-paper-2: var(--paper-2);
   --color-paper-edge: var(--paper-edge);
-  --color-ink: var(--ink);
   --color-ink-muted: var(--ink-muted);
   --color-light: var(--light);
   --color-gel-a: var(--gel-a);
@@ -28,29 +41,21 @@
   --color-gold: var(--gold);
   --color-ok: var(--ok);
   --color-warn: var(--warn);
-  --color-danger: var(--danger);
   --color-danger-on-paper: var(--danger-on-paper);
-
-  /* legacy aliases */
-  --color-bg: var(--stage-0);
-  --color-surface: var(--stage-1);
-  --color-surface-2: var(--stage-2);
-  --color-line: var(--stage-line);
-  --color-text: var(--ink-on-stage);
-  --color-muted: var(--muted-on-stage);
-  --color-accent: var(--gold);
-  --color-wild: var(--gel-c);
-  --color-opt-a: var(--gel-a);
-  --color-opt-b: var(--gel-b);
-  --color-opt-c: var(--gel-c);
+  --shadow-contact: var(--contact-shadow);
 
   --radius-inner: var(--r-inner);
   --radius-element: var(--r-element);
   --radius-card: var(--r-card);
+  --radius-card-alt: var(--r-card-alt);
   --radius-sheet: var(--r-sheet);
   --radius-pill: var(--r-pill);
+  --radius-blob: var(--r-blob);
 
-  --shadow-contact: var(--contact-shadow);
+  --shadow-marker: var(--sh-marker);
+  --shadow-pen: var(--sh-pen);
+  --shadow-poster: var(--sh-poster);
+  --shadow-slip: var(--sh-slip);
 
   --font-display: var(--f-display);
   --font-sans: var(--f-body);
@@ -58,11 +63,12 @@
 
   --ease-arrive: cubic-bezier(0.24, 1, 0.4, 1);
   --ease-exit: cubic-bezier(0.3, 0, 0.6, 0.6);
+  --ease-pen: cubic-bezier(0.55, 0, 0.35, 1);
 
-  /* Phone scale, ratio about 1.2 (body and inputs at 17, never below 13). */
-  --text-fine: 13px;
+  /* Phone scale (Patrick Hand and Kalam are compact faces: never below 15, body 17, host console 16 or more). */
+  --text-fine: 15px;
   --text-fine--line-height: 1.4;
-  --text-small: 15px;
+  --text-small: 16px;
   --text-small--line-height: 1.45;
   --text-body: 17px;
   --text-body--line-height: 1.5;
@@ -70,11 +76,13 @@
   --text-lead--line-height: 1.4;
   --text-h3: 24px;
   --text-h3--line-height: 1.2;
-  --text-h2: 29px;
+  --text-h2: 32px;
   --text-h2--line-height: 1.12;
-  --text-h1: 35px;
+  --text-h1: clamp(34px, 9.5vw, 44px);
   --text-h1--line-height: 1.1;
-  /* Show-screen scale (x1.25 from 28). */
+  --text-display: clamp(44px, 14vw, 64px);
+  --text-display--line-height: 1.02;
+  /* Show-screen scale (x1.25 from 28), then the big numbers. */
   --text-screen-sm: 28px;
   --text-screen-sm--line-height: 1.4;
   --text-screen-md: 35px;
@@ -87,24 +95,30 @@
   --text-screen-2xl--line-height: 1.1;
   --text-screen-3xl: 86px;
   --text-screen-3xl--line-height: 1.05;
+  --text-screen-4xl: 120px;
+  --text-screen-4xl--line-height: 1;
+  --text-screen-5xl: 180px;
+  --text-screen-5xl--line-height: 1;
 }
 
 @layer base {
-  /* The canvas carries the stage colour; body stays transparent so the fixed spotlight (z-index -1) shows above it. */
+  /* The page is dot-grid paper. <StageBackdrop> adds one static grain layer; ?obs=1 sets html,body transparent. */
   html {
-    background: var(--stage-0);
-    color-scheme: dark;
+    background: var(--dot-grid), var(--paper);
+    color-scheme: light;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
   }
   body {
     min-height: 100dvh;
     background: transparent;
-    color: var(--ink-on-stage);
+    color: var(--ink);
     font-family: var(--f-body);
     font-size: 17px;
     line-height: 1.5;
     overflow-x: clip;
+    /* Hand lettering is one weight per face: never let the browser smear a faux bold or slant over it. */
+    font-synthesis: none;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     -webkit-tap-highlight-color: transparent;
@@ -113,10 +127,11 @@
   h2,
   h3 {
     font-family: var(--f-display);
-    font-weight: 800;
-    letter-spacing: -0.02em;
+    font-weight: 700;
+    letter-spacing: 0;
     line-height: 1.12;
     text-wrap: balance;
+    overflow-wrap: break-word;
   }
   button,
   [role="button"],
@@ -130,17 +145,13 @@
     cursor: pointer;
   }
   ::selection {
-    background: var(--gold);
+    background: var(--hl-solid);
     color: var(--ink);
   }
-  /* One visible focus ring everywhere: 2 px gold at 3 px offset. On paper, gold would vanish, so it turns to ink. */
+  /* One visible focus ring everywhere: 3 px ink at 3 px offset. */
   :focus-visible {
-    outline: 2px solid var(--gold);
+    outline: 3px solid var(--ink);
     outline-offset: 3px;
-  }
-  .paper :focus-visible,
-  [data-surface="paper"] :focus-visible {
-    outline-color: var(--ink);
   }
   @media (prefers-reduced-motion: no-preference) {
     html {
@@ -155,13 +166,16 @@
 .skip-link {
   position: fixed;
   left: 16px;
-  top: -64px;
+  top: -72px;
   z-index: 100;
-  padding: 12px 16px;
+  padding: 12px 18px;
+  border: var(--line-2);
   border-radius: var(--r-pill);
-  background: var(--gold);
+  background: var(--paper-raised);
   color: var(--ink);
-  font-weight: 600;
+  font-family: var(--f-display);
+  font-weight: 700;
+  box-shadow: var(--sh-slip);
   transition: top var(--dur-fast) var(--ease-arrive);
 }
 .skip-link:focus-visible {
@@ -171,14 +185,39 @@
 /* Primitive classes live in the components layer so Tailwind utilities (rounded-*, p-*, bg-*) can still override them. */
 @layer components {
   /* ------------------------------------------------------------------ */
-  /* Press feedback: 0 ms onset scale(.98) + overlay, release fades in   */
-  /* 175 ms. Never changes layout or the hit area. Add .press to any     */
-  /* control; set --press-overlay for a light surface on stage.          */
+  /* Hand-drawn underline: a squiggle that is drawn under the label on   */
+  /* hover / focus (ghost buttons, quiet links).                         */
+  /* ------------------------------------------------------------------ */
+  .scribble {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 8' preserveAspectRatio='none'%3E%3Cpath d='M1 4.5C12 1.5 22 7 34 4S58 1.5 70 4.5 90 6.5 99 3' fill='none' stroke='%231e1e22' stroke-width='2.2' stroke-linecap='round' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: 50% calc(100% - 0.4em);
+    background-size: 0% 7px;
+    transition: background-size var(--dur-fast) var(--ease-arrive);
+  }
+  .scribble:focus-visible {
+    background-size: calc(100% - 1.2rem) 7px;
+  }
+  @media (hover: hover) {
+    .scribble:hover {
+      background-size: calc(100% - 1.2rem) 7px;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .scribble {
+      transition: none;
+    }
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Press feedback for any control that is not a <Button>: it sinks 2   */
+  /* px into the page on press, with a faint ink wash. Add .press; set   */
+  /* --press-overlay for a different wash.                               */
   /* ------------------------------------------------------------------ */
   .press {
     position: relative;
     isolation: isolate;
-    transition: transform var(--dur-fast) var(--ease-arrive);
+    transition: translate var(--dur-fast) var(--ease-arrive);
   }
   .press::after {
     content: "";
@@ -186,18 +225,18 @@
     inset: 0;
     z-index: -1;
     border-radius: inherit;
-    background: var(--press-overlay, rgb(28 24 40 / 0.14));
+    background: var(--press-overlay, rgb(30 30 34 / 0.07));
     opacity: 0;
     pointer-events: none;
     transition: opacity var(--dur-fast) var(--ease-arrive);
   }
   @media (hover: hover) {
     .press:hover:not(:disabled, [aria-disabled="true"])::after {
-      opacity: 0.55;
+      opacity: 1;
     }
   }
   .press:active:not(:disabled, [aria-disabled="true"]) {
-    transform: scale(0.98);
+    translate: 2px 2px;
     transition-duration: 0ms;
   }
   .press:active:not(:disabled, [aria-disabled="true"])::after {
@@ -207,172 +246,490 @@
   @media (prefers-reduced-motion: reduce) {
     .press,
     .press:active:not(:disabled, [aria-disabled="true"]) {
-      transform: none;
+      translate: none;
+      transition: none;
     }
   }
 
   /* ------------------------------------------------------------------ */
-  /* Glass: floating layers only (composer bar, toasts, connection       */
-  /* banner, host top bar, sheets). Opaque when the visitor asks for it. */
+  /* Button: a marker-shadowed key that presses INTO its shadow.         */
+  /* primary = the yellow key (ONE per view).                            */
   /* ------------------------------------------------------------------ */
-  .glass,
-  .sheet {
-    background: var(--glass-bg);
-    -webkit-backdrop-filter: var(--glass-filter);
-    backdrop-filter: var(--glass-filter);
+  .btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding-block: 0.1em 0;
+    font-family: var(--f-display);
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+    color: var(--ink);
+    background-color: var(--paper-raised);
+    border: var(--line-3);
+    border-radius: var(--r-pill);
+    box-shadow: var(--sh-pen);
+    transition:
+      translate var(--dur-fast) var(--ease-arrive),
+      box-shadow var(--dur-fast) var(--ease-arrive);
   }
-  .glass {
-    border: 1px solid var(--stage-line);
+  .btn-primary {
+    background-color: var(--hl-solid);
+    /* faint marker streaks on the key face */
+    background-image: repeating-linear-gradient(-12deg, transparent 0 7px, rgb(245 170 0 / 0.12) 7px 14px);
   }
-  @media (prefers-reduced-transparency: reduce), (prefers-contrast: more), (forced-colors: active) {
-    .glass,
-    .sheet {
-      background: var(--stage-1);
-      -webkit-backdrop-filter: none;
-      backdrop-filter: none;
+  .btn-danger {
+    color: var(--danger);
+  }
+  .btn-wild {
+    border-style: dashed;
+  }
+  .btn-ghost {
+    background-color: transparent;
+    border-color: transparent;
+    box-shadow: none;
+  }
+  @media (hover: hover) {
+    .btn:hover:not(:disabled, [aria-disabled="true"], .btn-ghost) {
+      translate: -1px -1px;
+      box-shadow: 5px 5px 0 var(--ink);
     }
   }
-  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-    .glass,
-    .sheet {
-      background: var(--stage-1);
+  .btn:active:not(:disabled, [aria-disabled="true"], .btn-ghost) {
+    translate: 4px 4px;
+    box-shadow: 0 0 0 var(--ink);
+    transition-duration: 0ms;
+  }
+  .btn:disabled,
+  .btn[aria-disabled="true"] {
+    color: var(--ink-faint);
+    background-color: var(--marker-1);
+    background-image: none;
+    border-color: var(--ink-faint);
+    box-shadow: none;
+  }
+  .btn-ghost:disabled,
+  .btn-ghost[aria-disabled="true"] {
+    background-color: transparent;
+    border-color: transparent;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .btn,
+    .btn:hover:not(:disabled, [aria-disabled="true"], .btn-ghost) {
+      transition: none;
     }
   }
 
   /* ------------------------------------------------------------------ */
-  /* Paper: idea cards, script cards, the narration page                 */
+  /* Paper: a card is paper laid on top, so it hides the dots. Ink       */
+  /* outline, hand-drawn radius, grey marker shadow. Alternate           */
+  /* .paper-alt on siblings.                                             */
   /* ------------------------------------------------------------------ */
   .paper {
     position: relative;
     color: var(--ink);
-    background: var(--paper);
+    background-color: var(--paper-raised);
+    border: var(--line);
     border-radius: var(--r-card);
-    box-shadow: var(--paper-highlight), var(--contact-shadow);
+    box-shadow: var(--sh-marker);
     rotate: var(--tilt, 0deg);
   }
+  .paper-alt {
+    border-radius: var(--r-card-alt);
+  }
   .paper-2 {
-    background: var(--paper-2);
+    background-color: var(--paper-2);
   }
-  /* Gel band: a 6 px top edge. Decorative; the letter carries the meaning. */
-  .paper-gel-a,
-  .paper-gel-b,
-  .paper-gel-c {
-    --gel: var(--gel-a);
-  }
-  .paper-gel-b {
-    --gel: var(--gel-b);
-  }
-  .paper-gel-c {
-    --gel: var(--gel-c);
-  }
-  /* The pseudo-element is the whole card shape with only its top 6 px coloured, so the band follows the card's
-     rounded corners whatever the radius. */
+  /* Option letter tab hanging over the top edge (decorative: the letter is always also written in the card). */
   .paper-gel-a::before,
   .paper-gel-b::before,
   .paper-gel-c::before {
-    content: "";
+    content: "A" / "";
     position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    background: linear-gradient(to bottom, var(--gel) 6px, transparent 6px);
+    top: -13px;
+    left: 16px;
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 24px;
+    font-family: var(--f-display);
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--ink);
+    background: var(--paper-raised);
+    border: var(--line-2);
+    border-bottom: 0;
+    border-radius: 7px 8px 0 0 / 8px 7px 0 0;
     pointer-events: none;
   }
+  .paper-gel-b::before {
+    content: "B" / "";
+  }
+  .paper-gel-c::before {
+    content: "C" / "";
+  }
+  /* "This is yours": a yellow edge on the left and a yellow corner swash. */
   .paper-edge-gold {
+    background-image: linear-gradient(135deg, var(--hl-solid) 0 28px, transparent 28.5px);
+    background-repeat: no-repeat;
     box-shadow:
-      0 0 0 2px var(--gold),
-      var(--paper-highlight),
-      var(--contact-shadow);
+      inset 5px 0 0 var(--hl-deep),
+      var(--sh-marker);
   }
   .paper-edge-wild {
-    box-shadow:
-      0 0 0 2px var(--gel-c),
-      var(--paper-highlight),
-      var(--contact-shadow);
+    border-style: dashed;
   }
-  /* A tap target that is also a paper card. */
+  /* A tap target that is also a paper card: it presses into its marker shadow. */
   .paper.press {
-    --press-overlay: rgb(28 24 40 / 0.1);
+    --press-overlay: rgb(30 30 34 / 0.05);
+    transition:
+      translate var(--dur-fast) var(--ease-arrive),
+      box-shadow var(--dur-fast) var(--ease-arrive);
+  }
+  @media (hover: hover) {
+    .paper.press:hover:not(:disabled, [aria-disabled="true"]) {
+      box-shadow: 7px 8px 0 var(--marker-2);
+    }
+    .paper-edge-gold.press:hover:not(:disabled, [aria-disabled="true"]) {
+      box-shadow:
+        inset 5px 0 0 var(--hl-deep),
+        7px 8px 0 var(--marker-2);
+    }
+  }
+  .paper.press:active:not(:disabled, [aria-disabled="true"]) {
+    translate: 3px 4px;
+    box-shadow: 3px 3px 0 var(--marker-2);
+  }
+  .paper-edge-gold.press:active:not(:disabled, [aria-disabled="true"]) {
+    box-shadow:
+      inset 5px 0 0 var(--hl-deep),
+      3px 3px 0 var(--marker-2);
+  }
+
+  /* A floating layer (toast, banner, composer bar, host top bar): a paper slip with an ink outline and marker shadow.
+     Never blurred. .glass is the v2 name (v2 aliases: removed in the dead-code sweep). */
+  .slip,
+  .glass {
+    color: var(--ink);
+    background: var(--paper-raised);
+    border: var(--line-2);
+    box-shadow: var(--sh-slip);
   }
 
   /* ------------------------------------------------------------------ */
-  /* Stamp: a rubber-stamp label that lands with a spring (see Stamp.tsx) */
+  /* Things are placed, not slid: opacity, a 6 px settle and a small      */
+  /* rotation that comes to rest. Add .placed; --placed-delay staggers.   */
   /* ------------------------------------------------------------------ */
-  .stamp {
-    --stamp-bg: var(--gold);
-    --stamp-fg: var(--ink);
-    position: relative;
-    display: inline-block;
-    padding: 0.3em 0.75em 0.26em;
-    font-family: var(--f-display);
-    font-weight: 800;
-    font-size: var(--stamp-size, 1.125rem);
-    line-height: 1;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    white-space: nowrap;
-    color: var(--stamp-fg);
-    background: var(--stamp-bg);
-    border-radius: var(--r-inner);
-    rotate: -4deg;
-    box-shadow: 0 1px 0 rgb(0 0 0 / 0.25);
-    user-select: none;
+  .placed {
+    animation: placed var(--dur-medium) var(--ease-arrive) var(--placed-delay, 0ms) both;
   }
-  /* The thin inner rule is what makes it read as a stamp, not a badge. */
-  .stamp::after {
-    content: "";
-    position: absolute;
-    inset: 3px;
-    border: 1.5px solid currentColor;
-    border-radius: 3px;
-    opacity: 0.5;
-    pointer-events: none;
-  }
-  .stamp-wildcard {
-    --stamp-bg: var(--gel-c);
-  }
-  .stamp-narrator {
-    --stamp-bg: var(--ink);
-    --stamp-fg: var(--paper);
-    box-shadow: 0 0 0 2px var(--paper-edge);
-  }
-  .stamp-sm {
-    --stamp-size: 0.8125rem;
-  }
-  .stamp-md {
-    --stamp-size: 1.125rem;
-  }
-  .stamp-lg {
-    --stamp-size: 1.75rem;
-  }
-  .stamp-xl {
-    --stamp-size: 3rem;
-  }
-  .stamp[data-animate="true"] {
-    animation:
-      stamp-pop var(--stamp-ms, 630ms) var(--stamp-ease, var(--ease-arrive)) var(--stamp-delay, 0ms) both,
-      stamp-fade 120ms linear var(--stamp-delay, 0ms) both;
-  }
-  @keyframes stamp-pop {
-    from {
-      scale: 1.35;
-      rotate: -8deg;
-    }
-    to {
-      scale: 1;
-      rotate: -4deg;
-    }
-  }
-  @keyframes stamp-fade {
+  @keyframes placed {
     from {
       opacity: 0;
+      translate: 0 6px;
+      rotate: calc(var(--tilt, 0deg) + 1.5deg);
     }
     to {
       opacity: 1;
+      translate: 0 0;
+      rotate: var(--tilt, 0deg);
     }
   }
   @media (prefers-reduced-motion: reduce) {
-    .stamp[data-animate="true"] {
-      animation: stamp-fade var(--dur-fast) linear var(--stamp-delay, 0ms) both;
+    .placed {
+      animation: none;
+    }
+  }
+
+  /* Wrappers that hold a pen drawing over their child (PenLoop, InkUnderline) and the arrow box. In the components
+     layer on purpose: a caller can still say block, absolute, hidden... and win. */
+  .pen-wrap {
+    position: relative;
+    display: inline-block;
+  }
+  .fat-arrow {
+    display: inline-grid;
+    flex-shrink: 0;
+    place-items: center;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Pen strokes: SVG paths with pathLength="1" are drawn on by sliding   */
+  /* the dash. data-play="true" draws on mount; anything else is shown    */
+  /* complete. --draw-ms / --draw-delay set the speed. Reduced motion:    */
+  /* strokes appear complete.                                             */
+  /* ------------------------------------------------------------------ */
+  .draw[data-play="true"] {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: draw var(--draw-ms, 400ms) var(--ease-pen) var(--draw-delay, 0ms) forwards;
+  }
+  @keyframes draw {
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+  /* A fill that arrives after its outline has been drawn. */
+  .draw-fill[data-play="true"] {
+    animation: draw-fill var(--fill-ms, 175ms) linear var(--draw-delay, 0ms) both;
+  }
+  @keyframes draw-fill {
+    from {
+      opacity: 0;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .draw[data-play="true"] {
+      animation: none;
+      stroke-dasharray: none;
+      stroke-dashoffset: 0;
+    }
+    .draw-fill[data-play="true"] {
+      animation: none;
+    }
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Ink boil (optional): the shared turbulence filters in layout.tsx    */
+  /* cycled over 3 seeds at 8 fps. ONLY for the canon loop and the CANON */
+  /* ribbon while REVEAL is on screen. Off under reduced motion.         */
+  /* ------------------------------------------------------------------ */
+  .ink-boil {
+    animation: ink-boil 375ms steps(1, end) infinite;
+  }
+  @keyframes ink-boil {
+    0% {
+      filter: url(#ink-boil-1);
+    }
+    33.34% {
+      filter: url(#ink-boil-2);
+    }
+    66.67% {
+      filter: url(#ink-boil-3);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .ink-boil {
+      animation: none;
+      filter: none;
+    }
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Swash: the yellow marker laid behind inline text. Streaks, not a    */
+  /* flat fill. data-play="true" swipes it on, left to right.            */
+  /* ------------------------------------------------------------------ */
+  .swash {
+    position: relative;
+    z-index: 0;
+    display: inline-block;
+    white-space: nowrap;
+  }
+  .swash::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    left: -0.22em;
+    right: -0.22em;
+    top: 0.26em;
+    bottom: -0.04em;
+    background: repeating-linear-gradient(-12deg, var(--hl) 0 8px, rgb(255 205 40 / 0.62) 8px 16px);
+    border-radius: 0.55em 0.2em 0.5em 0.25em / 0.4em 0.5em 0.3em 0.5em;
+    rotate: -1deg;
+  }
+  .swash[data-play="true"]::before {
+    animation: swash-in var(--swash-ms, 410ms) var(--ease-pen) var(--swash-delay, 0ms) both;
+  }
+  @keyframes swash-in {
+    from {
+      clip-path: inset(0 100% 0 0);
+    }
+    to {
+      clip-path: inset(0 0 0 0);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .swash[data-play="true"]::before {
+      animation: none;
+    }
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Banner: a ribbon with grey-marker notched tails (the poster's       */
+  /* numbered banners). Size comes from --b-px (font size in px, unitless).*/
+  /* Pass --stamp-bg / --stamp-fg to recolour the face.                  */
+  /* ------------------------------------------------------------------ */
+  .banner {
+    --b-px: 18;
+    position: relative;
+    isolation: isolate;
+    display: inline-block;
+    margin-inline: 0.95em;
+    font-family: var(--f-display);
+    font-size: calc(var(--b-px) * 1px);
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: var(--stamp-fg, var(--ink));
+    rotate: var(--banner-tilt, -1.5deg);
+    user-select: none;
+  }
+  .banner-sm {
+    --b-px: 15;
+  }
+  .banner-md {
+    --b-px: 18;
+  }
+  .banner-lg {
+    --b-px: 28;
+  }
+  .banner-xl {
+    --b-px: 48;
+  }
+  .banner-face {
+    position: relative;
+    display: block;
+    padding: 0.38em 0.9em 0.3em;
+    background-color: var(--stamp-bg, var(--paper-raised));
+    border-radius: 3px 5px 3px 4px / 4px 3px 5px 3px;
+    box-shadow: 3px 4px 0 var(--marker-2);
+  }
+  .banner-yellow .banner-face {
+    background-color: var(--stamp-bg, var(--hl-solid));
+    background-image: repeating-linear-gradient(-12deg, transparent 0 7px, rgb(245 170 0 / 0.12) 7px 14px);
+  }
+  .banner-dashed .banner-face {
+    background-color: var(--paper-raised);
+    background-image: none;
+  }
+  .banner-line {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    pointer-events: none;
+    fill: none;
+    stroke: var(--ink);
+    stroke-width: calc(25 / var(--b-px));
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .banner-dashed .banner-line {
+    stroke-dasharray: 0.045 0.03;
+  }
+  .banner-tail {
+    position: absolute;
+    top: 0.34em;
+    z-index: -1;
+    width: 1.2em;
+    height: 100%;
+    overflow: visible;
+    fill: var(--marker-2);
+    stroke: var(--ink);
+    stroke-width: 2;
+    stroke-linejoin: round;
+    pointer-events: none;
+  }
+  .banner-tail-l {
+    right: calc(100% - 0.3em);
+  }
+  .banner-tail-r {
+    left: calc(100% - 0.3em);
+    scale: -1 1;
+  }
+  .banner-yellow.banner-n .banner-face {
+    padding-inline: 0.7em 0.95em;
+  }
+  .banner-num {
+    margin-right: 0.45em;
+  }
+  /* The canon ribbon writes its word letter by letter after the outline is drawn. */
+  .banner-letter {
+    display: inline-block;
+    white-space: pre;
+  }
+  .banner[data-play="true"] .banner-letter {
+    animation: letter-in 120ms var(--ease-arrive) calc(var(--banner-word-delay, 350ms) + var(--i) * 55ms) both;
+  }
+  .banner[data-play="true"] .banner-face {
+    animation: banner-fill 175ms linear var(--banner-fill-delay, 250ms) both;
+  }
+  .banner[data-play="true"] .banner-tail {
+    animation: draw-fill 175ms linear var(--banner-fill-delay, 250ms) both;
+  }
+  @keyframes letter-in {
+    from {
+      opacity: 0;
+      translate: 0 3px;
+    }
+  }
+  @keyframes banner-fill {
+    from {
+      background-color: transparent;
+      background-image: none;
+      box-shadow: 0 0 0 transparent;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .banner[data-play="true"] .banner-letter,
+    .banner[data-play="true"] .banner-face,
+    .banner[data-play="true"] .banner-tail {
+      animation: none;
+    }
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Letter badge: an ink letter in a hand-drawn blob. Selected = the    */
+  /* yellow marker fills it and the pen circles it.                      */
+  /* ------------------------------------------------------------------ */
+  .letter-badge {
+    position: relative;
+    isolation: isolate;
+    display: inline-grid;
+    flex-shrink: 0;
+    place-items: center;
+    font-family: var(--f-display);
+    font-weight: 700;
+    line-height: 1;
+    color: var(--ink);
+    background-color: var(--paper-raised);
+    border: 2.5px solid var(--ink);
+    border-radius: var(--r-blob);
+  }
+  .letter-fill {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: repeating-linear-gradient(-12deg, var(--hl) 0 7px, rgb(255 205 40 / 0.62) 7px 14px);
+  }
+  .letter-badge[data-play="true"] .letter-fill {
+    animation: swash-in var(--dur-medium) var(--ease-pen) both;
+  }
+  .letter-badge > .letter-glyph {
+    position: relative;
+  }
+  .letter-ring {
+    position: absolute;
+    inset: -16%;
+    width: 132%;
+    height: 132%;
+    overflow: visible;
+    pointer-events: none;
+    fill: none;
+    stroke: var(--ink);
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .letter-badge[data-play="true"] .letter-fill {
+      animation: none;
     }
   }
 
@@ -382,8 +739,7 @@
   /* ------------------------------------------------------------------ */
   .script {
     font-family: var(--f-script);
-    font-optical-sizing: auto;
-    line-height: 1.55;
+    line-height: 1.5;
     text-wrap: pretty;
   }
   .script-rest {
@@ -425,70 +781,46 @@
   }
 
   /* ------------------------------------------------------------------ */
-  /* Stage backdrop: one fixed spotlight in this round's light + vignette */
+  /* Backdrop grain: one static noise layer behind everything (<4%).     */
   /* ------------------------------------------------------------------ */
-  .spotlight {
+  .page-grain {
     position: fixed;
     inset: 0;
     z-index: -1;
     pointer-events: none;
-    background: radial-gradient(120% 90% at 50% 38%, transparent 55%, rgb(0 0 0 / 0.38));
-    transition: --light var(--dur-slow) var(--ease-arrive); /* the hue cross-fades when the round changes */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.12 0 0 0 0 0.12 0 0 0 0 0.14 0 0 0 0.9 -0.35'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 180px 180px;
+    opacity: 0.04;
   }
-  .spotlight::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(72% 56% at 50% -6%, color-mix(in srgb, var(--light) 18%, transparent), transparent 70%);
-    opacity: 0.78; /* about 14 percent */
+
+  /* Yellow marker on a chip, and the bar fills (grey marker for volume, yellow for the thread). */
+  .pill-active {
+    background-color: var(--hl-solid);
+    background-image: repeating-linear-gradient(-12deg, transparent 0 7px, rgb(245 170 0 / 0.14) 7px 14px);
   }
-  .spotlight[data-breathe="true"]::before {
-    animation: breathe 6s ease-in-out infinite; /* 12 to 18 percent */
+  .bar-fill-yellow {
+    background-color: var(--hl-solid);
+    background-image: repeating-linear-gradient(-12deg, transparent 0 6px, rgb(245 170 0 / 0.16) 6px 12px);
   }
-  @keyframes breathe {
-    0%,
-    100% {
-      opacity: 0.67;
-    }
-    50% {
-      opacity: 1;
-    }
+  .bar-fill-danger {
+    background-color: var(--danger);
   }
-  @media (prefers-reduced-motion: reduce) {
-    .spotlight[data-breathe="true"]::before {
-      animation: none;
-    }
+  .bar-fill-grey {
+    background-color: rgb(80 80 92 / 0.38);
+    background-image: repeating-linear-gradient(-12deg, transparent 0 6px, rgb(52 52 64 / 0.14) 6px 12px);
+  }
+
+  /* An opaque dot-grid page for overlays that must hide what is under them. */
+  .dot-grid {
+    background: var(--dot-grid), var(--paper);
   }
 
   /* ------------------------------------------------------------------ */
-  /* Skeleton                                                            */
+  /* Skeleton: grey marker streaks on paper. Static: no idle motion.     */
   /* ------------------------------------------------------------------ */
   .skeleton {
-    background: linear-gradient(100deg, var(--stage-1) 30%, var(--stage-2) 50%, var(--stage-1) 70%);
-    background-size: 200% 100%;
-    animation: shimmer 1.4s linear infinite;
-  }
-  .skeleton-paper {
-    background: linear-gradient(100deg, var(--paper-2) 30%, var(--paper-edge) 50%, var(--paper-2) 70%);
-    background-size: 200% 100%;
-  }
-  @keyframes shimmer {
-    from {
-      background-position: 100% 0;
-    }
-    to {
-      background-position: -100% 0;
-    }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .skeleton {
-      animation: none;
-      background: var(--stage-2);
-    }
-    .skeleton-paper {
-      animation: none;
-      background: var(--paper-2);
-    }
+    border-radius: var(--r-element);
+    background: repeating-linear-gradient(-12deg, var(--marker-1) 0 7px, rgb(100 100 110 / 0.26) 7px 14px);
   }
 }
 
@@ -496,52 +828,59 @@
 /* Countdown ring + progress bar                                       */
 /* ------------------------------------------------------------------ */
 .ring-fill {
-  transition:
-    stroke-dashoffset 250ms linear,
-    stroke var(--dur-fast) linear;
-}
-/* The last 5 seconds: one beat per displayed second (the element is re-keyed each second), not a strobe. */
-.countdown[data-warn="true"] .countdown-beat {
-  animation: ring-beat 1s var(--ease-arrive) both;
-}
-@keyframes ring-beat {
-  0% {
-    transform: scale(1);
-  }
-  14% {
-    transform: scale(1.08);
-  }
-  100% {
-    transform: scale(1);
-  }
+  transition: stroke-dashoffset 250ms linear;
 }
 @media (prefers-reduced-motion: reduce) {
-  .countdown[data-warn="true"] .countdown-beat {
-    animation: none;
-  }
   .ring-fill {
     transition: none;
   }
 }
 
 /* ------------------------------------------------------------------ */
-/* Toast layer (glass; the receipt toast is solid gold). Slides in     */
-/* from the edge it is anchored to; reduced motion keeps only the fade. */
+/* Code input: hand-drawn squares; the caret box gets a yellow swash   */
+/* that swipes in from the left.                                       */
 /* ------------------------------------------------------------------ */
-.toast-region {
-  --toast-from: translateY(16px);
+.code-tile {
+  background-color: var(--paper-raised);
+  background-image: linear-gradient(transparent 34%, var(--hl-solid) 34% 90%, transparent 90%);
+  background-repeat: no-repeat;
+  background-size: 0% 100%;
+  transition: background-size var(--dur-fast) var(--ease-arrive);
 }
-.toast-region[data-placement="top"] {
-  --toast-from: translateY(-16px);
+.code-tile:focus {
+  background-size: 100% 100%;
 }
-@media (min-width: 768px) {
-  .toast-region,
-  .toast-region[data-placement="top"] {
-    --toast-from: translateX(24px);
+.code-tile:nth-child(odd) {
+  rotate: -1deg;
+}
+.code-tile:nth-child(even) {
+  rotate: 0.8deg;
+}
+@media (prefers-reduced-motion: reduce) {
+  .code-tile {
+    transition: none;
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* Toast: a paper slip with a strip of washi tape on its corner. It is */
+/* placed (opacity + settle), never slid across the screen.            */
+/* ------------------------------------------------------------------ */
 .toast {
+  position: relative;
   animation: toast-in var(--dur-medium) var(--ease-arrive) both;
+}
+.toast::before {
+  content: "";
+  position: absolute;
+  top: -10px;
+  left: 18px;
+  width: 58px;
+  height: 18px;
+  background: var(--marker-2);
+  clip-path: polygon(0 0, 100% 0, 97% 25%, 100% 50%, 97% 75%, 100% 100%, 0 100%, 3% 75%, 0 50%, 3% 25%);
+  rotate: -5deg;
+  pointer-events: none;
 }
 .toast[data-leaving="true"] {
   animation: toast-out var(--dur-fast) var(--ease-exit) both;
@@ -549,11 +888,13 @@
 @keyframes toast-in {
   from {
     opacity: 0;
-    transform: var(--toast-from);
+    translate: 0 6px;
+    rotate: 1.5deg;
   }
   to {
     opacity: 1;
-    transform: none;
+    translate: 0 0;
+    rotate: -0.6deg;
   }
 }
 @keyframes toast-out {
@@ -562,45 +903,23 @@
   }
   to {
     opacity: 0;
-    transform: var(--toast-from);
   }
 }
-.toast-receipt {
-  position: relative;
-  overflow: hidden;
-  background: var(--gold);
-  color: var(--ink);
-  border-color: transparent;
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
-}
-.toast-receipt::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(105deg, transparent 35%, rgb(255 255 255 / 0.5) 50%, transparent 65%);
-  transform: translateX(-120%);
-  animation: sweep 1.3s 200ms var(--ease-arrive) 1 both;
-  pointer-events: none;
-}
-@keyframes sweep {
-  to {
-    transform: translateX(120%);
-  }
+.toast {
+  rotate: -0.6deg;
 }
 @media (prefers-reduced-motion: reduce) {
-  .toast-region,
-  .toast-region[data-placement="top"] {
-    --toast-from: none;
-  }
-  .toast-receipt::after {
+  .toast,
+  .toast[data-leaving="true"] {
     animation: none;
-    display: none;
+  }
+  .toast[data-leaving="true"] {
+    opacity: 0;
   }
 }
 
 /* ------------------------------------------------------------------ */
-/* Sheet (native <dialog>), a glass layer                              */
+/* Sheet (native <dialog>): a paper page placed on the screen          */
 /* ------------------------------------------------------------------ */
 .sheet {
   position: fixed;
@@ -611,14 +930,15 @@
   max-height: min(88dvh, 720px);
   padding: 0;
   overflow: hidden;
-  color: var(--ink-on-stage);
-  border: 0;
-  border-top: 1px solid var(--stage-line);
+  color: var(--ink);
+  background: var(--paper-raised);
+  border: var(--line-3);
+  border-bottom: 0;
   border-radius: var(--r-sheet) var(--r-sheet) 0 0;
   animation: sheet-in var(--dur-medium) var(--ease-arrive) both;
 }
 .sheet::backdrop {
-  background: rgb(15 13 22 / 0.62);
+  background: rgb(30 30 34 / 0.42);
   animation: fade-in var(--dur-fast) linear both;
 }
 .sheet[data-closing="true"] {
@@ -631,32 +951,25 @@
   .sheet {
     margin: auto;
     max-width: 30rem;
-    border: 1px solid var(--stage-line);
-    border-radius: var(--r-sheet);
-    animation-name: sheet-pop;
+    border-bottom: var(--line-3);
+    border-radius: var(--r-card);
+    box-shadow: var(--sh-poster);
   }
 }
 @keyframes sheet-in {
   from {
-    transform: translateY(100%);
+    opacity: 0;
+    translate: 0 14px;
   }
   to {
-    transform: none;
+    opacity: 1;
+    translate: 0 0;
   }
 }
 @keyframes sheet-out {
   to {
-    transform: translateY(100%);
-  }
-}
-@keyframes sheet-pop {
-  from {
     opacity: 0;
-    transform: scale(0.96);
-  }
-  to {
-    opacity: 1;
-    transform: none;
+    translate: 0 8px;
   }
 }
 @keyframes fade-in {
@@ -681,74 +994,24 @@
 }
 
 /* ------------------------------------------------------------------ */
-/* Landing hero headline                                               */
+/* v2 aliases: removed in the dead-code sweep. Utilities whose v2      */
+/* colour cannot be reused as-is on paper: yellow and grey FILLS were  */
+/* also used as TEXT colours on the dark stage.                        */
 /* ------------------------------------------------------------------ */
-.hero-title {
-  font-family: var(--f-display);
-  font-weight: 800;
-  font-size: clamp(2.6rem, 11.4vw, 4.4rem);
-  line-height: 1.02;
-  letter-spacing: -0.04em;
-  text-wrap: balance;
-}
-
-/* ------------------------------------------------------------------ */
-/* Legacy classes: pages that have not been restyled yet still use     */
-/* these. They now draw the v2 look (no coloured glows).               */
-/* ------------------------------------------------------------------ */
-.stage-light {
-  background:
-    radial-gradient(72% 56% at 50% -6%, color-mix(in srgb, var(--light) 14%, transparent), transparent 70%),
-    radial-gradient(120% 90% at 50% 38%, transparent 55%, rgb(0 0 0 / 0.3));
-}
-.glow-accent {
-  box-shadow: 0 0 0 2px var(--gold);
-}
-.glow-wild {
-  box-shadow: 0 0 0 2px var(--gel-c);
-}
-
-/* Lit marquee frame (used by the old reveal and host wizard until they are restyled). */
-.marquee {
-  position: relative;
-  isolation: isolate;
-  padding: 16px;
-  border-radius: 32px;
-}
-.marquee::before,
-.marquee::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  border-radius: inherit;
-  background-size: 32px 32px;
-  background-repeat: round;
-  animation: bulb 1.6s steps(1, end) infinite;
-}
-.marquee::before {
-  background-image:
-    radial-gradient(circle at 25% 25%, var(--gold) 0 2.5px, rgb(255 200 61 / 0.3) 3px 5px, transparent 5.5px),
-    radial-gradient(circle at 75% 75%, var(--gold) 0 2.5px, rgb(255 200 61 / 0.3) 3px 5px, transparent 5.5px);
-}
-.marquee::after {
-  background-image:
-    radial-gradient(circle at 75% 25%, var(--gold) 0 2.5px, rgb(255 200 61 / 0.3) 3px 5px, transparent 5.5px),
-    radial-gradient(circle at 25% 75%, var(--gold) 0 2.5px, rgb(255 200 61 / 0.3) 3px 5px, transparent 5.5px);
-  animation-delay: -0.8s;
-}
-@keyframes bulb {
-  0% {
-    opacity: 1;
+@layer utilities {
+  .text-gold,
+  .text-warn {
+    color: var(--ink);
   }
-  50% {
-    opacity: 0.22;
+  .bg-danger {
+    background-color: #f3d3cc;
   }
-}
-@media (prefers-reduced-motion: reduce) {
-  .marquee::before,
-  .marquee::after {
-    animation: none;
-    opacity: 0.9;
+  /* A yellow focus ring or focus border would vanish on paper: ink instead. */
+  .has-\[\:focus-visible\]\:outline-gold:has(:focus-visible),
+  .peer-focus-visible\:outline-gold:is(:where(.peer):focus-visible ~ *) {
+    outline-color: var(--ink);
+  }
+  .focus\:border-gold:focus {
+    border-color: var(--ink);
   }
 }

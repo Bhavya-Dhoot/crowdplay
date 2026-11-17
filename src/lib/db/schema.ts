@@ -246,14 +246,3 @@ export const events = pgTable(
   },
   (t) => [index("events_room_idx").on(t.roomId), index("events_type_idx").on(t.type)],
 );
-
-export type UserRow = typeof users.$inferSelect;
-export type RoomRow = typeof rooms.$inferSelect;
-export type ShowRow = typeof shows.$inferSelect;
-export type EngineStateRow = typeof engineState.$inferSelect;
-export type RoundRow = typeof rounds.$inferSelect;
-export type IdeaRow = typeof ideas.$inferSelect;
-export type OptionRow = typeof options.$inferSelect;
-export type VoteRow = typeof votes.$inferSelect;
-export type ReceiptRow = typeof receipts.$inferSelect;
-export type ParticipantRow = typeof participants.$inferSelect;

@@ -1,11 +1,11 @@
 "use client";
-// CodeInput: the show code as 5 paper tiles (ink letters in Bricolage on warm paper, so they read on the stage). Letters only (typed or pasted), upper-cased,
+// CodeInput: the show code as 5 hand-drawn paper squares (ink letters in Kalam; the box with the caret gets the yellow marker). Letters only (typed or pasted), upper-cased,
 // auto-advances, Backspace steps back, arrows move, and pasting "abc de" anywhere fills the tiles.
 //   const [code, setCode] = useState("");
 //   <CodeInput value={code} onChange={setCode} onComplete={(c) => router.push(`/join/${c}`)} />
 // `value` is always a contiguous run of A-Z (no gaps). Props: length (5), label, autoFocus,
-// disabled, invalid. Each tile is at least 44 px wide on a 360 px phone. Invalid = a thicker danger border (the page
-// shows the message in words). The focus ring is the global gold one, drawn outside the tile.
+// disabled, invalid. Each tile is at least 44 px wide on a 360 px phone. Invalid = a --danger border (the page
+// shows the message in words). The focus ring is the global ink one, drawn outside the tile.
 import { useRef, type ClipboardEvent, type KeyboardEvent } from "react";
 import { cn } from "./cn";
 
@@ -114,9 +114,9 @@ export function CodeInput({ value, onChange, onComplete, length = 5, label = "Sh
           aria-label={`${label}, letter ${i + 1} of ${length}`}
           aria-invalid={invalid || undefined}
           className={cn(
-            "aspect-[4/5] w-0 min-w-11 max-w-14 flex-1 rounded-element border-2 bg-paper text-center font-display text-[clamp(1.5rem,7vw,2rem)] leading-none font-extrabold text-ink uppercase caret-ink",
-            "shadow-[inset_0_1px_0_rgb(255_255_255/0.55),0_1px_0_var(--paper-edge)] transition-colors duration-175 motion-reduce:transition-none",
-            invalid ? "border-danger-on-paper" : value[i] ? "border-ink" : "border-paper-edge",
+            "code-tile aspect-[4/5] w-0 min-w-11 max-w-14 flex-1 rounded-element border-2 text-center font-display text-[clamp(1.5rem,7vw,2rem)] leading-none text-ink uppercase caret-ink",
+            "shadow-[2px_3px_0_var(--marker-2)]",
+            invalid ? "border-danger" : "border-ink",
           )}
         />
       ))}
