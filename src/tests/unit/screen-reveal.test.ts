@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { allNarrator, leaderId, narrationLines, narrationSize, percentages, winnerOf } from "@/components/screen/reveal";
+import { allNarrator, labelEm, leaderId, narrationPx, percentages, winnerOf } from "@/components/screen/reveal";
 import type { PublicOption } from "@/lib/realtime/types";
 
 const opt = (slot: "A" | "B" | "C", kind: PublicOption["kind"], id = `o_${slot}`): PublicOption => ({
@@ -33,37 +33,23 @@ describe("percentages", () => {
   });
 });
 
-describe("narrationLines", () => {
-  it("splits on sentence ends and keeps the punctuation", () => {
-    expect(narrationLines("The vault opens. A cat walks out! Nobody moves?")).toEqual([
-      "The vault opens.",
-      "A cat walks out!",
-      "Nobody moves?",
-    ]);
+describe("narrationPx", () => {
+  it("is 44 px for a couple of sentences and shrinks as the text grows", () => {
+    expect(narrationPx("short")).toBe(44);
+    expect(narrationPx("x".repeat(250))).toBeLessThan(narrationPx("x".repeat(100)));
+    expect(narrationPx("x".repeat(400))).toBeLessThan(narrationPx("x".repeat(250)));
   });
 
-  it("keeps one line when there is no end mark, and handles blanks", () => {
-    expect(narrationLines("no full stop here")).toEqual(["no full stop here"]);
-    expect(narrationLines("   ")).toEqual([]);
-    expect(narrationLines(null)).toEqual([]);
-  });
-
-  it("caps the number of lines by merging the tail", () => {
-    const lines = narrationLines("One. Two. Three. Four. Five.", 3);
-    expect(lines.length).toBe(3);
-    expect(lines[2]).toBe("Three. Four. Five.");
-  });
-
-  it("does not split on an ellipsis inside a sentence start", () => {
-    const lines = narrationLines("Then… silence. The door creaks.");
-    expect(lines.join(" ")).toBe("Then… silence. The door creaks.");
+  it("never goes below 28 px, even for the longest narration the model may write", () => {
+    expect(narrationPx("x".repeat(700))).toBe(28);
+    expect(narrationPx(null)).toBe(44);
   });
 });
 
-describe("narrationSize", () => {
-  it("shrinks as the text grows", () => {
-    expect(narrationSize("short")).toBeGreaterThan(narrationSize("x".repeat(250)));
-    expect(narrationSize("x".repeat(250))).toBeGreaterThan(narrationSize("x".repeat(600)));
+describe("labelEm", () => {
+  it("sizes a ballot label down as it gets longer", () => {
+    expect(labelEm("The alarm plays a lullaby")).toBeGreaterThan(labelEm("We tunnel into the wrong bank and open a cafe"));
+    expect(labelEm("We tunnel into the wrong bank and open a cafe")).toBeGreaterThan(labelEm("x".repeat(70)));
   });
 });
 

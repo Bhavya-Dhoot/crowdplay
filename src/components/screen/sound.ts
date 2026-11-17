@@ -12,6 +12,11 @@ export function tickDue(phase: Phase, seconds: number | null, prev: number | nul
   return seconds >= 1 && seconds <= 5;
 }
 
+/** A soft tick when the head-count grows in the lobby (someone just joined). Opening the page mid-lobby stays silent. */
+export function joinTickDue(phase: Phase, players: number, prev: number | null): boolean {
+  return phase === "LOBBY" && prev !== null && players > prev;
+}
+
 /**
  * The one-shot cue for a phase change: a whoosh when the options appear (VOTE), a sting on REVEAL.
  * Opening the page mid-phase (prev = null) stays silent.

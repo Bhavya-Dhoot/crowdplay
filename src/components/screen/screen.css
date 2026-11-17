@@ -1,22 +1,12 @@
-/* CROWDPLAY big screen: only what Tailwind cannot say (keyframes, masks, stage lighting).
-   Everything here is prefixed cps- and scoped to the screen components. */
+/* CROWDPLAY big screen: only what Tailwind cannot say (keyframes, masks, the mini screen's own backdrop).
+   Everything here is prefixed cps- and scoped to the screen components. The full screen sits on the page's
+   <StageBackdrop> (the stage light for the round); only the embedded mini screen paints its own. */
 
-/* The stage: a dark floor with two warm lights and one cool one. Not used in OBS mode. */
-.cps-bg {
+/* The mini screen: stage floor with the round's light from the top, the same recipe as <StageBackdrop>. */
+.cps-compact-bg {
   background:
-    radial-gradient(70% 55% at 50% -14%, rgb(255 210 63 / 0.14), transparent 70%),
-    radial-gradient(42% 38% at 100% 104%, rgb(255 77 141 / 0.1), transparent 70%),
-    radial-gradient(40% 34% at 0% 104%, rgb(91 140 255 / 0.09), transparent 70%),
-    var(--bg);
-}
-.cps-bg::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    linear-gradient(104deg, transparent 30%, rgb(255 255 255 / 0.022) 36%, transparent 44%),
-    linear-gradient(76deg, transparent 58%, rgb(255 255 255 / 0.018) 64%, transparent 71%);
+    radial-gradient(72% 56% at 50% -6%, color-mix(in srgb, var(--light) 18%, transparent), transparent 70%),
+    var(--stage-0);
 }
 
 /* OBS: text must stay readable over any video behind it. */
@@ -26,64 +16,36 @@
     0 2px 16px rgb(0 0 0 / 0.8);
 }
 .cps-obs-panel {
-  background: rgb(11 11 18 / 0.72);
+  background: rgb(15 13 22 / 0.72);
   backdrop-filter: blur(6px);
 }
-
-/* Idea rain: the oldest cards sink and fade into the floor. */
-.cps-rain-col {
-  -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 64%, transparent 100%);
-  mask-image: linear-gradient(to bottom, #000 0, #000 64%, transparent 100%);
-}
-.cps-new {
-  animation: cps-new 1.6s var(--ease-out) 1 both;
-}
-@keyframes cps-new {
-  0% {
-    box-shadow:
-      0 0 0 3px var(--accent),
-      0 0 46px rgb(255 210 63 / 0.7);
-  }
-  100% {
-    box-shadow:
-      0 0 0 0 transparent,
-      0 0 0 transparent;
-  }
+/* Paper keeps its own ink: the OBS text shadow would smear dark text on a light card. */
+.cps-obs [data-surface="paper"],
+.cps-obs .paper {
+  text-shadow: none;
 }
 
-/* Wildcard column: a slow pink pulse. */
-.cps-wild-glow {
-  animation: cps-wild 2.6s ease-in-out infinite;
-}
-@keyframes cps-wild {
-  0%,
-  100% {
-    box-shadow:
-      0 0 0 2px var(--wild),
-      0 0 38px rgb(255 77 141 / 0.32);
-  }
-  50% {
-    box-shadow:
-      0 0 0 2px var(--wild),
-      0 0 78px rgb(255 77 141 / 0.6);
-  }
+/* The storm desk: its top edge fades, so a card falling in or a heap row sliding up leaves the desk softly. */
+.cps-desk {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 7%);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 7%);
 }
 
-/* Winner: a gold halo that breathes. */
-.cps-win-glow {
-  animation: cps-win 3s ease-in-out infinite;
+/* A new idea card gets a ring in this round's light for a moment (opacity only). */
+.cps-fresh {
+  position: absolute;
+  inset: -0.12em;
+  border: 0.1em solid var(--light);
+  border-radius: 0.62em;
+  pointer-events: none;
+  animation: cps-fresh 1.6s var(--ease-arrive) 1 both;
 }
-@keyframes cps-win {
-  0%,
-  100% {
-    box-shadow:
-      0 0 0 3px var(--accent),
-      0 0 60px rgb(255 210 63 / 0.28);
+@keyframes cps-fresh {
+  from {
+    opacity: 1;
   }
-  50% {
-    box-shadow:
-      0 0 0 3px var(--accent),
-      0 0 110px rgb(255 210 63 / 0.5);
+  to {
+    opacity: 0;
   }
 }
 
@@ -116,7 +78,7 @@
   }
 }
 
-/* Credits roll: the list starts below the panel and climbs out of the top, then loops. */
+/* Cast roll: a long list starts below the sheet and climbs out of the top, then loops. */
 .cps-roll {
   animation: cps-roll var(--roll, 30s) linear infinite;
 }
@@ -133,33 +95,15 @@
   mask-image: linear-gradient(to bottom, transparent 0, #000 12%, #000 88%, transparent 100%);
 }
 
-/* Room code tiles in the lobby. */
-.cps-tile {
-  background: linear-gradient(180deg, var(--surface-2), var(--surface));
-  box-shadow:
-    0 0 0 1px var(--line),
-    0 14px 34px -14px rgb(0 0 0 / 0.7),
-    inset 0 1px 0 rgb(255 255 255 / 0.06);
-}
-
 /* Reduced motion: everything settles where it would have ended up. */
 @media (prefers-reduced-motion: reduce) {
-  .cps-new,
-  .cps-wild-glow,
-  .cps-win-glow,
+  .cps-fresh,
   .cps-roll,
   .cps-dots span {
     animation: none;
   }
-  .cps-wild-glow {
-    box-shadow:
-      0 0 0 2px var(--wild),
-      0 0 44px rgb(255 77 141 / 0.4);
-  }
-  .cps-win-glow {
-    box-shadow:
-      0 0 0 3px var(--accent),
-      0 0 70px rgb(255 210 63 / 0.35);
+  .cps-fresh {
+    opacity: 0;
   }
   .cps-dots span {
     opacity: 0.8;

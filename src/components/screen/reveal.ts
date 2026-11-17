@@ -1,23 +1,21 @@
-// Pure helpers for the vote board and the reveal: percentages, winner, narration lines.
+// Pure helpers for the vote board and the reveal: percentages, winner, type sizes.
 import type { PublicOption, PublicState } from "@/lib/realtime/types";
 
-/** Split narration into sentences so they can appear one at a time. At most `max` lines. */
-export function narrationLines(text: string | null | undefined, max = 6): string[] {
-  const t = (text ?? "").replace(/\s+/g, " ").trim();
-  if (!t) return [];
-  const parts = (t.match(/[^.!?…]+(?:[.!?…]+["')\]”’]*|$)\s*/g) ?? [t]).map((s) => s.trim()).filter(Boolean);
-  if (parts.length <= max) return parts;
-  return [...parts.slice(0, max - 1), parts.slice(max - 1).join(" ")];
+/** Narration size on the winner page, in canvas px: big for a couple of sentences, never below 28 for a long one. */
+export function narrationPx(text: string | null | undefined): number {
+  const n = (text ?? "").length;
+  if (n <= 230) return 44;
+  if (n <= 330) return 38;
+  if (n <= 450) return 33;
+  return 28;
 }
 
-/** Narration font size (em) by length, so a long story still fits the winner panel. */
-export function narrationSize(text: string | null | undefined): number {
-  const n = (text ?? "").length;
-  if (n <= 120) return 1.7;
-  if (n <= 180) return 1.5;
-  if (n <= 300) return 1.3;
-  if (n <= 460) return 1.1;
-  return 0.95;
+/** Ballot label size on a vote card, in stage em (a ballot label is at most 70 characters). */
+export function labelEm(label: string): number {
+  if (label.length <= 30) return 2;
+  if (label.length <= 48) return 1.7;
+  if (label.length <= 60) return 1.55;
+  return 1.4;
 }
 
 /**
@@ -74,5 +72,4 @@ export function winnerOf(state: Pick<PublicState, "options" | "outcome">): Publi
   return state.options?.find((o) => o.id === id) ?? null;
 }
 
-export const SLOT_GLYPH: Record<PublicOption["slot"], string> = { A: "A", B: "B", C: "⚡" };
 export const SLOT_NAME: Record<PublicOption["slot"], string> = { A: "Option A", B: "Option B", C: "Wildcard option" };

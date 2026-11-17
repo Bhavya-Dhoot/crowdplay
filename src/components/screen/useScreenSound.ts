@@ -1,13 +1,14 @@
 "use client";
 // Sound for the big screen: off by default, remembered in localStorage, never required.
 //   const { on, toggle } = useScreenSound({ state, offsetMs, enabled })
-//   - ticks in the last 5 s of STORM and VOTE, a whoosh when the options appear, a sting on REVEAL
+//   - ticks in the last 5 s of STORM and VOTE, a soft tick for each arrival in the lobby, a whoosh when the options
+//     appear, a sting on REVEAL
 //   - plays state.outcome.ttsUrl once per round when the toggle is on (play() rejections are swallowed)
 // `enabled` false (the embedded mini screen) keeps everything silent and the toggle inert.
 import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
 import { useCountdown } from "@/lib/client/useCountdown";
 import type { Phase, PublicState } from "@/lib/realtime/types";
-import { createSynth, cueFor, SOUND_STORAGE_KEY, tickDue, ttsKey, type Synth } from "./sound";
+import { createSynth, cueFor, joinTickDue, SOUND_STORAGE_KEY, tickDue, ttsKey, type Synth } from "./sound";
 
 // The choice lives in a tiny external store so it survives remounts and works when storage is blocked.
 let remembered: boolean | null = null;
@@ -45,6 +46,7 @@ export function useScreenSound({ state, offsetMs, enabled }: Args): { on: boolea
   const synth = useRef<Synth | null>(null);
   const prevPhase = useRef<Phase | null>(null);
   const prevSeconds = useRef<number | null>(null);
+  const prevPlayers = useRef<number | null>(null);
   const spoken = useRef<Set<string>>(new Set());
   const confirm = useRef(false);
 
@@ -73,6 +75,14 @@ export function useScreenSound({ state, offsetMs, enabled }: Args): { on: boolea
       synth.current = null;
     };
   }, [on]);
+
+  const players = state?.stats.players ?? null;
+  useEffect(() => {
+    if (players === null) return; // no state yet: the first head-count is not an arrival
+    const prev = prevPlayers.current;
+    prevPlayers.current = players;
+    if (on && phase && joinTickDue(phase, players, prev)) synth.current?.play("tick");
+  }, [players, on, phase]);
 
   const seconds = count.seconds;
   useEffect(() => {

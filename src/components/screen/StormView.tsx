@@ -1,92 +1,99 @@
 "use client";
-// STORM: the prompt on top, a big countdown ring, and the idea "rain": every idea lands as a card at
-// the top of its column and sinks as newer ones arrive. Never more than RAIN_CAP cards exist (older
-// ones are dropped from the DOM; by then they are faded out and under the column's fade mask).
+// STORM: the scene on top, a big countdown ring, and the desk: every idea rains onto it as a tilted paper card.
+// Few ideas = big cards centred on the desk (ghost cards fill the empty slots), many ideas = smaller cards and,
+// past what fits, a heap with the newest row on top. Never more than RAIN_CAP cards exist; older ones leave first.
 import { useMemo } from "react";
 import { BotBadge } from "@/components/ui/BotBadge";
 import { Countdown } from "@/components/ui/Countdown";
 import { cn } from "@/components/ui/cn";
-import { m } from "@/components/ui/motion";
+import { AnimatePresence, m } from "@/components/ui/motion";
+import { SPRING, TRANSITION } from "@/components/ui/motionTokens";
+import { paperCardClass } from "@/components/ui/PaperCard";
 import type { FeedIdea } from "@/lib/client/store";
 import { STORM_NUDGES } from "@/lib/copy";
 import type { PublicState } from "@/lib/realtime/types";
 import { SCREEN_COPY } from "./copy";
-import { planRain, rainOpacity, RAIN_CAP, type RainCard } from "./rain";
+import { CARD_EM, DESK_LADDER, planDesk, type DeskCard } from "./desk";
+import { RAIN_CAP, usableIdeas } from "./rain";
 import { useStage } from "./stage";
 
-function RainItem({ card, compact }: { card: RainCard; compact: boolean }) {
+const HEAD_H = { full: 150, compact: 56 } as const;
+/** The mini screen shows only what fits without a heap: six cards. */
+const COMPACT_CAP = 6;
+
+function IdeaCard({ card, fe, overlapPx, fresh }: { card: DeskCard; fe: number; overlapPx: number; fresh: boolean }) {
+  const { px, compact } = useStage();
   return (
     <m.div
       layout="position"
-      initial={{ opacity: 0, y: -90, scale: 0.8, rotate: card.tilt * 5 }}
-      animate={{ opacity: rainOpacity(card.rank), y: 0, scale: 1, rotate: card.tilt }}
-      transition={{ type: "spring", stiffness: 340, damping: 24, mass: 0.8, layout: { type: "spring", stiffness: 260, damping: 30 } }}
+      initial={{ opacity: 0, y: -px(compact ? 120 : 280), scale: 0.92, rotate: -card.tilt * 3 }}
+      animate={{ opacity: 1, y: 0, scale: 1, rotate: 0 }}
+      exit={{ opacity: 0, scale: 0.96, transition: TRANSITION.exit }}
+      transition={{ ...SPRING.land, opacity: { duration: 0.15 }, layout: { type: "spring", stiffness: 260, damping: 30 } }}
       data-testid="screen-rain-item"
-      className={cn(
-        "shrink-0 rounded-[0.5em] border border-line bg-surface-2/95 shadow-[0_10px_24px_-14px_rgb(0_0_0/0.8)]",
-        compact ? "px-[0.55em] py-[0.4em]" : "px-[0.7em] py-[0.5em]",
-        card.rank === 0 && "cps-new",
-      )}
+      className={paperCardClass({ className: "shrink-0 rounded-[0.5em] px-[0.7em] py-[0.5em]" })}
+      style={{
+        width: `${CARD_EM}em`,
+        fontSize: `${fe}em`,
+        order: card.index,
+        marginTop: card.row > 0 ? -px(overlapPx) : 0,
+        ["--tilt" as string]: `${card.tilt}deg`,
+      }}
     >
-      <p className={cn("leading-[1.18] font-semibold break-words text-text", compact ? "text-[0.72em]" : "text-[0.95em]")}>{card.text}</p>
-      <p className={cn("mt-[0.25em] flex items-center gap-[0.4em] leading-none text-muted", compact ? "text-[0.5em]" : "text-[0.62em]")}>
+      {fresh ? <span aria-hidden="true" className="cps-fresh" /> : null}
+      <p className="leading-[1.2] font-semibold break-words text-ink">{card.text}</p>
+      <p className="mt-[0.3em] flex items-center gap-[0.4em] leading-[1.3] text-ink-muted" style={{ fontSize: `max(0.7em, ${px(20)}px)` }}>
         <span className="truncate">{card.name}</span>
-        {card.isBot ? <BotBadge className="px-[0.35em]! text-[1.2em]! leading-[1.3]!" /> : null}
+        {card.isBot ? <BotBadge className="border-paper-edge bg-paper-2 px-[0.35em]! text-[1.2em]! leading-[1.3]!" /> : null}
       </p>
     </m.div>
   );
 }
 
-function EmptyRain({ compact }: { compact: boolean }) {
+/** A dashed slot where an idea is about to land: keeps a quiet room from looking broken. */
+function GhostCard({ index, fe, text }: { index: number; fe: number; text: string }) {
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center gap-[0.8em] text-center">
-      <m.p
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className={cn("font-display font-extrabold text-text/90", compact ? "text-[0.95em]" : "text-[2.3em]")}
-      >
-        {SCREEN_COPY.storm.empty}
-      </m.p>
-      <ul className="flex flex-wrap items-center justify-center gap-[0.6em]">
-        {STORM_NUDGES.map((n, i) => (
-          <m.li
-            key={n}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.2 + i * 0.12 }}
-            className={cn("rounded-pill border border-line bg-surface px-[0.9em] py-[0.4em] text-muted", compact ? "text-[0.6em]" : "text-[1em]")}
-          >
-            {n}
-          </m.li>
-        ))}
-      </ul>
+    <div
+      aria-hidden="true"
+      className="grid shrink-0 place-items-center rounded-[0.5em] border-[0.1em] border-dashed border-stage-line px-[0.7em] text-center font-script leading-[1.2] text-muted-on-stage"
+      style={{ width: `${CARD_EM}em`, minHeight: "4.6em", fontSize: `${fe}em`, order: 1000 + index }}
+    >
+      {text}
     </div>
   );
 }
 
 export function StormView({ state, feed }: { state: PublicState; feed: FeedIdea[] }) {
   const { compact, offsetMs, metrics, px } = useStage();
-  const cols = compact ? 3 : 5;
-  const plan = useMemo(() => planRain(feed, cols, compact ? 15 : RAIN_CAP, compact ? 14 : 17), [feed, cols, compact]);
+  const gap = compact ? 10 : 24;
+  const headH = compact ? HEAD_H.compact : HEAD_H.full;
+  const quiet = usableIdeas(feed).length === 0;
+  const areaW = metrics.w - metrics.padX * 2;
+  const areaH = metrics.h - metrics.header - metrics.footer - (compact ? 8 + 6 : 26 + 6 + 14) - headH - (quiet ? (compact ? 36 : 120) : 0) - (compact ? 14 : 16);
+  const plan = useMemo(
+    () => planDesk(feed, { areaW, areaH, ladder: compact ? DESK_LADDER.compact : DESK_LADDER.full, gapPx: gap, cap: compact ? COMPACT_CAP : RAIN_CAP }),
+    [feed, areaW, areaH, compact, gap],
+  );
   const ideas = Math.max(state.stats.ideasThisRound, plan.count);
+  // Newest first in the DOM (the first card is the latest idea); CSS `order` lays them out oldest first.
+  const newestFirst = useMemo(() => [...plan.cards].reverse(), [plan.cards]);
 
   return (
     <div className="absolute inset-0 flex flex-col" style={{ paddingInline: px(metrics.padX), paddingTop: px(compact ? 0 : 6), paddingBottom: px(compact ? 8 : 26), gap: px(compact ? 6 : 14) }}>
-      <div className="flex shrink-0 items-start justify-between" style={{ gap: px(compact ? 12 : 40) }}>
+      <div className="flex shrink-0 items-start justify-between" style={{ height: px(headH), gap: px(compact ? 12 : 40) }}>
         <div className="min-w-0">
-          <h2 className={cn("line-clamp-2 font-display leading-[1.02] font-extrabold tracking-tight", compact ? "text-[1.15em]" : "text-[2.5em]")}>{state.prompt?.title}</h2>
-          {state.prompt?.text && !compact ? <p className="mt-[0.35em] line-clamp-2 max-w-[44em] text-[0.9em] leading-snug text-text/75">{state.prompt.text}</p> : null}
+          <h2 className={cn("line-clamp-1 font-display leading-[1.05] font-extrabold tracking-tight", compact ? "text-[1.15em]" : "text-[2.2em]")}>{state.prompt?.title}</h2>
+          {state.prompt?.text && !compact ? <p className="mt-[0.35em] line-clamp-2 max-w-[44em] leading-snug text-on-stage/90">{state.prompt.text}</p> : null}
         </div>
-        <div className={cn("flex shrink-0 items-center", compact ? "flex-col" : "flex-row-reverse")} style={{ gap: px(compact ? 2 : 24) }}>
-          <Countdown endsAt={state.phaseEndsAt} startedAt={state.phaseStartedAt} offsetMs={offsetMs} paused={state.paused} size={px(compact ? 52 : 176)} />
+        <div className="flex shrink-0 flex-row-reverse items-center" style={{ gap: px(compact ? 10 : 24) }}>
+          <Countdown endsAt={state.phaseEndsAt} startedAt={state.phaseStartedAt} offsetMs={offsetMs} paused={state.paused} size={px(compact ? 52 : 150)} />
           <m.span
             key={ideas}
-            initial={{ scale: 1.25, color: "var(--accent)" }}
-            animate={{ scale: 1, color: "var(--muted)" }}
-            transition={{ duration: 0.35 }}
+            initial={{ scale: 1.2 }}
+            animate={{ scale: 1 }}
+            transition={TRANSITION.fast}
             data-testid="screen-idea-count"
-            className={cn("font-display font-extrabold tabular-nums", compact ? "text-[0.55em]" : "text-[1.5em]")}
+            className={cn("font-display font-extrabold text-on-stage tabular-nums", compact ? "text-[0.6em]" : "text-[1.5em]")}
           >
             {SCREEN_COPY.storm.ideas(ideas)}
           </m.span>
@@ -94,19 +101,26 @@ export function StormView({ state, feed }: { state: PublicState; feed: FeedIdea[
       </div>
 
       <div className="relative min-h-0 flex-1">
-        {plan.count === 0 ? (
-          <EmptyRain compact={compact} />
-        ) : (
-          <div className="grid h-full" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gap: px(compact ? 8 : 20) }}>
-            {plan.columns.map((col, i) => (
-              <div key={i} className="cps-rain-col flex min-h-0 flex-col overflow-hidden" style={{ gap: px(compact ? 6 : 12) }}>
-                {col.map((card) => (
-                  <RainItem key={card.key} card={card} compact={compact} />
-                ))}
-              </div>
+        <div className={cn("absolute inset-0 flex flex-col-reverse overflow-hidden", plan.overlapPx > 0 && "cps-desk")}>
+          <div className="m-auto flex w-full flex-wrap content-center justify-center" style={{ gap: px(gap) }}>
+            {quiet ? (
+              <p
+                className={cn("basis-full text-center font-display font-extrabold text-on-stage", compact ? "text-[0.95em]" : "text-[2.3em]")}
+                style={{ order: -1, marginBottom: px(compact ? 4 : 10) }}
+              >
+                {SCREEN_COPY.storm.empty}
+              </p>
+            ) : null}
+            <AnimatePresence initial={false}>
+              {newestFirst.map((card) => (
+                <IdeaCard key={card.key} card={card} fe={plan.fe} overlapPx={plan.overlapPx} fresh={card.rank === 0} />
+              ))}
+            </AnimatePresence>
+            {Array.from({ length: plan.ghosts }, (_, i) => (
+              <GhostCard key={`ghost-${i}`} index={i} fe={plan.fe} text={quiet ? (STORM_NUDGES[i] ?? SCREEN_COPY.storm.ghost) : SCREEN_COPY.storm.ghost} />
             ))}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

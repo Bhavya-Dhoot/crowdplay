@@ -1,15 +1,18 @@
 "use client";
-// DISTILL: the ideas swirl into three piles (A, B, wildcard) while "The crowd has spoken… almost."
-// holds the room. Cards only use transforms; under reduced motion they simply appear in their piles.
+// DISTILL: the ideas slide into three stacks (A, B, wildcard) while "The crowd has spoken… almost." holds the
+// room. Cards only use transforms; under reduced motion they simply appear in their stacks.
 import { useEffect, useMemo, useState } from "react";
 import { BotBadge } from "@/components/ui/BotBadge";
 import { cn } from "@/components/ui/cn";
+import { gelOf } from "@/components/ui/GelDisc";
 import { AnimatePresence, m } from "@/components/ui/motion";
+import { EASE } from "@/components/ui/motionTokens";
+import { paperCardClass } from "@/components/ui/PaperCard";
 import type { FeedIdea } from "@/lib/client/store";
 import { DISTILL_LINES } from "@/lib/copy";
 import type { OptionSlot } from "@/lib/realtime/types";
 import { SCREEN_COPY } from "./copy";
-import { DISTILL_CARDS, PILE_Y, swirlPath, usableIdeas } from "./rain";
+import { DISTILL_CARDS, PILE_Y, slidePath, usableIdeas } from "./rain";
 import { OptionBadge, useStage } from "./stage";
 
 const PILES: OptionSlot[] = ["A", "B", "C"];
@@ -29,7 +32,7 @@ function RotatingLine({ compact }: { compact: boolean }) {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
           transition={{ duration: 0.22 }}
-          className={cn("font-semibold text-muted", compact ? "text-[0.7em]" : "text-[1.3em]")}
+          className={cn("font-script font-medium text-muted-on-stage", compact ? "text-[0.7em]" : "text-[1.3em]")}
         >
           {DISTILL_LINES[i]}
         </m.p>
@@ -46,7 +49,7 @@ export function DistillView({ feed }: { feed: FeedIdea[] }) {
     const take = compact ? 12 : DISTILL_CARDS;
     return usableIdeas(feed)
       .slice(-take)
-      .map((idea, i) => ({ idea, path: swirlPath(idea.key, i, areaW, areaH) }));
+      .map((idea, i) => ({ idea, path: slidePath(idea.key, i, areaW, areaH) }));
   }, [feed, compact, areaW, areaH]);
 
   return (
@@ -54,8 +57,8 @@ export function DistillView({ feed }: { feed: FeedIdea[] }) {
       <m.h2
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className={cn("text-center font-display leading-none font-extrabold tracking-tight", compact ? "text-[1.5em]" : "text-[3.8em]")}
+        transition={{ duration: 0.41, ease: EASE.arrive }}
+        className={cn("text-center font-script leading-none font-semibold tracking-normal", compact ? "text-[1.4em]" : "text-[3.2em]")}
       >
         {SCREEN_COPY.distill.headline}
       </m.h2>
@@ -64,11 +67,16 @@ export function DistillView({ feed }: { feed: FeedIdea[] }) {
         {PILES.map((slot, i) => (
           <div
             key={slot}
-            className="absolute top-1/2 left-1/2 flex flex-col items-center gap-[0.5em]"
+            className="absolute top-1/2 left-1/2 flex flex-col items-center gap-[0.6em]"
             style={{ transform: `translate(calc(-50% + ${px((i - 1) * areaW * 0.3)}px), calc(-50% + ${px(areaH * PILE_Y + (compact ? 10 : 30))}px))` }}
           >
-            <span className={cn("block rounded-[0.6em] border-2 border-dashed border-line bg-surface/40", compact ? "h-[3.2em] w-[7em]" : "h-[9em] w-[13em]")} />
-            <OptionBadge slot={slot} size={compact ? 26 : 66} className="motion-safe:animate-pulse" />
+            {/* The stack's base: two sheets under a gel-banded top sheet. */}
+            <span className="relative block" style={{ width: compact ? "7em" : "10.5em", height: compact ? "3.2em" : "6.4em" }}>
+              <span className={paperCardClass({ tone: "paper-2", className: "absolute inset-0 translate-x-[0.35em] translate-y-[0.4em] rounded-[0.5em] opacity-70" })} />
+              <span className={paperCardClass({ tone: "paper-2", className: "absolute inset-0 -translate-x-[0.25em] translate-y-[0.2em] rounded-[0.5em] opacity-85" })} />
+              <span className={paperCardClass({ gel: gelOf(slot), className: "absolute inset-0 rounded-[0.5em]" })} />
+            </span>
+            <OptionBadge slot={slot} size={compact ? 26 : 66} />
           </div>
         ))}
 
@@ -76,26 +84,20 @@ export function DistillView({ feed }: { feed: FeedIdea[] }) {
           <m.div
             key={idea.key}
             initial={{ opacity: 0, x: px(path.from.x), y: px(path.from.y), rotate: path.from.r, scale: 1 }}
-            animate={{
-              opacity: 1,
-              x: [px(path.from.x), px(path.mid.x), px(path.to.x)],
-              y: [px(path.from.y), px(path.mid.y), px(path.to.y)],
-              rotate: [path.from.r, path.mid.r, path.to.r],
-              scale: [1, 0.85, compact ? 0.5 : 0.82],
-            }}
+            animate={{ opacity: 1, x: px(path.to.x), y: px(path.to.y), rotate: path.to.r, scale: compact ? 0.5 : 0.82 }}
             transition={{
               opacity: { duration: 0.2 },
-              default: { duration: 2.1, delay: 0.15 + i * 0.045, times: [0, 0.55, 1], ease: "easeInOut" },
+              default: { duration: 0.9, delay: 0.15 + i * 0.045, ease: EASE.arrive },
             }}
             className={cn(
-              "absolute top-1/2 left-1/2 rounded-[0.5em] border border-line bg-surface-2 shadow-[0_8px_20px_-10px_rgb(0_0_0/0.9)]",
+              "absolute top-1/2 left-1/2 rounded-[0.5em] bg-paper text-ink shadow-contact",
               compact ? "-mt-[1em] -ml-[3em] w-[6em] px-[0.5em] py-[0.35em]" : "-mt-[1.6em] -ml-[5.5em] w-[11em] px-[0.7em] py-[0.5em]",
             )}
           >
-            <p className={cn("line-clamp-2 leading-[1.18] font-semibold text-text", compact ? "text-[0.6em]" : "text-[0.85em]")}>{idea.text}</p>
-            <p className={cn("mt-[0.2em] flex items-center gap-[0.4em] leading-none text-muted", compact ? "text-[0.45em]" : "text-[0.58em]")}>
+            <p className={cn("line-clamp-2 leading-[1.18] font-semibold", compact ? "text-[0.6em]" : "text-[0.85em]")}>{idea.text}</p>
+            <p className={cn("mt-[0.2em] flex items-center gap-[0.4em] leading-none text-ink-muted", compact ? "text-[0.45em]" : "text-[0.62em]")}>
               <span className="truncate">{idea.name}</span>
-              {idea.isBot ? <BotBadge className="px-[0.35em]! text-[1.2em]! leading-[1.3]!" /> : null}
+              {idea.isBot ? <BotBadge className="border-paper-edge bg-paper-2 px-[0.35em]! text-[1.2em]! leading-[1.3]!" /> : null}
             </p>
           </m.div>
         ))}
