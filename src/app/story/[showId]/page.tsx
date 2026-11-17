@@ -1,7 +1,9 @@
-// /story/[showId]: the recap people share (UX_SPEC §3.7), laid out as a printed playbill: a paper page on the stage
-// with a title page, one scene per round (the winning line with its letter, the narrator's text, who wrote it), and
-// a cast list of the canon makers. Server component: the only client code is the share button and a small
-// refresher that waits for the narrator's recap.
+// /story/[showId]: the show's sketchnote poster (design-v3 §4), printable. A title banner with a yellow swash on one word,
+// the tagline and the recap as notes, then one numbered box per scene (the prompt, the winning line with its letter, the
+// narrator's text as a note, who wrote it) joined by yellow fat arrows, and a cast list of the canon makers. The yellow
+// stays on the thread: the swash, the numbered banners, the arrows, the canon ribbon and edge, and the one primary key
+// (Share story). Server component: the only client code is the share button and a small refresher that waits for the
+// narrator's recap.
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import type { StoryRes, StoryRound } from "@/lib/api/contracts";
@@ -11,15 +13,22 @@ import { ShareButton } from "@/components/depth/ShareButton";
 import { SiteHeader } from "@/components/depth/SiteHeader";
 import { StoryRefresh } from "@/components/depth/StoryRefresh";
 import { isFinished, presetLabel, recapPending, storyBlurb, storyHeading } from "@/components/depth/storyState";
+import { TitleBanner } from "@/components/depth/TitleBanner";
 import { loadWinnerSlots, type Slot } from "@/components/depth/winnerSlots";
+import { NumberBanner } from "@/components/ui/Banner";
 import { BotBadge } from "@/components/ui/BotBadge";
 import { ButtonLink } from "@/components/ui/Button";
+import { tiltOf } from "@/components/ui/doodle";
+import { FatArrow } from "@/components/ui/FatArrow";
 import { Footer } from "@/components/ui/Footer";
-import { GelDisc, gelOf } from "@/components/ui/GelDisc";
+import { InkUnderline } from "@/components/ui/InkUnderline";
+import { LetterBadge } from "@/components/ui/LetterBadge";
+import { PaperCard } from "@/components/ui/PaperCard";
 import { Pill } from "@/components/ui/Pill";
+import { Ribbon, type RibbonKind } from "@/components/ui/Ribbon";
 import { SkeletonText } from "@/components/ui/Skeleton";
 import { StageBackdrop } from "@/components/ui/StageBackdrop";
-import { Stamp, type StampKind } from "@/components/ui/Stamp";
+import { Swash } from "@/components/ui/Swash";
 import { COPY } from "@/lib/copy";
 import { loadStory } from "@/lib/metrics";
 
@@ -45,53 +54,74 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   };
 }
 
-const STAMP: Record<string, StampKind> = { crowd: "canon", wildcard: "wildcard", narrator: "narrator" };
+const RIBBON: Record<string, RibbonKind> = { crowd: "canon", wildcard: "wildcard", narrator: "narrator" };
 const LINE_LABEL: Record<string, string> = { crowd: "Winning line", wildcard: "Winning wildcard", narrator: "The narrator's line" };
+// The winner's box carries the kind: canon = the yellow edge, wildcard = dashed, the narrator's pick = plain.
+const LINE_EDGE: Record<string, "gold" | "wild" | undefined> = { crowd: "gold", wildcard: "wild", narrator: undefined };
 
-const SECTION_H = "font-display text-h3 leading-tight font-extrabold text-ink md:text-h2";
+const H2 = "font-display text-h3 leading-tight md:text-h2";
 
-function Scene({ round, slot }: { round: StoryRound; slot: Slot | undefined }) {
+// The first scenes are drawn as the page loads; further down the poster they are simply there (nobody sees them draw).
+const DRAWN_SCENES = 3;
+const sceneDelay = (i: number): number => 500 + i * 450;
+
+function Scene({ round, slot, index, last }: { round: StoryRound; slot: Slot | undefined; index: number; last: boolean }) {
   const kind = round.winner?.kind ?? "narrator";
   const credited = round.credit.length > 0 || round.more > 0;
+  const drawn = index < DRAWN_SCENES;
   return (
-    <li className="mt-8 border-t border-paper-edge pt-8 first:mt-0 first:border-t-0 first:pt-0">
-      <h3 className="font-display leading-tight font-extrabold text-ink">
-        <span className="block text-small font-semibold text-ink-muted">
-          Scene {round.roundNo}
-          <span className="sr-only">: </span>
-        </span>
-        <span className="mt-0.5 block text-h3 break-words md:text-[1.75rem]">{round.prompt.title}</span>
-      </h3>
-      <p className="script mt-2 max-w-[60ch] text-body text-ink-muted italic break-words">{round.prompt.text}</p>
+    <li className="break-inside-avoid">
+      <PaperCard
+        alt={index % 2 === 1}
+        tilt={tiltOf(`scene-${round.roundNo}`, 0.5)}
+        data-slot={slot}
+        className="shadow-poster grid gap-x-8 gap-y-6 p-5 pt-9 md:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] md:p-8 md:pt-10"
+      >
+        <NumberBanner n="Scene" label={String(round.roundNo)} play={drawn} delayMs={sceneDelay(index)} className="absolute -top-[19px] left-5 md:left-8" />
 
-      {round.winner ? (
-        <div className="dp-line mt-5" data-gel={slot ? gelOf(slot) : undefined}>
-          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-            <p className="flex items-center gap-2.5 text-small font-semibold text-ink-muted">
-              {slot ? <GelDisc letter={slot} size={36} /> : null}
-              <span>{LINE_LABEL[kind] ?? LINE_LABEL.crowd}</span>
-            </p>
-            <Stamp kind={STAMP[kind] ?? "canon"} size="sm" animate={false} />
-          </div>
-          <p className="mt-2 font-display text-lead leading-snug font-bold text-ink break-words md:text-h3">{round.winner.label}</p>
+        <div className="min-w-0">
+          <h3 className="font-display text-h3 leading-tight break-words">
+            <span className="sr-only">Scene {round.roundNo}: </span>
+            {round.prompt.title}
+          </h3>
+          <p className="mt-2 max-w-[60ch] text-body text-ink-notes break-words">{round.prompt.text}</p>
+
+          {round.winner ? (
+            <PaperCard edge={LINE_EDGE[kind]} className="mt-7 flex items-start gap-3 rounded-element px-4 pt-6 pb-4">
+              <Ribbon kind={RIBBON[kind] ?? "canon"} size="sm" animate={false} className="absolute -top-4 right-2" />
+              {slot ? <LetterBadge letter={slot} size={44} animate={false} className="mt-0.5" /> : null}
+              <div className="min-w-0">
+                <p className="text-small text-ink-notes">{LINE_LABEL[kind] ?? LINE_LABEL.crowd}</p>
+                <p className="mt-0.5 font-display text-lead leading-snug break-words">{round.winner.label}</p>
+              </div>
+            </PaperCard>
+          ) : null}
         </div>
-      ) : null}
 
-      <p className="mt-6 font-display text-small font-bold text-ink">Narrator</p>
-      {round.narration ? (
-        <p className="script mt-1 max-w-[62ch] text-[1.125rem] leading-[1.7] text-ink break-words md:text-lead">{round.narration}</p>
-      ) : (
-        <p className="script mt-1 text-body text-ink-muted italic">The narrator is still writing this part.</p>
+        <div className="min-w-0">
+          <PaperCard tone="paper-2" tilt={tiltOf(`note-${round.roundNo}`, 0.8)} className="rounded-element p-4 shadow-slip">
+            <p className="font-display text-small">Narrator</p>
+            {round.narration ? (
+              <p className="script mt-1 text-[1.125rem] leading-[1.6] break-words md:text-lead">{round.narration}</p>
+            ) : (
+              <p className="script mt-1 text-body text-ink-notes">The narrator is still writing this part.</p>
+            )}
+          </PaperCard>
+          {credited ? (
+            <p className="mt-4 text-small leading-7 text-ink-notes">
+              Written by{" "}
+              <span className="text-ink">
+                <Credits credit={round.credit} more={round.more} />
+              </span>
+            </p>
+          ) : null}
+        </div>
+      </PaperCard>
+      {last ? null : (
+        <div className="flex justify-center py-3">
+          <FatArrow direction="down" size={46} play={index < DRAWN_SCENES - 1} delayMs={sceneDelay(index) + 700} seed={`scene-arrow-${round.roundNo}`} />
+        </div>
       )}
-
-      {credited ? (
-        <p className="dp-credit mt-4 text-small leading-7 text-ink-muted">
-          Written by{" "}
-          <span className="text-ink">
-            <Credits credit={round.credit} more={round.more} />
-          </span>
-        </p>
-      ) : null}
     </li>
   );
 }
@@ -99,34 +129,40 @@ function Scene({ round, slot }: { round: StoryRound; slot: Slot | undefined }) {
 function Cast({ makers }: { makers: StoryRes["canonMakers"] }) {
   if (makers.length === 0) return null;
   return (
-    <section aria-labelledby="canon-h" className="mt-12 border-t border-paper-edge pt-8">
-      <h2 id="canon-h" className={SECTION_H}>
+    <PaperCard as="section" aria-labelledby="canon-h" tilt={0.4} className="mx-auto mt-14 max-w-xl p-5 md:mt-16 md:p-7">
+      <h2 id="canon-h" className={H2}>
         Cast
       </h2>
-      <p className="mt-1 text-small text-ink-muted">The canon makers: people whose ideas won a round.</p>
-      <ol className="mt-5 space-y-2.5">
+      <p className="mt-1 text-small text-ink-notes">The canon makers: people whose ideas won a round.</p>
+      <ol className="mt-5 space-y-3">
         {makers.slice(0, 10).map((m, i) => (
           <li key={`${m.name}-${i}`} className="dp-cast-row">
-            <span className="min-w-0 font-display text-lead leading-snug font-bold break-words text-ink">
+            <span className="min-w-0 font-display text-lead leading-snug break-words">
               {m.name}
               {m.bot ? (
                 <>
                   {" "}
-                  <span className="dp-credit">
-                    <BotBadge />
-                  </span>
+                  <BotBadge />
                 </>
               ) : null}
             </span>
             <span className="dp-leader" aria-hidden="true" />
-            <span className="shrink-0 text-small text-ink-muted tabular-nums">
-              {m.count} {m.count === 1 ? "win" : "wins"}
+            <span className="shrink-0 font-display text-small tabular-nums">
+              <Swash>
+                {m.count} {m.count === 1 ? "win" : "wins"}
+              </Swash>
             </span>
           </li>
         ))}
       </ol>
-    </section>
+    </PaperCard>
   );
+}
+
+/** "The Night the Ducks Won" -> the lead and the last word, which gets the yellow swash. */
+function splitTitle(heading: string): { lead: string; marked: string } {
+  const at = heading.trimEnd().lastIndexOf(" ");
+  return at > 0 ? { lead: heading.slice(0, at + 1), marked: heading.slice(at + 1) } : { lead: "", marked: heading };
 }
 
 export default async function StoryPage({ params }: Params) {
@@ -137,6 +173,7 @@ export default async function StoryPage({ params }: Params) {
   const { show, rounds, canonMakers } = story;
   const slots = await loadWinnerSlots(showId);
   const heading = storyHeading(show);
+  const { lead, marked } = splitTitle(heading);
   const pending = recapPending(show);
   const finished = isFinished(show);
   const hasRecap = Boolean(show.recap && show.recap.trim());
@@ -145,41 +182,41 @@ export default async function StoryPage({ params }: Params) {
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <StageBackdrop roundNo={1} />
-      <SiteHeader />
+      <StageBackdrop />
+      <div className="print:hidden">
+        <SiteHeader />
+      </div>
       <StoryRefresh active={pending} />
 
-      <main id="main" className="mx-auto w-full max-w-[50rem] flex-1 px-4 pb-16 md:pb-24">
-        <div className="flex flex-wrap items-center gap-3 pt-2 pb-5 md:pt-4">
+      <main id="main" className="mx-auto w-full max-w-4xl flex-1 px-4 pb-16 md:pb-24">
+        <div className="flex flex-wrap items-center gap-3 pt-2 pb-9 print:hidden">
           <ShareButton title={heading} text={storyBlurb(show)} />
           <ButtonLink href="/host" variant="secondary">
             Host your own
           </ButtonLink>
         </div>
 
-        <article className="paper dp-sheet px-6 pt-10 pb-10 md:px-14 md:pt-16 md:pb-16">
-          {show.isDemo ? (
-            <span aria-hidden="true" className="stamp stamp-wildcard stamp-md absolute -top-3 right-5 z-10">
-              Demo
-            </span>
-          ) : null}
-
+        <article>
           <header className="relative text-center">
-            <p className="text-small text-ink-muted">{COPY.brand} presents</p>
+            {show.isDemo ? <Ribbon kind="demo" size="md" className="absolute top-0 right-0 z-10 sm:right-4" /> : null}
+            <p className="text-small text-ink-notes">{COPY.brand} presents</p>
 
-            <h1 className="mt-4 font-display text-[clamp(2.25rem,9.5vw,4.5rem)] leading-[0.98] font-extrabold tracking-[-0.035em] break-words text-balance text-ink">
-              {heading}
+            <h1 className="mt-4">
+              <TitleBanner className="[--b-px:25] sm:[--b-px:36] md:[--b-px:46]">
+                {lead}
+                <Swash play delayMs={500}>
+                  {marked}
+                </Swash>
+              </TitleBanner>
             </h1>
 
             {tagline ? (
-              <p className="script mx-auto mt-5 max-w-[30ch] text-[clamp(1.25rem,3.6vw,1.75rem)] leading-snug text-ink-muted italic break-words">
-                {tagline}
-              </p>
+              <p className="mx-auto mt-7 max-w-[32ch] text-[clamp(1.25rem,3.6vw,1.75rem)] leading-snug break-words text-ink-notes">{tagline}</p>
             ) : pending ? (
-              <p className="script mt-5 text-lead text-ink-muted italic">The narrator is writing the tagline…</p>
+              <p className="mt-7 text-lead text-ink-notes">The narrator is writing the tagline…</p>
             ) : null}
 
-            <ul className="mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-small text-ink-muted">
+            <ul className="mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-small text-ink-notes">
               <li>{presetLabel(show)}</li>
               <li>{rounds.length === 0 ? "No scenes yet" : `${rounds.length} ${rounds.length === 1 ? "scene" : "scenes"}`}</li>
               {when ? (
@@ -189,7 +226,8 @@ export default async function StoryPage({ params }: Params) {
               ) : null}
               {!finished ? (
                 <li>
-                  <Pill tone="ok" size="sm">
+                  <Pill size="sm">
+                    <span aria-hidden="true" className="size-2 animate-pulse rounded-full bg-ink motion-reduce:animate-none" />
                     Still playing
                   </Pill>
                 </li>
@@ -197,55 +235,53 @@ export default async function StoryPage({ params }: Params) {
             </ul>
 
             {show.isDemo ? (
-              <p className="mx-auto mt-6 flex max-w-[44ch] items-start gap-2 rounded-element bg-paper-2 px-4 py-3 text-left text-small text-ink">
+              <PaperCard edge="wild" tilt={-0.6} className="mx-auto mt-7 flex max-w-[46ch] items-start gap-2 rounded-element px-4 py-3 text-left text-small shadow-slip">
                 <span aria-hidden="true">🤖</span>
                 <span>
-                  <strong className="font-semibold">Demo show.</strong> The players in this story are simulated. Live shows use real people.
+                  <span className="font-display">Demo show.</span> The players in this story are simulated. Live shows use real people.
                 </span>
-              </p>
+              </PaperCard>
             ) : null}
           </header>
 
-          <div className="dp-orn my-9 md:my-12" aria-hidden="true">
-            <span />
+          <div className={`mt-14 grid gap-8 md:mt-16 ${hasRecap || pending ? "md:grid-cols-2" : "md:mx-auto md:max-w-xl"}`}>
+            <PaperCard as="section" aria-labelledby="setup-h" tilt={-0.5} className="p-5 md:p-7">
+              <h2 id="setup-h" className={H2}>
+                The setup
+              </h2>
+              <p className="script mt-3 text-[1.125rem] leading-[1.6] break-words md:text-lead">{show.premise}</p>
+            </PaperCard>
+
+            {hasRecap ? (
+              <PaperCard as="section" aria-labelledby="recap-h" alt tone="paper-2" tilt={0.5} className="p-5 md:p-7">
+                <h2 id="recap-h" className={H2}>
+                  The story, start to finish
+                </h2>
+                <p className="script mt-3 text-[1.125rem] leading-[1.6] break-words md:text-lead">{show.recap}</p>
+              </PaperCard>
+            ) : pending ? (
+              <PaperCard as="section" aria-labelledby="recap-h" aria-busy="true" alt tone="paper-2" tilt={0.5} className="p-5 md:p-7">
+                <h2 id="recap-h" className={H2}>
+                  The story, start to finish
+                </h2>
+                <p role="status" className="mt-2 text-small text-ink-notes">
+                  The narrator is writing the recap. This page updates by itself.
+                </p>
+                <SkeletonText lines={4} className="mt-4" />
+              </PaperCard>
+            ) : null}
           </div>
 
-          <section aria-labelledby="setup-h">
-            <h2 id="setup-h" className={SECTION_H}>
-              The setup
-            </h2>
-            <p className="script mt-3 max-w-[62ch] text-[1.125rem] leading-[1.7] text-ink break-words md:text-lead">{show.premise}</p>
-          </section>
-
-          {hasRecap ? (
-            <section aria-labelledby="recap-h" className="mt-10">
-              <h2 id="recap-h" className={SECTION_H}>
-                The story, start to finish
-              </h2>
-              <p className="script dp-dropcap mt-3 max-w-[62ch] text-[1.125rem] leading-[1.7] text-ink break-words md:text-lead">{show.recap}</p>
-            </section>
-          ) : pending ? (
-            <section aria-labelledby="recap-h" className="mt-10" aria-busy="true">
-              <h2 id="recap-h" className={SECTION_H}>
-                The story, start to finish
-              </h2>
-              <p role="status" className="mt-2 text-small text-ink-muted">
-                The narrator is writing the recap. This page updates by itself.
-              </p>
-              <SkeletonText lines={4} tone="paper" className="mt-4" />
-            </section>
-          ) : null}
-
-          <section aria-labelledby="rounds-h" className="mt-12 border-t border-paper-edge pt-8">
-            <h2 id="rounds-h" className={SECTION_H}>
-              Scene by scene
+          <section aria-labelledby="rounds-h" className="mt-16 md:mt-20">
+            <h2 id="rounds-h" className={`${H2} text-center`}>
+              <InkUnderline seed="story-scenes">Scene by scene</InkUnderline>
             </h2>
             {rounds.length === 0 ? (
-              <p className="mt-3 text-ink-muted">Nothing has been revealed yet. Check back once the first scene is decided.</p>
+              <p className="mt-4 text-center text-ink-notes">Nothing has been revealed yet. Check back once the first scene is decided.</p>
             ) : (
-              <ol className="mt-6">
-                {rounds.map((r) => (
-                  <Scene key={r.roundNo} round={r} slot={slots.get(r.roundNo)} />
+              <ol className="mt-12">
+                {rounds.map((r, i) => (
+                  <Scene key={r.roundNo} round={r} slot={slots.get(r.roundNo)} index={i} last={i === rounds.length - 1} />
                 ))}
               </ol>
             )}
@@ -253,21 +289,23 @@ export default async function StoryPage({ params }: Params) {
 
           <Cast makers={canonMakers} />
 
-          <div className="dp-orn mt-12 md:mt-16" aria-hidden="true">
-            <span />
+          <div className="mt-14 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 border-t-2 border-dashed border-ink-faint pt-3 text-small text-ink-notes md:mt-16">
+            <p className="min-w-0 break-words">{heading}</p>
+            <p>Written live by the crowd on {COPY.brand}</p>
           </div>
-          <p className="script mt-5 text-center text-body text-ink-muted italic">Curtain.</p>
         </article>
 
-        <section aria-labelledby="cta-h" className="mt-14 text-center md:mt-20">
-          <h2 id="cta-h" className="font-display text-h2 leading-tight font-extrabold text-balance text-on-stage md:text-[2.5rem]">
+        <section aria-labelledby="cta-h" className="mt-16 text-center md:mt-24 print:hidden">
+          <h2 id="cta-h" className="font-display text-h2 leading-tight text-balance">
             Your crowd could write the next one.
           </h2>
-          <p className="mx-auto mt-3 max-w-[44ch] text-muted-on-stage">
+          <p className="mx-auto mt-3 max-w-[44ch] text-ink-notes">
             Pick a premise, share a code and let everyone type. You get a story like this one when the show ends.
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
-            <ButtonLink href="/host">Host your own</ButtonLink>
+            <ButtonLink href="/host" variant="secondary">
+              Host your own
+            </ButtonLink>
             <ButtonLink href="/try" variant="secondary">
               {COPY.landing.try.label}
             </ButtonLink>
@@ -275,7 +313,9 @@ export default async function StoryPage({ params }: Params) {
         </section>
       </main>
 
-      <Footer />
+      <div className="print:hidden">
+        <Footer />
+      </div>
     </div>
   );
 }

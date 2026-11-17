@@ -31,6 +31,8 @@ COPY --from=build /app/.next ./.next
 COPY --from=build /app/public ./public
 COPY --from=build /app/next.config.ts ./next.config.ts
 COPY --from=build /app/src/lib/db/migrations ./src/lib/db/migrations
+# The story share image reads its hand-lettered font from here at request time.
+COPY --from=build /app/src/components/depth/fonts ./src/components/depth/fonts
 RUN mkdir -p .data && chown -R node:node .data
 USER node
 EXPOSE 3000

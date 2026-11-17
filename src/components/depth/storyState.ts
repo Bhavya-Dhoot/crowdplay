@@ -19,9 +19,9 @@ export function storyHeading(show: Show): string {
   return show.storyTitle?.trim() || show.title;
 }
 
+/** The preset's name, no emoji: the poster is ink and one yellow, colour emoji would be a third colour. */
 export function presetLabel(show: Show): string {
-  const p = PRESETS[show.preset];
-  return p ? `${p.emoji} ${p.name}` : "Custom";
+  return PRESETS[show.preset]?.name ?? "Custom";
 }
 
 /** One-line description for link previews: the tagline, else the premise, trimmed to a sentence-ish length. */

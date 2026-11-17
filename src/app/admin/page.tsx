@@ -7,9 +7,11 @@ import type { ReactNode } from "react";
 import { formatCount, formatDate } from "@/components/depth/format";
 import { SiteHeader } from "@/components/depth/SiteHeader";
 import { ButtonLink, buttonClass } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
 import { Footer } from "@/components/ui/Footer";
+import { PaperCard } from "@/components/ui/PaperCard";
+import { PenCheck } from "@/components/ui/PenCheck";
 import { Pill } from "@/components/ui/Pill";
+import { StageBackdrop } from "@/components/ui/StageBackdrop";
 import { env, features, isLiveLlm } from "@/lib/config";
 import { dbKind } from "@/lib/db/client";
 import { adminAccess, adminSessions } from "@/lib/metrics";
@@ -25,8 +27,9 @@ export const metadata: Metadata = {
 function Shell({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-dvh flex-col">
+      <StageBackdrop />
       <SiteHeader />
-      <main id="main" className="mx-auto w-full max-w-6xl flex-1 px-4 pb-20 md:px-8">
+      <main id="main" className="mx-auto w-full max-w-5xl flex-1 px-4 pb-20 md:px-8">
         {children}
       </main>
       <Footer />
@@ -38,14 +41,14 @@ function Blocked({ title, children }: { title: string; children: ReactNode }) {
   return (
     <Shell>
       <div className="pt-8 md:pt-16">
-        <Card tone="raised" className="max-w-xl space-y-3 p-6 md:p-8">
-          <Lock aria-hidden="true" className="size-8 text-light" />
-          <h1 className="font-display text-3xl leading-tight">{title}</h1>
-          <div className="space-y-3 text-muted-on-stage [&_code]:rounded-inner [&_code]:bg-stage-1 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:text-on-stage">{children}</div>
+        <PaperCard tilt={-0.5} className="max-w-xl space-y-3 p-6 md:p-8">
+          <Lock aria-hidden="true" className="size-8" />
+          <h1 className="text-h1 leading-tight">{title}</h1>
+          <div className="space-y-3 text-ink-notes [&_code]:rounded-inner [&_code]:bg-marker-1 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:text-ink">{children}</div>
           <ButtonLink href="/" variant="secondary">
             Back to the start
           </ButtonLink>
-        </Card>
+        </PaperCard>
       </div>
     </Shell>
   );
@@ -98,8 +101,8 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     <Shell>
       <header className="flex flex-wrap items-end justify-between gap-4 pt-6 md:pt-12">
         <div>
-          <h1 className="font-display text-4xl leading-tight font-extrabold tracking-tight md:text-5xl">Admin</h1>
-          <p className="mt-2 max-w-[56ch] text-muted-on-stage">
+          <h1 className="text-display leading-tight">Admin</h1>
+          <p className="mt-2 max-w-[56ch] text-ink-notes">
             {formatCount(sessions.length)} {sessions.length === 1 ? "show" : "shows"} on record, {formatCount(real)} real and{" "}
             {formatCount(sessions.length - real)} demo. Demo rooms are listed here but never counted on the Impact page.
           </p>
@@ -111,44 +114,44 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
       </header>
 
       <section aria-labelledby="sessions-h" className="mt-10">
-        <h2 id="sessions-h" className="font-display text-2xl">
+        <h2 id="sessions-h" className="font-display text-h3">
           Sessions
         </h2>
         {sessions.length === 0 ? (
-          <p className="mt-3 text-muted-on-stage">No shows yet. They appear here as soon as someone creates one.</p>
+          <p className="mt-3 text-ink-notes">No shows yet. They appear here as soon as someone creates one.</p>
         ) : (
-          <div className="mt-4 overflow-x-auto rounded-card border border-stage-line bg-stage-1">
-            <table className="w-full min-w-[56rem] border-collapse text-left text-sm">
+          <PaperCard className="mt-4 overflow-x-auto">
+            <table className="dp-table dp-table-links min-w-[56rem] text-small">
               <caption className="sr-only">Every show, newest first</caption>
-              <thead className="bg-stage-2 text-muted-on-stage">
+              <thead>
                 <tr>
-                  <th scope="col" className="px-3 py-3 font-semibold">Show</th>
-                  <th scope="col" className="px-3 py-3 font-semibold">Kind</th>
-                  <th scope="col" className="px-3 py-3 font-semibold">Status</th>
-                  <th scope="col" className="px-3 py-3 text-right font-semibold">Rounds</th>
-                  <th scope="col" className="px-3 py-3 text-right font-semibold">People</th>
-                  <th scope="col" className="px-3 py-3 text-right font-semibold">Ideas</th>
-                  <th scope="col" className="px-3 py-3 text-right font-semibold">Votes</th>
-                  <th scope="col" className="px-3 py-3 text-right font-semibold">Canon makers</th>
-                  <th scope="col" className="px-3 py-3 text-right font-semibold">Bots</th>
-                  <th scope="col" className="px-3 py-3 font-semibold">Created</th>
+                  <th scope="col" className="px-3 py-3 text-left">Show</th>
+                  <th scope="col" className="px-3 py-3 text-left">Kind</th>
+                  <th scope="col" className="px-3 py-3 text-left">Status</th>
+                  <th scope="col" className="px-3 py-3 text-right">Rounds</th>
+                  <th scope="col" className="px-3 py-3 text-right">People</th>
+                  <th scope="col" className="px-3 py-3 text-right">Ideas</th>
+                  <th scope="col" className="px-3 py-3 text-right">Votes</th>
+                  <th scope="col" className="px-3 py-3 text-right">Canon makers</th>
+                  <th scope="col" className="px-3 py-3 text-right">Bots</th>
+                  <th scope="col" className="px-3 py-3 text-left">Created</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-stage-line">
+              <tbody>
                 {sessions.map((s) => (
                   <tr key={s.showId}>
-                    <th scope="row" className="max-w-[18rem] px-3 py-3 font-semibold">
-                      <Link href={`/story/${encodeURIComponent(s.showId)}`} className="break-words underline decoration-stage-line underline-offset-4 hover:decoration-gold">
+                    <th scope="row" className="max-w-[18rem] px-3 py-3 text-left font-display font-normal">
+                      <Link href={`/story/${encodeURIComponent(s.showId)}`} className="break-words underline decoration-ink-faint decoration-2 underline-offset-4 hover:decoration-ink">
                         {s.title}
                       </Link>
-                      <span className="block font-mono text-xs font-normal text-muted-on-stage">{s.roomCode}</span>
+                      <span className="block font-mono text-fine text-ink-notes">{s.roomCode}</span>
                     </th>
                     <td className="px-3 py-3">
                       <Pill tone={s.kind === "demo" ? "wild" : "ok"} size="sm">
                         {s.kind === "demo" ? "Demo" : "Live"}
                       </Pill>
                     </td>
-                    <td className="px-3 py-3 text-muted-on-stage">{s.status}</td>
+                    <td className="px-3 py-3 text-ink-notes">{s.status}</td>
                     <td className="px-3 py-3 text-right tabular-nums">
                       {s.roundsRevealed}/{s.roundsTotal}
                     </td>
@@ -159,42 +162,45 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                     <td className="px-3 py-3 text-right tabular-nums">
                       {s.botPlayers > 0 ? `${s.botPlayers} 🤖 / ${s.botIdeas}` : "0"}
                     </td>
-                    <td className="px-3 py-3 text-muted-on-stage">{formatDate(Date.parse(s.createdAt))}</td>
+                    <td className="px-3 py-3 text-ink-notes">{formatDate(Date.parse(s.createdAt))}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
+          </PaperCard>
         )}
-        <p className="mt-3 max-w-[70ch] text-sm text-muted-on-stage">
+        <p className="mt-3 max-w-[70ch] text-small text-ink-notes">
           People, ideas, votes and canon makers count real players only. Bots show simulated players and their ideas. Rounds is decided rounds out of the planned
           total.
         </p>
       </section>
 
       <section aria-labelledby="flags-h" className="mt-12">
-        <h2 id="flags-h" className="font-display text-2xl">
+        <h2 id="flags-h" className="font-display text-h3">
           Feature flags and modes
         </h2>
-        <p className="mt-1 text-muted-on-stage">Read only. They are set with environment variables on the server.</p>
-        <dl className="mt-4 divide-y divide-stage-line rounded-card border border-stage-line bg-stage-1">
-          {settings.map((s) => (
-            <div key={s.label} className="flex min-h-12 items-center justify-between gap-4 px-4 py-2">
-              <dt className="text-sm md:text-base">{s.label}</dt>
-              <dd>
-                {s.value !== undefined ? (
-                  <Pill tone="neutral" size="sm">
-                    {s.value}
-                  </Pill>
-                ) : (
-                  <Pill tone={s.on ? "ok" : "neutral"} size="sm">
-                    {s.on ? "On" : "Off"}
-                  </Pill>
-                )}
-              </dd>
-            </div>
-          ))}
-        </dl>
+        <p className="mt-1 text-ink-notes">Read only. They are set with environment variables on the server.</p>
+        <PaperCard as="div" className="mt-4">
+          <dl className="divide-y-[1.5px] divide-dashed divide-ink-faint">
+            {settings.map((s) => (
+              <div key={s.label} className="flex min-h-12 items-center justify-between gap-4 px-4 py-2">
+                <dt className="text-small md:text-body">{s.label}</dt>
+                <dd>
+                  {s.value !== undefined ? (
+                    <Pill tone="neutral" size="sm">
+                      {s.value}
+                    </Pill>
+                  ) : (
+                    <Pill tone={s.on ? "ok" : "neutral"} size="sm">
+                      {s.on ? <PenCheck size={14} seed={s.label} /> : null}
+                      {s.on ? "On" : "Off"}
+                    </Pill>
+                  )}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </PaperCard>
       </section>
     </Shell>
   );

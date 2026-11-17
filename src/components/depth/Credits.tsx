@@ -10,7 +10,7 @@ export function Credits({ credit, more }: { credit: readonly Credit[]; more: num
       {credit.map((c, i) => (
         <span key={`${c.name}-${i}`}>
           {i > 0 ? ", " : ""}
-          <span className="font-semibold">@{c.name}</span>
+          <span className="font-display">@{c.name}</span>
           {c.bot ? (
             <>
               {" "}

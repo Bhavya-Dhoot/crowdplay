@@ -178,7 +178,7 @@ describe("/story/[showId]", () => {
     expect(out).not.toContain("Demo show.");
   });
 
-  it("lays the story out as a script: scenes with the winning line and its letter, a byline and a cast list", async () => {
+  it("lays the story out as a poster: numbered scene boxes with the winning line, its letter and a CANON ribbon, a byline and a cast list", async () => {
     const lee = await user(db, "Lee");
     const fx = await show(db, { title: "Script Night", status: "ended", storyRecap: "A recap." });
     const p = await playedRound(db, fx, 1, { winnerUsers: [lee], narration: "The lights came up." });
@@ -186,7 +186,9 @@ describe("/story/[showId]", () => {
     const out = await story(fx.showId);
     expect(out).toContain("Scene 1");
     expect(out).toContain("Winning line");
-    expect(out).toContain('data-gel="a"'); // the fixture's winner sat in slot A
+    expect(out).toContain('data-slot="A"'); // the fixture's winner sat in slot A
+    expect(out).toContain("banner-yellow"); // the numbered scene banner
+    expect(out).toContain('class="banner-face">Canon<'); // the crowd's winner carries the CANON ribbon
     expect(out).toContain("Winner 1");
     expect(out).toContain("Written by");
     expect(out).toContain("@Lee");
@@ -201,7 +203,18 @@ describe("/story/[showId]", () => {
     await db.update(schema.options).set({ slot: null }).where(eq(schema.options.id, p.winnerId));
     const out = await story(fx.showId);
     expect(out).toContain("Winner 1");
-    expect(out).not.toContain("data-gel=");
+    expect(out).not.toContain("data-slot=");
+  });
+
+  it("gives a wildcard or narrator winner its own ribbon, and the CANON ribbon only to the crowd's", async () => {
+    const ann = await user(db, "Ann");
+    const fx = await show(db, { title: "Ribbon Night", status: "ended", storyRecap: "A recap." });
+    await playedRound(db, fx, 1, { winnerUsers: [ann], winnerKind: "wildcard" });
+    await playedRound(db, fx, 2, { winnerUsers: [], winnerKind: "narrator" });
+    const out = await story(fx.showId);
+    expect(out).toContain('class="banner-face">Wildcard<');
+    expect(out).toContain("Narrator&#x27;s pick");
+    expect(out).not.toContain('class="banner-face">Canon<');
   });
 
   it("labels a demo show and puts the robot badge after every bot name", async () => {
@@ -211,6 +224,7 @@ describe("/story/[showId]", () => {
     const out = await story(fx.showId);
     expect(out).toContain("Demo show.");
     expect(out).toContain("simulated");
+    expect(out).toContain('class="banner-face">Demo<'); // the DEMO ribbon
     const names = out.match(/@Captain Noodle/g)?.length ?? 0;
     const badges = out.match(/aria-label="Simulated player \(demo room\)"/g)?.length ?? 0;
     expect(names).toBeGreaterThan(0);

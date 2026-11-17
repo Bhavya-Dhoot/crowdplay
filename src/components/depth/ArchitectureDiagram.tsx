@@ -1,56 +1,81 @@
-// Architecture diagram, hand-built as inline SVG so it stays crisp and readable on a phone, in the v2 stage and paper
-// colours: stage panels for the places code runs, paper for what carries the show (Nexconn Chat) and for the parts
-// inside the server, the stage light for the realtime paths.
-// The artwork is portrait (440 wide) on purpose: at 360 px wide the 13-14 px labels still render near 11-12 px.
+// Architecture diagram as a sketchnote, hand-built as inline SVG so it stays crisp on a phone: ink-outlined boxes with a grey
+// marker shadow (the poster's boxes), yellow-filled fat arrows for the realtime and server paths, a dashed ink line for the
+// HTTP backup path. Browsers and the Next.js server are plain paper; Nexconn Chat, which carries the show, is the greyer sheet.
+// The artwork is portrait (400 wide) on purpose: at 360 px wide the 15-16 px labels still render near 13-14 px.
 // Accessible name + long description via <title>/<desc>; the page repeats the content as a numbered list.
+// Pure geometry from the seeded path makers in ui/doodle: the server and the browser draw the same strokes.
 import type { ReactNode } from "react";
+import { arrowPath, roundLoopPath } from "@/components/ui/doodle";
 
-const FONT_BODY = "var(--f-body)";
-const FONT_DISPLAY = "var(--f-display)";
+const INK = "var(--ink)";
+const NOTES = "var(--ink-notes)";
+const DISPLAY = { fontFamily: "var(--f-display)" } as const;
+const BODY = { fontFamily: "var(--f-body)" } as const;
 
-const ON_STAGE = "var(--ink-on-stage)";
-const MUTED = "var(--muted-on-stage)";
-const LIGHT = "var(--light)";
-const WEBHOOK = "var(--gel-a)";
-
-function Arrow({ id, color }: { id: string; color: string }) {
+// A box: the shape shifted down-right in grey marker, then the paper face with a hand-drawn ink outline.
+function Box({ x, y, w, h, seed, sheet, stroke = 2.5 }: { x: number; y: number; w: number; h: number; seed: string; sheet?: boolean; stroke?: number }) {
+  const d = roundLoopPath(w, h, seed, 3);
   return (
-    <marker id={id} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
-      <path d="M1 1 L9 5 L1 9 z" fill={color} />
-    </marker>
+    <g transform={`translate(${x} ${y})`}>
+      <path d={d} transform="translate(5 6)" fill="var(--marker-2)" />
+      <path d={d} fill="var(--paper-raised)" />
+      {sheet ? <path d={d} fill="var(--marker-1)" /> : null}
+      <path d={d} fill="none" stroke={INK} strokeWidth={stroke} strokeLinecap="round" strokeLinejoin="round" />
+    </g>
   );
 }
 
-function Label({ x, y, children, bold, fill = MUTED, anchor = "start" }: { x: number; y: number; children: ReactNode; bold?: boolean; fill?: string; anchor?: "start" | "end" | "middle" }) {
+// A yellow-filled, ink-outlined fat arrow with a grey shadow (the same drawing as <FatArrow>), pointing down or up.
+function Arrow({ cx, from, len, dir, seed, thick = 26 }: { cx: number; from: number; len: number; dir: "down" | "up"; seed: string; thick?: number }) {
+  const d = arrowPath(len, thick, seed);
+  const transform = dir === "down" ? `translate(${cx + thick / 2} ${from}) rotate(90)` : `translate(${cx - thick / 2} ${from}) rotate(-90)`;
   return (
-    <text x={x} y={y} fontSize={14} fontWeight={bold ? 600 : 400} fill={fill} textAnchor={anchor} fontFamily={FONT_BODY}>
+    <g transform={transform} strokeLinejoin="round" strokeLinecap="round">
+      <path d={d} transform="translate(2.5 3)" fill="var(--marker-2)" />
+      <path d={d} fill="var(--hl-solid)" stroke={INK} strokeWidth={2.4} />
+    </g>
+  );
+}
+
+function Title({ x, y, children }: { x: number; y: number; children: ReactNode }) {
+  return (
+    <text x={x} y={y} fontSize={22} fill={INK} style={DISPLAY}>
       {children}
     </text>
   );
 }
 
-// A part inside the server: a small paper card.
-function Module({ x, y, title, sub }: { x: number; y: number; title: string; sub: string }) {
+function Note({ x, y, children, anchor = "start", size = 16, fill = NOTES, display }: { x: number; y: number; children: ReactNode; anchor?: "start" | "end" | "middle"; size?: number; fill?: string; display?: boolean }) {
   return (
-    <g>
-      <rect x={x} y={y + 2} width={196} height={62} rx={10} fill="var(--paper-edge)" />
-      <rect x={x} y={y} width={196} height={62} rx={10} fill="var(--paper)" />
-      <text x={x + 14} y={y + 26} fontSize={15} fontWeight={600} fill="var(--ink)" fontFamily={FONT_BODY}>
-        {title}
-      </text>
-      <text x={x + 14} y={y + 46} fontSize={14} fill="var(--ink-muted)" fontFamily={FONT_BODY}>
-        {sub}
-      </text>
-    </g>
+    <text x={x} y={y} fontSize={size} fill={fill} textAnchor={anchor} style={display ? DISPLAY : BODY}>
+      {children}
+    </text>
   );
 }
 
 function Bullet({ y, children }: { y: number; children: ReactNode }) {
   return (
     <g>
-      <circle cx={30} cy={y - 4} r={3.5} fill="var(--ink)" />
-      <text x={42} y={y} fontSize={14} fill="var(--ink)" fontFamily={FONT_BODY}>
+      <circle cx={30} cy={y - 5} r={3.5} fill={INK} />
+      <text x={42} y={y} fontSize={16} fill={INK} style={BODY}>
         {children}
+      </text>
+    </g>
+  );
+}
+
+// A part inside the server: a small note.
+function Module({ x, y, title, sub, seed }: { x: number; y: number; title: string; sub: string; seed: string }) {
+  const d = roundLoopPath(168, 62, seed, 2);
+  return (
+    <g transform={`translate(${x} ${y})`}>
+      <path d={d} transform="translate(3 4)" fill="var(--marker-2)" />
+      <path d={d} fill="var(--paper-raised)" stroke={INK} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+      <text x={14} y={26} fontSize={17} fill={INK} style={DISPLAY}>
+        {title}
+      </text>
+      <text x={14} y={47} fontSize={15} fill={NOTES} style={BODY}>
+        {sub}
       </text>
     </g>
   );
@@ -58,13 +83,7 @@ function Bullet({ y, children }: { y: number; children: ReactNode }) {
 
 export function ArchitectureDiagram({ className }: { className?: string }) {
   return (
-    <svg
-      role="img"
-      aria-labelledby="arch-title arch-desc"
-      viewBox="0 0 440 860"
-      className={className}
-      xmlns="http://www.w3.org/2000/svg"
-    >
+    <svg role="img" aria-labelledby="arch-title arch-desc" viewBox="0 0 400 982" className={className} xmlns="http://www.w3.org/2000/svg">
       <title id="arch-title">CrowdPlay architecture</title>
       <desc id="arch-desc">
         Browsers (players, host console, big screen) talk to the Nexconn Open Channel in real time: ideas and cheers go up, show state, tallies and
@@ -74,83 +93,81 @@ export function ArchitectureDiagram({ className }: { className?: string }) {
         ingest and webhook handling, the AI distiller with fallbacks, and receipts and bots, and stores everything in Postgres.
       </desc>
       <defs>
-        <Arrow id="arch-head-light" color={LIGHT} />
-        <Arrow id="arch-head-muted" color={MUTED} />
-        <Arrow id="arch-head-blue" color={WEBHOOK} />
+        <marker id="arch-head-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+          <path d="M1 1 L9 5 L1 9" fill="none" stroke={INK} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+        </marker>
       </defs>
 
       {/* Browsers */}
-      <rect x={10} y={10} width={420} height={104} rx={16} fill="var(--stage-1)" stroke="var(--stage-line)" />
-      <text x={26} y={40} fontSize={19} fontWeight={800} fill={ON_STAGE} fontFamily={FONT_DISPLAY}>
-        Browsers
-      </text>
-      <Label x={26} y={60}>Nexconn Web Chat SDK in every tab</Label>
+      <Box x={10} y={14} w={380} h={124} seed="arch-browsers" />
+      <Title x={28} y={48}>Browsers</Title>
+      <Note x={28} y={70}>Nexconn Web Chat SDK in every tab</Note>
       {[
-        { x: 26, t: "Player" },
-        { x: 156, t: "Host" },
-        { x: 286, t: "Big screen" },
+        { x: 28, t: "Player" },
+        { x: 146, t: "Host" },
+        { x: 264, t: "Big screen" },
       ].map((c) => (
         <g key={c.t}>
-          <rect x={c.x} y={74} width={118} height={30} rx={15} fill="var(--paper)" />
-          <text x={c.x + 59} y={94} fontSize={14} fontWeight={600} fill="var(--ink)" textAnchor="middle" fontFamily={FONT_BODY}>
+          <path d={roundLoopPath(108, 32, `arch-chip-${c.t}`, 2)} transform={`translate(${c.x} 84)`} fill="var(--paper-raised)" stroke={INK} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+          <text x={c.x + 54} y={106} fontSize={16} fill={INK} textAnchor="middle" style={DISPLAY}>
             {c.t}
           </text>
         </g>
       ))}
 
       {/* Browsers <-> Nexconn: realtime */}
-      <line x1={64} y1={116} x2={64} y2={188} stroke={LIGHT} strokeWidth={2.5} markerStart="url(#arch-head-light)" markerEnd="url(#arch-head-light)" />
-      <Label x={78} y={142} bold fill={LIGHT}>Realtime</Label>
-      <Label x={78} y={160}>ideas and cheers up</Label>
-      <Label x={78} y={177}>state and tally down</Label>
+      <Arrow cx={42} from={152} len={80} dir="down" seed="arch-rt-down" />
+      <Arrow cx={84} from={232} len={80} dir="up" seed="arch-rt-up" />
+      <Note x={118} y={170} size={18} fill={INK} display>Realtime</Note>
+      <Note x={118} y={192}>ideas and cheers up</Note>
+      <Note x={118} y={212}>state and tally down</Note>
 
-      {/* Browsers <-> server: HTTP */}
-      <line x1={400} y1={116} x2={400} y2={468} stroke={MUTED} strokeWidth={2} strokeDasharray="6 6" markerStart="url(#arch-head-muted)" markerEnd="url(#arch-head-muted)" />
-      <Label x={388} y={212} bold fill={ON_STAGE} anchor="end">HTTP</Label>
-      <Label x={388} y={230} anchor="end">join and vote</Label>
-      <Label x={388} y={247} anchor="end">idea backup</Label>
-      <Label x={388} y={264} anchor="end">state polling</Label>
+      {/* Browsers <-> server: HTTP, the backup path */}
+      <path d="M376 140 V545" fill="none" stroke={INK} strokeWidth={2.5} strokeDasharray="7 6" strokeLinecap="round" markerStart="url(#arch-head-ink)" markerEnd="url(#arch-head-ink)" />
+      <Note x={362} y={170} anchor="end" size={18} fill={INK} display>HTTP</Note>
+      <Note x={362} y={192} anchor="end">join and vote</Note>
+      <Note x={362} y={212} anchor="end">idea backup</Note>
+      <Note x={362} y={232} anchor="end">state polling</Note>
 
-      {/* Nexconn: the paper card that carries the show */}
-      <rect x={10} y={192} width={270} height={214} rx={16} fill="var(--paper-edge)" />
-      <rect x={10} y={190} width={270} height={214} rx={16} fill="var(--paper)" stroke={LIGHT} strokeWidth={2} />
-      <text x={26} y={222} fontSize={19} fontWeight={800} fill="var(--ink)" fontFamily={FONT_DISPLAY}>
-        Nexconn Chat
-      </text>
-      <Label x={26} y={242} fill="var(--ink-muted)">One Open Channel per show</Label>
-      <Bullet y={274}>Metadata: phase, prompt, tally</Bullet>
-      <Bullet y={300}>Priority messages: state</Bullet>
-      <Bullet y={326}>Low priority: ideas</Bullet>
-      <Bullet y={352}>Direct messages: receipts</Bullet>
-      <Bullet y={378}>Bots and narrator as senders</Bullet>
+      {/* Nexconn Chat: the sheet that carries the show */}
+      <Box x={10} y={252} w={290} h={210} seed="arch-nexconn" sheet stroke={3} />
+      <Title x={28} y={286}>Nexconn Chat</Title>
+      <Note x={28} y={308} fill={NOTES}>One Open Channel per show</Note>
+      <Bullet y={340}>Metadata: phase, prompt, tally</Bullet>
+      <Bullet y={366}>Priority messages: state</Bullet>
+      <Bullet y={392}>Low priority: ideas</Bullet>
+      <Bullet y={418}>Direct messages: receipts</Bullet>
+      <Bullet y={444}>Bots and narrator as senders</Bullet>
 
-      {/* Nexconn -> server: webhook; server -> Nexconn: Server API */}
-      <line x1={60} y1={406} x2={60} y2={468} stroke={WEBHOOK} strokeWidth={2.5} markerEnd="url(#arch-head-blue)" />
-      <Label x={74} y={434} bold fill={WEBHOOK}>Signed webhook</Label>
-      <Label x={74} y={452}>deduplicated</Label>
-      <line x1={240} y1={406} x2={240} y2={468} stroke={LIGHT} strokeWidth={2.5} markerStart="url(#arch-head-light)" />
-      <Label x={254} y={434} bold fill={LIGHT}>Server API</Label>
-      <Label x={254} y={452}>state, receipts</Label>
+      {/* Nexconn -> server: signed webhook; server -> Nexconn: Server API */}
+      <Arrow cx={50} from={474} len={64} dir="down" seed="arch-webhook" />
+      <Note x={78} y={498} size={17} fill={INK} display>Signed webhook</Note>
+      <Note x={78} y={518}>deduplicated</Note>
+      <Arrow cx={216} from={538} len={64} dir="up" seed="arch-serverapi" />
+      <Note x={244} y={498} size={17} fill={INK} display>Server API</Note>
+      <Note x={244} y={518}>state, receipts</Note>
 
       {/* Server */}
-      <rect x={10} y={470} width={420} height={236} rx={16} fill="var(--stage-1)" stroke="var(--stage-line)" />
-      <text x={26} y={500} fontSize={19} fontWeight={800} fill={ON_STAGE} fontFamily={FONT_DISPLAY}>
-        Next.js server
-      </text>
-      <Label x={26} y={520}>Route handlers and a 250 ms ticker</Label>
-      <Module x={26} y={536} title="Round engine" sub="state machine, ticker" />
-      <Module x={230} y={536} title="Ingest + webhook" sub="filter, dedupe, limits" />
-      <Module x={26} y={612} title="AI distiller" sub="LLM, backup LLM, rules" />
-      <Module x={230} y={612} title="Receipts + bots" sub="canon, demo rooms" />
+      <Box x={10} y={546} w={380} h={224} seed="arch-server" />
+      <Title x={28} y={580}>Next.js server</Title>
+      <Note x={28} y={602}>Route handlers and a 250 ms ticker</Note>
+      <Module x={26} y={618} title="Round engine" sub="state machine, ticker" seed="arch-mod-engine" />
+      <Module x={206} y={618} title="Ingest + webhook" sub="filter, dedupe, limits" seed="arch-mod-ingest" />
+      <Module x={26} y={692} title="AI distiller" sub="LLM, backup LLM, rules" seed="arch-mod-ai" />
+      <Module x={206} y={692} title="Receipts + bots" sub="canon, demo rooms" seed="arch-mod-bots" />
 
       {/* Server <-> Postgres */}
-      <line x1={220} y1={708} x2={220} y2={752} stroke={MUTED} strokeWidth={2.5} markerStart="url(#arch-head-muted)" markerEnd="url(#arch-head-muted)" />
-      <path d="M160 770 v54 a60 14 0 0 0 120 0 v-54" fill="var(--stage-2)" stroke="var(--stage-line)" strokeWidth={2} />
-      <ellipse cx={220} cy={770} rx={60} ry={14} fill="var(--stage-2)" stroke="var(--stage-line)" strokeWidth={2} />
-      <text x={220} y={806} fontSize={16} fontWeight={700} fill={ON_STAGE} textAnchor="middle" fontFamily={FONT_BODY}>
-        Postgres
-      </text>
-      <Label x={220} y={850} anchor="middle">PGlite when running locally</Label>
+      <Arrow cx={176} from={782} len={46} dir="down" seed="arch-pg-down" thick={24} />
+      <Arrow cx={224} from={828} len={46} dir="up" seed="arch-pg-up" thick={24} />
+      <g>
+        <path d="M130 872 v54 a70 15 0 0 0 140 0 v-54 z" fill="var(--marker-2)" transform="translate(5 6)" />
+        <path d="M130 872 v54 a70 15 0 0 0 140 0 v-54" fill="var(--paper-raised)" stroke={INK} strokeWidth={2.5} strokeLinejoin="round" />
+        <ellipse cx={200} cy={872} rx={70} ry={15} fill="var(--marker-1)" stroke={INK} strokeWidth={2.5} />
+        <text x={200} y={912} fontSize={20} fill={INK} textAnchor="middle" style={DISPLAY}>
+          Postgres
+        </text>
+      </g>
+      <Note x={200} y={970} anchor="middle">PGlite when running locally</Note>
     </svg>
   );
 }
