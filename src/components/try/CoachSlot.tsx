@@ -1,5 +1,6 @@
 "use client";
-// The guided tips of Judge Mode, as small paper notes that never sit on the options or on the judge's own idea.
+// The guided tips of Judge Mode, as paper slips with washi tape and a small numbered banner ("1 of 3"), never on the
+// options or on the judge's own idea.
 //
 // PlayerView calls its `coach` slot with the current step ("type" -> "watch" -> "vote") and floats whatever it
 // returns just above the composer, which on VOTE is the bottom card. So the slot only gets <CoachReporter>, which
@@ -11,8 +12,11 @@ import { X } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { CoachStep } from "@/components/play/PlayerView";
 import { cn } from "@/components/ui/cn";
+import { NumberBanner } from "@/components/ui/Banner";
 import { AnimatePresence, m } from "@/components/ui/motion";
+import { DURATION, EASE } from "@/components/ui/motionTokens";
 import { PaperCard } from "@/components/ui/PaperCard";
+import { Tape } from "./Tape";
 import { TRY_COPY, type TryCoachStep } from "./tryCopy";
 
 /** Render-nothing child of PlayerView's coach slot: hands the current step to the page. */
@@ -25,7 +29,7 @@ export function CoachReporter({ step, onStep }: { step: CoachStep | null; onStep
 
 const GUIDED_PHASES = new Set(["PROMPT", "STORM", "DISTILL", "VOTE"]);
 
-export type CoachState = {
+type CoachState = {
   /** The note to show, or null. */
   shown: TryCoachStep | null;
   /** The strip keeps its height (round 1, while a note can still come) so the phone below never shifts. */
@@ -68,7 +72,7 @@ export function CoachStrip({ coach, className }: { coach: CoachState; className?
   const { shown, open, dismiss } = coach;
   const copy = shown ? TRY_COPY.coach.steps[shown] : null;
   return (
-    <div className={cn("shrink-0 px-4 transition-[height] duration-175 motion-reduce:transition-none lg:px-0", open ? "h-14" : "h-0", className)}>
+    <div className={cn("mx-auto w-full max-w-[480px] shrink-0 px-3 transition-[height] duration-175 motion-reduce:transition-none lg:max-w-none lg:px-0", open ? "h-[86px]" : "h-0", className)}>
       <AnimatePresence initial={false}>
         {shown && copy ? (
           <m.div
@@ -76,26 +80,28 @@ export function CoachStrip({ coach, className }: { coach: CoachState; className?
             role="status"
             data-testid="coach-mark"
             data-step={shown}
-            initial={{ opacity: 0, y: 8, rotate: -2 }}
+            initial={{ opacity: 0, y: 6, rotate: -1.6 }}
             animate={{ opacity: 1, y: 0, rotate: -0.6 }}
-            exit={{ opacity: 0, transition: { duration: 0.12 } }}
-            transition={{ duration: 0.22, ease: [0.24, 1, 0.4, 1] }}
-            className="py-1.5"
+            exit={{ opacity: 0, transition: { duration: DURATION.fast, ease: EASE.exit } }}
+            transition={{ duration: DURATION.medium, ease: EASE.arrive }}
+            className="pt-3.5 pb-2.5"
           >
-            <PaperCard className="flex items-center gap-2 rounded-element py-1 pr-0.5 pl-3">
+            <PaperCard className="flex items-center gap-1 rounded-element py-2 pr-0.5 pl-3 shadow-slip">
+              <Tape className="-top-3.5 right-14 rotate-[4deg]" />
               {copy.n > 0 ? (
-                <span className="shrink-0 rounded-pill bg-gold px-2 py-0.5 font-display text-fine leading-none font-bold whitespace-nowrap text-ink tabular-nums">
-                  {TRY_COPY.coach.count(copy.n)}
+                <span aria-hidden="true" className="absolute -top-[16px] left-0">
+                  <NumberBanner n={copy.n} label={TRY_COPY.coach.of} size="sm" seed={`coach-${shown}`} />
                 </span>
               ) : null}
-              <p className="min-w-0 flex-1 text-fine leading-snug text-ink">
-                <span className="font-semibold">{copy.title}.</span> <span className="text-ink-muted">{copy.body}</span>
+              <p className={cn("min-w-0 flex-1 text-fine leading-snug text-ink", copy.n > 0 && "pt-1")}>
+                {copy.n > 0 ? <span className="sr-only">{TRY_COPY.coach.tip(copy.n)} </span> : null}
+                <span className="font-display">{copy.title}.</span> <span className="text-ink-notes">{copy.body}</span>
               </p>
               <button
                 type="button"
                 onClick={dismiss}
                 aria-label={TRY_COPY.coach.dismissLabel(copy.title)}
-                className="press -my-1 inline-flex size-11 shrink-0 items-center justify-center rounded-pill text-ink-muted hover:text-ink"
+                className="press -my-1 inline-flex size-11 shrink-0 items-center justify-center rounded-blob text-ink-notes hover:text-ink"
               >
                 <X aria-hidden="true" className="size-5" />
               </button>

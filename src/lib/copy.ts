@@ -142,24 +142,10 @@ export const COPY = {
     host: { label: "Host a show", hint: "Pick a premise, set the timing and share the code." },
     try: { label: `Play a ${DEMO_MINUTES}-minute demo`, hint: "Three rounds against simulated players. No host, no setup." },
     stepsHeading: "How a round works",
-    // The looping example round on the landing page. Decoration, labelled "Example round": nothing here is real data.
-    example: {
-      label: "Example round",
-      description: "Example round: ideas rain in, three choices appear, and the winning idea is stamped canon.",
-      prompt: "The alarm just went off at the world's smallest bank. What happens next?",
-      ideas: ["the vault is full of cats", "pull the fire alarm", "swap places with the guard", "everyone freezes", "a pigeon has the key", "free pizza"],
-      options: [
-        { letter: "A", text: "Swap places with the guard", pct: 46 },
-        { letter: "B", text: "Pull the fire alarm", pct: 22 },
-        { letter: "C", text: "A pigeon has the key", pct: 32 },
-      ],
-      narration: "Somebody slips into the guard's coat and waves the customers through. The vault door sighs open.",
-      credit: { name: "priya", more: 23 },
-    },
     steps: [
-      { title: "Everyone types", body: "A short storm of ideas, straight from every phone in the room." },
-      { title: "AI finds three choices", body: "The crowd's favourites plus one wildcard, written up as options A, B and C." },
-      { title: "The room decides", body: "Everyone votes. The winner becomes canon and the people behind it get named on screen." },
+      { tag: "Type", title: "Everyone types", body: "A short storm of ideas, straight from every phone in the room." },
+      { tag: "Vote", title: "AI finds three choices", body: "The crowd's favourites plus one wildcard, written up as options A, B and C." },
+      { tag: "Canon", title: "The room decides", body: "Everyone votes. The winner becomes canon and the people behind it get named on screen." },
     ],
   },
   nav: { howItWorks: "How it works", impact: "Impact", github: "GitHub" },
@@ -179,9 +165,4 @@ export const COPY = {
   },
   composer: { placeholder: "Type an idea…", getReady: "Get ready…", reconnecting: "Reconnecting…", send: "Send idea" },
   reveal: { canon: "Your idea became canon", tooQuiet: "Too quiet! The narrator improvises.", narratorPick: "Narrator's pick" },
-  try: {
-    banner: "Demo room — 30 🤖 simulated players. Live shows use real people.",
-    /** The same promise in one line for a phone-width banner. */
-    bannerShort: "Demo room · 30 🤖 simulated players",
-  },
 } as const;

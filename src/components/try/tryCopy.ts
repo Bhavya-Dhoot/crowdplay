@@ -6,7 +6,8 @@ import { DEMO_MINUTES } from "@/lib/copy";
 export type TryCoachStep = CoachStep | "voted";
 
 export const TRY_COPY = {
-  pill: "Demo",
+  /** The honest line. The DEMO ribbon beside it says "demo", so the sentence starts at the number. */
+  banner: { short: "30 🤖 simulated players", full: "30 🤖 simulated players. Live shows use real people." },
   title: "Play a whole show. Alone.",
   lead: `Three quick rounds against 30 simulated players. No host, nothing to set up. About ${DEMO_MINUTES} minutes.`,
   nameLabel: "Your name in the demo",
@@ -22,13 +23,13 @@ export const TRY_COPY = {
   screen: { label: "The big screen", note: "What a room would see on the projector.", show: "Show the big screen", hide: "Hide the big screen" },
   phone: "Your phone",
   boost: {
-    chip: "⚡ boosted in demo",
-    title: "⚡ boosted in demo",
+    chip: "boosted in demo",
     body: "Demo only: your idea takes the wildcard slot, and the bots give it a nudge so you can watch a win. Live shows have no boost.",
-    toggle: "What does boosted mean?",
   },
   end: {
-    title: "That was 3 rounds.",
+    /** "That was <swash>3 rounds.</swash>" */
+    lead: "That was ",
+    marked: "3 rounds.",
     body: "Real shows run with real crowds.",
     host: "Host a show",
     how: "How it works",
@@ -36,7 +37,9 @@ export const TRY_COPY = {
     story: "Read the full story",
   },
   coach: {
-    count: (n: number) => `${n} of 3`,
+    /** The numbered banner reads "1 of 3". */
+    of: "of 3",
+    tip: (n: number) => `Tip ${n} of 3.`,
     dismissLabel: (title: string) => `Dismiss tip: ${title}`,
     steps: {
       type: { n: 1, title: "Type any idea", body: "A short sentence works best." },

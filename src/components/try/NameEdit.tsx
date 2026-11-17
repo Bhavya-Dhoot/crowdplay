@@ -1,7 +1,7 @@
 "use client";
 // "Playing as Brave Otter [pencil]": the judge's name in the demo, editable at any time. The demo starts with a
 // random name (the landing button goes straight in); a change goes through the same session call as the intro.
-import { Check, Pencil, X } from "lucide-react";
+import { CircleAlert, Check, Pencil, X } from "lucide-react";
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { cn } from "@/components/ui/cn";
 import { ensureSession } from "@/lib/client/session";
@@ -37,9 +37,9 @@ export function NameEdit({ name, onSaved, className }: { name: string; onSaved: 
 
   if (!editing) {
     return (
-      <p className={cn("flex min-h-11 items-center gap-1 text-small text-muted-on-stage", className)}>
+      <p className={cn("flex min-h-11 items-center gap-1 text-small text-ink-notes", className)}>
         {TRY_COPY.name.playingAs}
-        <span data-testid="try-name" className="font-semibold text-on-stage">
+        <span data-testid="try-name" className="font-display text-ink">
           {name}
         </span>
         <button
@@ -50,7 +50,7 @@ export function NameEdit({ name, onSaved, className }: { name: string; onSaved: 
           }}
           aria-label={TRY_COPY.name.change}
           title={TRY_COPY.name.change}
-          className="press inline-flex size-11 items-center justify-center rounded-pill text-muted-on-stage [--press-overlay:rgb(255_255_255/0.1)] hover:text-on-stage"
+          className="press inline-flex size-11 items-center justify-center rounded-blob text-ink-notes hover:text-ink"
         >
           <Pencil aria-hidden="true" className="size-4" />
         </button>
@@ -76,13 +76,16 @@ export function NameEdit({ name, onSaved, className }: { name: string; onSaved: 
         spellCheck={false}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${id}-error` : undefined}
-        className="h-11 min-w-0 flex-1 rounded-element border border-stage-line bg-stage-2 px-3 text-body text-on-stage focus:border-gold focus:outline-none"
+        className={cn(
+          "h-11 min-w-0 flex-1 rounded-element border-2 bg-paper px-3 text-body text-ink placeholder:text-ink-notes",
+          error ? "border-danger" : "border-ink",
+        )}
       />
       <button
         type="submit"
         disabled={busy}
         aria-label={busy ? TRY_COPY.name.saving : TRY_COPY.name.save}
-        className="press inline-flex size-11 items-center justify-center rounded-pill bg-gold text-ink disabled:opacity-60"
+        className="btn size-11 shrink-0"
       >
         <Check aria-hidden="true" className="size-5" />
       </button>
@@ -93,12 +96,17 @@ export function NameEdit({ name, onSaved, className }: { name: string; onSaved: 
           setError(null);
         }}
         aria-label={TRY_COPY.name.cancel}
-        className="press inline-flex size-11 items-center justify-center rounded-pill text-muted-on-stage [--press-overlay:rgb(255_255_255/0.1)] hover:text-on-stage"
+        className="press inline-flex size-11 shrink-0 items-center justify-center rounded-blob text-ink-notes hover:text-ink"
       >
         <X aria-hidden="true" className="size-5" />
       </button>
-      <p id={`${id}-error`} role="alert" className="w-full text-fine text-danger empty:hidden">
-        {error}
+      <p id={`${id}-error`} role="alert" className="flex w-full items-center gap-1.5 text-fine text-danger empty:hidden">
+        {error ? (
+          <>
+            <CircleAlert aria-hidden="true" className="size-4 shrink-0" />
+            {error}
+          </>
+        ) : null}
       </p>
     </form>
   );
