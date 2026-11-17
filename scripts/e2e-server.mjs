@@ -68,7 +68,8 @@ const mockEnv = {
   ALLOW_MOCK_IN_PROD: "1",
   FEATURE_CHEERS: "1",
   TIMING_SCALE: "0.3",
-  MOCK_DISTILL_DELAY_MS: "1500",
+  MOCK_DISTILL_DELAY_MS: "3000",
+  DISTILL_HARD_CAP_MS: "20000", // scaled to 6 s: keeps the 3 s mock DISTILL clear of the cap tick
   PGLITE_DIR: ".data/e2e",
   APP_URL: `http://localhost:${port}`,
   SESSION_SECRET: "e2e-session-secret-0123456789-abcdefghij",

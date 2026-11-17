@@ -124,7 +124,7 @@ test("screens: every page and phase at 390x844 and 1440x900", async ({ newContex
     await snap(hosts[size.width], "host-storm", size, "STORM");
   });
 
-  // ---- DISTILL (about 1.5 s: every page is shot at the same moment) ----
+  // ---- DISTILL (about 3 s: every page is shot at the same moment) ----
   await host({ action: "endStorm" });
   await Promise.all(everyone.map((p) => expectPhase(p, "DISTILL")));
   await Promise.all(
