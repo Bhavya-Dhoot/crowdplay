@@ -112,22 +112,22 @@ More detail: [docs/TECH_SPEC.md](docs/TECH_SPEC.md), [docs/NEXCONN_INTEGRATION.m
 
 Replace `<APP>` with the live app URL from the Links block. For a local run use `http://localhost:3000` (see [Local setup](#local-setup)).
 
-### A. Alone, about a minute to the first round, three minutes for the whole demo: `/try`
+### A. Alone, about two minutes for the whole demo: `/try`
 
-1. Open `<APP>/try`, enter any name (or tap the dice), press **Start the demo**.
-2. A banner stays on screen: "Demo room — 30 🤖 simulated players. Live shows use real people." The 30 other players are bots and wear a 🤖 everywhere. On a laptop the left side is **Your phone** and the right side is **The big screen**; on a phone the big screen is a collapsible panel on top.
-3. Three guided tips appear: **Type any idea** (storm, about 20 s), **Watch it compete** (your idea joins about 60 bot ideas and the AI writes three options), **Vote — maybe yours wins** (12 s).
-4. Your idea gets a demo-only boost into the wildcard slot, tagged "boosted in demo", so it usually reaches the ballot and you get a "Your idea is on the ballot" receipt. Bots vote at random with a slight bias to option A, so your wildcard does not always win. If it does, you get the full-screen "Your idea became canon" moment and the receipt on `/me`.
-5. After round 3 an end card links to Host a show, How it works and Impact.
+1. On `<APP>/` press **Play a 2-minute demo**. It opens `/try?go=1`, which gives you a random name (editable in the banner) and starts at once. Plain `<APP>/try` shows a short intro with a name field and **Start the demo** instead.
+2. A banner stays on screen and says the room is a demo with 30 simulated players. The bots wear a 🤖 everywhere. On a laptop the phone panel is on the left and a mini big screen on the right; on a phone the big screen opens from a banner icon.
+3. Three paper tips under the phone guide you: **Type any idea** (storm, 20 s), **Watch it compete** (your idea joins about 60 bot ideas and the AI writes three options), **Vote** (the vote closes about 1.5 s after you vote).
+4. Your idea gets a demo-only boost into the wildcard slot, tagged "⚡ boosted in demo", and the label is your own words credited to you alone. Until you have had one winning idea in the show, the bots' votes lean toward your wildcard (a soft nudge in round 2, a sure win in round 3), so a first-time judge sees the full-screen "Your idea became canon" moment and the receipt on `/me`. The tag's explainer says so. Your own vote is never changed, and live shows have no boost and no lean.
+5. The reveal lasts as long as the narration takes to read (8 to 15 s). After round 3 an end card links to the story, Host a show, How it works and Impact. Measured length from the landing click to the finale: about 107 s with the engine's timers, 120 to 127 s when played by hand in a browser.
 
 Bots and demo rooms are excluded from `/impact` by construction.
 
 ### B. Two devices: host on a laptop, player on a phone
 
-1. Laptop: open `<APP>/host`. The wizard has four steps: your name, a story (six presets, editable title and premise), the pace (rounds 3 to 10, storm 20 / 30 / 45 s, vote 10 / 12 / 20 s) and ground rules (auto-advance, strict filter). Press **Create show**. You land on `/host/<CODE>?k=<host key>`. Keep that URL private: the key runs the show.
-2. The right-hand **Room** column shows the QR code, the 5-letter code and copy buttons for the join, screen, OBS and host links. **Open big screen** opens `/screen/<CODE>`; put it on a projector or share the window.
+1. Laptop: open `<APP>/host`. Pick a story (six presets; title and premise are prefilled and editable) and press **Create show**. Everything else has a default: a one-line **Pace and rules** summary opens to change rounds (3 to 10), storm (20 / 30 / 45 s), vote (10 / 12 / 20 s), auto-advance and the strict filter, and your host name is prefilled with a dice button. You land on `/host/<CODE>?k=<host key>`. Keep that URL private: the key runs the show.
+2. In the lobby a **Get people in** card fills the centre: a large QR code, the 5-letter code, **Copy join link**, and chips for the screen, OBS and host links. Once the show starts the card moves, smaller, to the **Room** column. **Big screen** in the top bar opens `/screen/<CODE>`; put it on a projector or share the window.
 3. Phone: scan the QR (it opens `/join/<CODE>`), enter a name, press **I'm in**. More players: more phones, or separate incognito windows (one browser profile is one player).
-4. Laptop: press **Start show**. The big key then follows the phase (Start storm now, End storm now, Reveal now, Next round, Finale, End show). During VOTE you can **Veto** an option (replaced within seconds), **Force win**, or **Re-roll** once. Players can be muted or banned and ideas deleted at any time.
+4. Laptop: press **Start show**. The gold key then follows the phase (Start storm now, End storm now, Reveal now, Next round, Finale, End show), and a timeline under it marks the round and phase. During VOTE you can **Veto** an option (replaced within seconds), **Force win**, or **Re-roll** once. Players can be muted or banned and ideas deleted at any time.
 5. After the finale, open the story page (`/story/<showId>`, linked from the host console) and, on the phone, `/me` for receipts.
 
 ### C. OBS overlay

@@ -80,7 +80,7 @@ Setup before recording (see pre-flight): a show created on the deployed app, in 
 
 ### 1:50 to 2:15: REVEAL and the receipt (real phone)
 
-- **Big screen:** the winner fills the screen, the narration appears line by line, then "Canon by @name, @name + N others".
+- **Big screen:** the winning card lands in the middle with a CANON stamp, the narration types out on it, and the byline reads "Written by @name, @name + N others".
 - **Phone (screen recording started before VOTE):**
   1. Around the start of VOTE a toast says "Your idea is on the ballot" if your idea fed an option. (If Nexconn's direct message does not reach the phone, the app asks the server once during REVEAL and the toast appears then.)
   2. If your idea won and the receipt arrives while that round's REVEAL is on screen: a full-screen gold "Your idea became canon" for 2.5 s (confetti unless the phone has Reduce Motion on), then a gold toast. A receipt that arrives later is a toast only.
@@ -148,17 +148,17 @@ Setup before recording (see pre-flight): a show created on the deployed app, in 
 Record `/try` instead and say so. Everything in the product works with no host and no crowd.
 
 1. Open `<APP>/try` in an incognito window (full screen, 1440 x 900). The banner is permanent: keep it in frame.
-2. Enter a name, press **Start the demo**. The room plays 3 rounds on its own (6 s scene, 20 s storm, up to 8 s AI step, 12 s vote, 12 s reveal). The left side is "Your phone", the right side "The big screen".
-3. Type an idea in round 1. Your idea gets a demo-only boost into the wildcard slot, tagged "⚡ boosted in demo", so it usually reaches the ballot and the "Your idea is on the ballot" receipt appears. The bots vote at random with a slight lean to option A, so your idea does not always win. Record several demos and keep a take where the "Your idea became canon" moment happened naturally. Do not alter the demo.
+2. Press **Start the demo** (or start from the landing page's **Play a 2-minute demo**, which skips the intro). The room plays 3 rounds on its own (2.5 s scene, 20 s storm, the AI step, a vote that closes about 1.5 s after you vote, a reveal as long as the narration). The phone panel is on the left, the mini big screen on the right. About two minutes in all.
+3. Type an idea in every round. Your idea gets a demo-only boost into the wildcard slot, tagged "⚡ boosted in demo", so it reaches the ballot and the "Your idea is on the ballot" receipt appears. Until you have one winning idea in the show, the bots' votes lean toward your wildcard, so the "Your idea became canon" moment happens by round 3 at the latest. The demo's own explainer says the bots give it a nudge; say the same in the voice-over and never present a `/try` win as a real crowd's choice.
 4. For the receipt close-up, run `/try` on a real phone with the screen recorder armed, so the moment is captured on a real device even though the crowd is bots.
 
 | Segment | What to shoot | Voice-over (replaces Plan A) |
 |---|---|---|
-| 0:20 to 0:45 | `/` then **Try it alone (60 s)**, the `/try` intro ("Play a whole show. Alone."), press **Start the demo**. No QR: the judge is already in the room. | "No signup. Pick a name and you're in. This is the demo room: the other thirty players are bots, marked with a robot badge." |
+| 0:20 to 0:45 | `/` then **Play a 2-minute demo**; the demo starts at once with a random name. No QR: the judge is already in the room. | "No signup. Pick a name and you're in. This is the demo room: the other thirty players are bots, marked with a robot badge." |
 | 0:45 to 1:10 | `/try` storm, phone side and big-screen side | "Twenty seconds. Everyone types what happens next. Here the crowd is simulated; live shows use real people." |
 | 1:10 to 1:30 | `/try` DISTILL and the options | Same as Plan A. |
 | 1:30 to 1:50 | `/try` vote | Same as Plan A. |
-| 1:50 to 2:15 | `/try` reveal and the receipt on the phone | "The `<wildcard / crowd option>` wins, and the phone tells the player their idea became canon. In this demo the crowd is bots; the receipt logic is the same one live shows use." |
+| 1:50 to 2:15 | `/try` reveal and the receipt on the phone | "The `<wildcard / crowd option>` wins, and the phone tells the player their idea became canon. In this demo the crowd is bots and they nudge the visitor's idea so you can see the moment; the receipt logic is the same one live shows use." |
 | 2:40 to 2:55 | `/impact` as displayed, then the `/try` end card ("That was 3 rounds. Real shows run with real crowds.") | Use the "no real show yet" or real-numbers variant above, exactly as `/impact` shows. |
 
 Add a lower-third caption "Demo room: simulated players" across the whole `/try` portion in the edit, on top of the product's own banner.

@@ -97,7 +97,7 @@ test("judge: /try plays three rounds alone, boosts the judge's idea, labels ever
 
     await expectPhase(page, "REVEAL", 30_000);
     await expect(page.getByTestId("winner")).toBeVisible();
-    await expect(page.getByTestId("winner").getByTestId("narration")).toContainText(/\S{3,}/);
+    await expect(page.getByRole("region", { name: "The narration" }).getByTestId("narration")).toContainText(/\S{3,}/);
     const credit = (await page.getByTestId("credits").textContent()) ?? "";
     expect(credit, `credit line of round ${round}`).toContain("@");
   }

@@ -76,7 +76,7 @@ light (it moves per round), and the one gold is reserved for "canon" and the pri
 ## Per-surface direction
 - Landing `/`: one hero line + a LIVE miniature of a round built from real components (cards rain → three script
   cards → CANON stamp) on a loop (static frame under reduced motion; never empty skeletons). Primary CTA (gold):
-  **"Play a 60-second demo"** → /try. Secondary: join with code (5 boxes). Tertiary link: host a show.
+  **"Play a 2-minute demo"** → /try. Secondary: join with code (5 boxes). Tertiary link: host a show.
 - Phone `/play`: stage background, paper idea cards in the feed (own = gold edge, bots 🤖), composer is a glass bar
   pinned above the keyboard; VOTE = three full-width script cards with gel band + letter, 12 px apart, tap = select
   with check + "Your vote" stamp; REVEAL = winner card lifts, CANON stamp lands, narration typewrites on a paper

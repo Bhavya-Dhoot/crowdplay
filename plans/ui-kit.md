@@ -72,7 +72,7 @@ primary action per view. Everything else stays quiet. Contrast numbers are in sr
 
 ## Landing
 `/` = hero + `<RoundMiniature/>` (live looping example round built from the primitives above; still frame under reduced motion;
-it also steps the page's stage light amber -> teal -> lilac per loop) + gold "Play a 60-second demo" + join + host link.
+it also steps the page's stage light amber -> teal -> lilac per loop) + gold "Play a 2-minute demo" + join + host link.
 
 ## Data and API (unchanged)
 - `const r = useRoom(code, "player"|"screen"|"host")` (`@/lib/client/useRoom`) -> { state, me, feed, cheers, connection,

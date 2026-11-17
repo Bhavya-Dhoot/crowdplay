@@ -157,7 +157,7 @@ test("screens: every page and phase at 390x844 and 1440x900", async ({ newContex
   await expect(ada.getByTestId("receipt-moment")).toBeVisible({ timeout: 6000 });
   await expect(ada.getByTestId("receipt-moment")).toBeHidden({ timeout: 6000 });
   for (const p of [ada, bo]) {
-    const narration = p.getByTestId("winner").getByTestId("narration");
+    const narration = p.getByRole("region", { name: "The narration" }).getByTestId("narration");
     await expect(narration).toContainText(/\S{3,}/);
     // The typewriter overlay has caught up with the full text (the first span holds all of it, invisibly).
     const full = ((await narration.locator("span").first().textContent()) ?? "").trim();

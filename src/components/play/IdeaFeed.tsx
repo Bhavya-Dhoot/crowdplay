@@ -98,7 +98,7 @@ const FeedItem = memo(function FeedItem({ idea, fresh, onEdit }: ItemProps) {
         ) : null}
         {rejected ? (
           <span className="flex max-w-[88%] flex-col items-end gap-0.5 pr-1 text-right">
-            <span role="alert" className="flex items-start gap-1.5 text-small leading-snug font-semibold text-danger">
+            <span className="flex items-start gap-1.5 text-small leading-snug font-semibold text-danger">
               <TriangleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
               {friendlyError(idea.rejectCode ?? "BAD_REQUEST")}
             </span>

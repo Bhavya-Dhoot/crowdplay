@@ -2,7 +2,7 @@
 //   <Button variant="primary|secondary|ghost|danger|wild" size="sm|md|lg" block loading onClick>..</Button>
 //   <ButtonLink href="/host" variant="secondary">..</ButtonLink>     (next/link, same look)
 //   buttonClass({ variant, size, block })                             class string for custom elements
-// primary = the gold pill, ONE per view (the phase action, "Play a 60-second demo"). secondary = a paper pill on
+// primary = the gold pill, ONE per view (the phase action, "Play a 2-minute demo"). secondary = a paper pill on
 // the stage. ghost = text on the stage. danger / wild are status fills. Text is --ink on every bright fill (AA).
 // Press = 0 ms onset scale(.98) + overlay (the .press class in globals.css), never a layout change; the focus ring
 // is the global 2 px gold at 3 px offset.
