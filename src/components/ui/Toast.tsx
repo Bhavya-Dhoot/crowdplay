@@ -153,7 +153,7 @@ function ToastView({ item, onDone }: { item: Item; onDone: (id: string) => void 
       onPointerLeave={() => setHeld(false)}
       onFocusCapture={() => setHeld(true)}
       onBlurCapture={() => setHeld(false)}
-      className={cn("toast slip pointer-events-auto flex items-start gap-3 rounded-card p-4 pt-5", item.kind === "error" && "border-danger")}
+      className={cn(`toast toast-${item.kind} slip pointer-events-auto flex items-start gap-3 rounded-card p-4 pt-5`, item.kind === "error" && "border-danger")}
     >
       {Icon ? <Icon aria-hidden="true" className={cn("mt-0.5 size-5 shrink-0", ICON_TONE[item.kind])} /> : <PenCheck size={20} className="mt-0.5" />}
       <div className="min-w-0 flex-1">

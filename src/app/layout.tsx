@@ -68,7 +68,7 @@ function InkBoilDefs() {
     <svg width="0" height="0" aria-hidden="true" focusable="false" style={{ position: "absolute" }}>
       <defs>
         {[1, 2, 3].map((seed) => (
-          <filter key={seed} id={`ink-boil-${seed}`} x="-5%" y="-5%" width="110%" height="110%">
+          <filter key={seed} id={`ink-boil-${seed}`} x="-20%" y="-30%" width="140%" height="160%">
             <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="2" seed={seed} result="n" />
             <feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G" />
           </filter>

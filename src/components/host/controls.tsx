@@ -1,7 +1,6 @@
 "use client";
 // Small controls shared by the setup wizard and the console (design v3: ink outlines on paper, grey marker for state, the
 // yellow stays on the one primary key, which is a ui/Button).
-//   <LogoMark/>                                         three paper notes with a yellow tick: the brand mark, shared by both pages
 //   FIELD                                               class string of a hand-drawn text field (input, textarea, search)
 //   <Switch checked onChange label hint testId busy/>   a whole-row to-do box (role="switch"): a drawn ink check when it is on
 //   <Segmented name label options value onChange/>      3-way choice built on native radios (arrow keys work); grey marker = chosen
@@ -15,18 +14,6 @@ import { PenCheck } from "@/components/ui/PenCheck";
 import { useToast } from "@/components/ui/Toast";
 
 // ---------- brand mark and field ----------
-
-/** Three paper notes fanned out, the front one with a yellow tick (the landing page's mark, drawn small). */
-export function LogoMark({ size = 28 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true" fill="none" stroke="var(--ink)" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round">
-      <rect x="4" y="7" width="14" height="19" rx="3" transform="rotate(-14 11 20)" fill="var(--paper-raised)" />
-      <rect x="9" y="4" width="14" height="19" rx="3" transform="rotate(-2 16 14)" fill="var(--paper-raised)" />
-      <rect x="14" y="6" width="14" height="19" rx="3" transform="rotate(10 21 16)" fill="var(--paper-raised)" />
-      <path d="M18 14.5h7M18.5 19h5" stroke="var(--hl-deep)" strokeWidth="3" />
-    </svg>
-  );
-}
 
 export const FIELD =
   "min-h-12 w-full rounded-element border-2 border-ink bg-paper-raised px-4 text-body text-ink placeholder:text-ink-notes aria-[invalid=true]:border-danger disabled:opacity-60";

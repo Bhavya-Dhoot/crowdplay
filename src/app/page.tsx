@@ -17,23 +17,10 @@ import { PaperCard } from "@/components/ui/PaperCard";
 import { StageBackdrop } from "@/components/ui/StageBackdrop";
 import { Swash } from "@/components/ui/Swash";
 import { COPY } from "@/lib/copy";
+import { LogoMark } from "@/components/ui/LogoMark";
 
-// The one-word names on the numbered banners (the longer step titles come from COPY below each drawing).
-const STEP_TAGS = ["Type", "Vote", "Canon"] as const;
 // When each step's pen starts (ms): banner, then its drawing, then the arrow to the next step.
 const STEP_AT = [150, 1000, 1850] as const;
-
-// Three paper notes fanned out, the front one with a yellow tick: the brand mark.
-function LogoMark() {
-  return (
-    <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true" fill="none" stroke="var(--ink)" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round">
-      <rect x="4" y="7" width="14" height="19" rx="3" transform="rotate(-14 11 20)" fill="var(--paper-raised)" />
-      <rect x="9" y="4" width="14" height="19" rx="3" transform="rotate(-2 16 14)" fill="var(--paper-raised)" />
-      <rect x="14" y="6" width="14" height="19" rx="3" transform="rotate(10 21 16)" fill="var(--paper-raised)" />
-      <path d="M18 14.5h7M18.5 19h5" stroke="var(--hl-deep)" strokeWidth="3" />
-    </svg>
-  );
-}
 
 export default function Landing() {
   const { landing } = COPY;
@@ -93,7 +80,7 @@ export default function Landing() {
                 >
                   <NumberBanner
                     n={i + 1}
-                    label={STEP_TAGS[i]}
+                    label={COPY.landing.steps[i].tag}
                     play
                     delayMs={STEP_AT[i]}
                     className="absolute -top-[18px] left-1/2 -translate-x-1/2"
