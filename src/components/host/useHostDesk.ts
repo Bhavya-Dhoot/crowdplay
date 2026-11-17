@@ -8,7 +8,8 @@
 //   failing    the last feed request failed (network or server): show a calm banner, keep polling
 //   busy       keys of actions in flight (disable + spinner, no double submits)
 //   pending    optimistic values for toggles, mute/ban and idea deletes until the feed confirms
-//   run(key, action, optimistic?)  POST /host through hostAction; resolves true on success, toasts on failure
+//   run(key, action, optimistic?)  POST /host through hostAction; resolves true on success. A short toast confirms
+//                       what happened (actionToast), a friendly one explains a failure
 // The heartbeat POST every second also lazy-advances the engine on serverless hosts, so it keeps
 // running for as long as the console is open and the show is live.
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -16,7 +17,7 @@ import { useToast } from "@/components/ui/Toast";
 import type { HostActionInput, HostFeedRes } from "@/lib/api/contracts";
 import { getHostFeed, hostAction } from "@/lib/client/api";
 import type { PublicState } from "@/lib/realtime/types";
-import { hostErrorMessage, newerState } from "./consoleLogic";
+import { actionToast, hostErrorMessage, newerState } from "./consoleLogic";
 
 const FEED_MS = 1000;
 const FEED_ENDED_MS = 4000;
@@ -134,6 +135,8 @@ export function useHostDesk(code: string, hostKey: string, live: boolean): HostD
         });
       if (r.ok) {
         acceptState(r.state);
+        const said = actionToast(action);
+        if (said) toast.show({ ...said, kind: "success", durationMs: 2600 });
         if (optimistic) {
           const t = setTimeout(() => {
             timers.current.delete(t);

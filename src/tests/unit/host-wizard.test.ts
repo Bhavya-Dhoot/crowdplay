@@ -4,6 +4,7 @@ import {
   initialForm,
   nextPremise,
   nextTitle,
+  paceSummary,
   PRESET_ORDER,
   sliderFill,
   STORM_SECONDS,
@@ -122,5 +123,17 @@ describe("estimateMinutes and sliderFill", () => {
     expect(sliderFill(3)).toBe(0);
     expect(sliderFill(10)).toBe(100);
     expect(sliderFill(7)).toBe(57);
+  });
+});
+
+describe("paceSummary reads out the defaults", () => {
+  it("says what the default show does in one sentence", () => {
+    const f = initialForm("Sam");
+    expect(paceSummary(f)).toBe("5 rounds, 30 s of ideas and 12 s of voting each. Runs itself, strict filter on.");
+  });
+
+  it("follows the host's changes", () => {
+    const f = { ...initialForm("Sam"), rounds: 3, stormS: 45, voteS: 20, autoAdvance: false, strictFilter: false };
+    expect(paceSummary(f)).toBe("3 rounds, 45 s of ideas and 20 s of voting each. You press Next round, strict filter off.");
   });
 });

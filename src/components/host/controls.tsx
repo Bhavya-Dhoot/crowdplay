@@ -1,10 +1,12 @@
 "use client";
-// Small controls shared by the setup wizard and the console.
+// Small controls shared by the setup wizard and the console (design v2: paper pills on stage, one gold per view).
 //   <Switch checked onChange label hint testId busy/>   a whole-row on/off button (role="switch")
 //   <Segmented name label options value onChange/>      3-way choice built on native radios (arrow keys work)
-//   <ActionButton variant size loading/>                compact 44 px pill for dense rows
-//   <IconButton label pressed tone/>                    44 px square icon button with a required label
-//   <CopyButton value label/>                           copies to the clipboard and says "Copied!"
+//   <ActionButton variant size loading/>                compact pill for dense rows. secondary = paper pill on stage,
+//                                                        accent = the gold one (Resume, when the phase key is parked),
+//                                                        paper / ink / veto sit ON paper cards (Veto, Force win)
+//   <IconButton label pressed tone surface/>            44 px round icon button with a required label
+//   <CopyButton value label size tone/>                 copies to the clipboard, says "Copied!" and toasts
 import { Check, Copy, LoaderCircle } from "lucide-react";
 import { useEffect, useRef, useState, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { cn } from "@/components/ui/cn";
@@ -34,28 +36,28 @@ export function Switch({ checked, onChange, label, hint, disabled, busy, testId,
       data-testid={testId}
       onClick={() => onChange(!checked)}
       className={cn(
-        "flex min-h-14 w-full items-center justify-between gap-4 rounded-card border border-line bg-surface-2 px-4 py-2.5 text-left transition-colors hover:border-muted disabled:pointer-events-none disabled:opacity-50 motion-reduce:transition-none",
+        "press flex min-h-14 w-full items-center justify-between gap-4 rounded-card border border-stage-line bg-stage-2 px-4 py-2.5 text-left [--press-overlay:rgb(255_255_255/0.07)] hover:border-muted-on-stage/50 disabled:pointer-events-none disabled:opacity-50",
         className,
       )}
     >
       <span className="min-w-0">
-        <span className="block text-[15px] leading-5 font-semibold">{label}</span>
-        {hint ? <span className="mt-0.5 block text-[13px] leading-[18px] text-muted">{hint}</span> : null}
+        <span className="block text-small leading-5 font-semibold text-on-stage">{label}</span>
+        {hint ? <span className="mt-0.5 block text-fine leading-[18px] text-muted-on-stage">{hint}</span> : null}
       </span>
       <span
         aria-hidden="true"
         className={cn(
-          "relative inline-flex h-7 w-12 shrink-0 items-center rounded-pill transition-colors motion-reduce:transition-none",
-          checked ? "bg-accent" : "bg-line",
+          "relative inline-flex h-7 w-12 shrink-0 items-center rounded-pill transition-colors duration-175 ease-arrive motion-reduce:transition-none",
+          checked ? "bg-ok" : "bg-stage-line",
         )}
       >
         <span
           className={cn(
-            "absolute left-1 grid size-5 place-items-center rounded-full bg-text shadow transition-transform motion-reduce:transition-none",
-            checked && "translate-x-5 bg-ink",
+            "absolute left-1 grid size-5 place-items-center rounded-full shadow transition-transform duration-175 ease-arrive motion-reduce:transition-none",
+            checked ? "translate-x-5 bg-ink text-ok" : "bg-on-stage",
           )}
         >
-          {busy ? <LoaderCircle className="size-3 animate-spin text-accent motion-reduce:animate-none" /> : null}
+          {busy ? <LoaderCircle className="size-3 animate-spin motion-reduce:animate-none" /> : checked ? <Check className="size-3" strokeWidth={3} /> : null}
         </span>
       </span>
     </button>
@@ -76,22 +78,15 @@ type SegmentedProps<T extends number | string> = {
 
 export function Segmented<T extends number | string>({ name, label, options, value, onChange, format, testIdPrefix }: SegmentedProps<T>) {
   return (
-    <div role="radiogroup" aria-label={label} className="grid auto-cols-fr grid-flow-col gap-1 rounded-pill border border-line bg-surface-2 p-1">
+    <div role="radiogroup" aria-label={label} className="grid auto-cols-fr grid-flow-col gap-1 rounded-pill border border-stage-line bg-stage-2 p-1">
       {options.map((o) => (
         <label
           key={String(o)}
           data-testid={testIdPrefix ? `${testIdPrefix}-${o}` : undefined}
           className="relative flex min-h-11 cursor-pointer items-center justify-center"
         >
-          <input
-            type="radio"
-            name={name}
-            value={String(o)}
-            checked={o === value}
-            onChange={() => onChange(o)}
-            className="peer sr-only"
-          />
-          <span className="grid h-full w-full place-items-center rounded-pill px-3 text-[15px] font-semibold text-muted tabular-nums transition-colors peer-checked:bg-accent peer-checked:text-ink peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent hover:text-text peer-checked:hover:text-ink motion-reduce:transition-none">
+          <input type="radio" name={name} value={String(o)} checked={o === value} onChange={() => onChange(o)} className="peer sr-only" />
+          <span className="grid h-full w-full place-items-center rounded-pill px-3 text-small font-semibold text-muted-on-stage tabular-nums transition-colors duration-175 ease-arrive peer-checked:bg-paper peer-checked:text-ink peer-checked:shadow-contact peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-gold hover:text-on-stage peer-checked:hover:text-ink motion-reduce:transition-none">
             {format ? format(o) : String(o)}
           </span>
         </label>
@@ -102,25 +97,41 @@ export function Segmented<T extends number | string>({ name, label, options, val
 
 // ---------- ActionButton / IconButton ----------
 
-type Variant = "secondary" | "danger" | "ghost" | "accent";
+type Variant = "secondary" | "danger" | "ghost" | "accent" | "paper" | "ink" | "veto";
+
+const DARK_OVERLAY = "[--press-overlay:rgb(255_255_255/0.12)]";
+// A parked light button goes stage grey, like ui/Button, instead of a washed-out paper pill.
+const OFF = "disabled:bg-stage-2 disabled:text-muted-on-stage disabled:shadow-none";
+const FADE = "disabled:opacity-45";
 
 const VARIANT: Record<Variant, string> = {
-  secondary: "border border-line bg-surface-2 text-text hover:border-muted",
-  danger: "border border-danger/60 bg-danger/10 text-danger hover:bg-danger/20",
-  ghost: "text-muted hover:bg-surface-2 hover:text-text",
-  accent: "bg-accent text-ink hover:brightness-110",
+  secondary: `bg-paper text-ink shadow-[0_1px_0_var(--paper-edge)] ${OFF}`,
+  accent: `bg-gold text-ink ${OFF}`,
+  danger: `border border-danger/60 text-danger ${DARK_OVERLAY} ${FADE}`,
+  ghost: `text-muted-on-stage hover:text-on-stage ${DARK_OVERLAY} ${FADE}`,
+  // On paper cards: a paper pill would vanish, so these three are drawn for light ground.
+  paper: `border border-paper-edge bg-paper-2 text-ink ${FADE}`,
+  ink: `bg-ink text-paper ${DARK_OVERLAY} ${FADE}`,
+  veto: `border border-danger-on-paper/60 text-danger-on-paper ${FADE}`,
 };
 
-type ActionButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; loading?: boolean; block?: boolean; children?: ReactNode };
+type ActionButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: Variant;
+  size?: "md" | "lg";
+  loading?: boolean;
+  block?: boolean;
+  children?: ReactNode;
+};
 
-export function ActionButton({ variant = "secondary", loading, block, className, children, type = "button", onClick, ...rest }: ActionButtonProps) {
+export function ActionButton({ variant = "secondary", size = "md", loading, block, className, children, type = "button", onClick, ...rest }: ActionButtonProps) {
   return (
     <button
       type={type}
       aria-busy={loading || undefined}
       onClick={loading ? undefined : onClick}
       className={cn(
-        "inline-flex min-h-11 items-center justify-center gap-2 rounded-pill px-4 text-sm font-semibold leading-none select-none transition-[background-color,border-color,opacity,transform] duration-150 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-45 motion-reduce:transition-none motion-reduce:active:scale-100",
+        "press inline-flex items-center justify-center gap-2 rounded-pill px-4 leading-none font-semibold select-none disabled:pointer-events-none",
+        size === "lg" ? "min-h-12 text-body" : "min-h-11 text-small",
         VARIANT[variant],
         block && "w-full",
         className,
@@ -137,12 +148,15 @@ type IconButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "aria-label
   label: string;
   pressed?: boolean;
   tone?: "danger" | "warn" | "neutral";
+  /** Where it sits: on the stage or on a paper card. */
+  surface?: "stage" | "paper";
   loading?: boolean;
   children: ReactNode;
 };
 
-export function IconButton({ label, pressed, tone = "neutral", loading, className, children, type = "button", ...rest }: IconButtonProps) {
+export function IconButton({ label, pressed, tone = "neutral", surface = "stage", loading, className, children, type = "button", ...rest }: IconButtonProps) {
   const on = pressed === true;
+  const paper = surface === "paper";
   return (
     <button
       type={type}
@@ -151,11 +165,12 @@ export function IconButton({ label, pressed, tone = "neutral", loading, classNam
       aria-busy={loading || undefined}
       title={label}
       className={cn(
-        "grid size-11 shrink-0 place-items-center rounded-full border transition-colors disabled:pointer-events-none disabled:opacity-45 motion-reduce:transition-none",
+        "press grid size-11 shrink-0 place-items-center rounded-full border disabled:pointer-events-none disabled:opacity-45",
         on && tone === "danger" && "border-danger bg-danger text-ink",
         on && tone === "warn" && "border-warn bg-warn text-ink",
-        on && tone === "neutral" && "border-accent bg-accent text-ink",
-        !on && "border-transparent text-muted hover:border-line hover:bg-surface-2 hover:text-text",
+        on && tone === "neutral" && "border-gold bg-gold text-ink",
+        !on && !paper && `border-transparent text-muted-on-stage hover:border-stage-line hover:bg-stage-2 hover:text-on-stage ${DARK_OVERLAY}`,
+        !on && paper && "border-transparent text-ink-muted hover:border-paper-edge hover:bg-paper-2 hover:text-ink",
         className,
       )}
       {...rest}
@@ -193,14 +208,22 @@ async function copyText(text: string): Promise<boolean> {
 type CopyButtonProps = {
   value: string;
   label: string;
+  /** What the button says before it is pressed; defaults to the label. The toast always uses the label. */
+  text?: string;
   /** Muted text shown beside the label (the link itself). */
   detail?: string;
   testId?: string;
   className?: string;
   title?: string;
+  /** lg = the big one for the link people need most. */
+  size?: "md" | "lg";
+  /** paper = a paper pill (secondary action); stage = a quiet chip. */
+  tone?: "stage" | "paper";
+  /** A 44 px round icon button; the label stays as its accessible name. */
+  iconOnly?: boolean;
 };
 
-export function CopyButton({ value, label, detail, testId, className, title }: CopyButtonProps) {
+export function CopyButton({ value, label, text, detail, testId, className, title, size = "md", tone = "stage", iconOnly }: CopyButtonProps) {
   const [copied, setCopied] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const toast = useToast();
@@ -216,6 +239,7 @@ export function CopyButton({ value, label, detail, testId, className, title }: C
       return;
     }
     setCopied(true);
+    toast.show({ title: `${label} copied`, kind: "success", durationMs: 2000 });
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => setCopied(false), 1800);
   };
@@ -227,14 +251,23 @@ export function CopyButton({ value, label, detail, testId, className, title }: C
       data-testid={testId}
       data-copied={copied || undefined}
       title={title}
+      aria-label={iconOnly ? label : undefined}
       className={cn(
-        "group flex min-h-11 w-full items-center gap-1.5 rounded-pill border border-line bg-surface-2 px-3 text-left text-[13px] transition-colors hover:border-muted data-[copied]:border-ok motion-reduce:transition-none",
+        "press group flex items-center gap-2 rounded-pill text-left font-semibold",
+        iconOnly ? "size-11 shrink-0 justify-center px-0" : size === "lg" ? "min-h-12 px-5 text-small" : "min-h-11 px-3 text-fine",
+        tone === "paper"
+          ? "bg-paper text-ink shadow-[0_1px_0_var(--paper-edge)]"
+          : `border border-stage-line bg-stage-2 text-on-stage hover:border-muted-on-stage/50 data-[copied]:border-ok ${DARK_OVERLAY}`,
         className,
       )}
     >
-      {copied ? <Check aria-hidden="true" className="size-4 shrink-0 text-ok" /> : <Copy aria-hidden="true" className="size-4 shrink-0 text-muted group-hover:text-text" />}
-      <span className="min-w-0 truncate font-semibold">{copied ? "Copied!" : label}</span>
-      {detail && !copied ? <span className="min-w-0 truncate text-[13px] text-muted">{detail}</span> : null}
+      {copied ? (
+        <Check aria-hidden="true" className={cn("shrink-0", size === "lg" ? "size-5" : "size-4", tone === "paper" ? "text-ink" : "text-ok")} />
+      ) : (
+        <Copy aria-hidden="true" className={cn("shrink-0", size === "lg" ? "size-5" : "size-4", tone === "paper" ? "text-ink-muted" : "text-muted-on-stage group-hover:text-on-stage")} />
+      )}
+      {iconOnly ? null : <span className="min-w-0 truncate">{copied ? "Copied!" : (text ?? label)}</span>}
+      {detail && !copied && !iconOnly ? <span className={cn("min-w-0 truncate text-fine font-normal", tone === "paper" ? "text-ink-muted" : "text-muted-on-stage")}>{detail}</span> : null}
       <span role="status" aria-live="polite" className="sr-only">
         {copied ? `${label} copied` : ""}
       </span>

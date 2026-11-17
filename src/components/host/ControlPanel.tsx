@@ -1,19 +1,20 @@
 "use client";
-// Console column 1: the stage key (one big button that follows the phase), pause / +10 s, the three
-// toggles and End show with a confirm. The engine decides what is legal (controlAvailability mirrors
-// machine.ts), so buttons the server would ignore are disabled instead of failing.
-import { Pause, Play, Plus, Power } from "lucide-react";
+// Console column 1: the stage manager's hands. Where we are (phase header + timeline), the ONE gold key that
+// follows the phase, pause / +10 s, the three switches, and End show behind a confirm. The engine decides what is
+// legal (controlAvailability mirrors machine.ts), so buttons the server would ignore are disabled, not failing.
+import { LoaderCircle, Pause, Play, Plus, Power } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
-import { ButtonLink } from "@/components/ui/Button";
+import { Button, ButtonLink } from "@/components/ui/Button";
 import { cn } from "@/components/ui/cn";
 import { PhaseHeader } from "@/components/ui/PhaseHeader";
 import { Sheet } from "@/components/ui/Sheet";
 import type { HostMetrics } from "@/lib/api/contracts";
 import type { Features } from "@/lib/config";
 import type { PublicState } from "@/lib/realtime/types";
-import { controlAvailability, primarySpec } from "./consoleLogic";
+import { controlAvailability, primarySpec, timeline, type PrimarySpec } from "./consoleLogic";
 import { ActionButton, Switch } from "./controls";
+import { PhaseTimeline } from "./PhaseTimeline";
 import type { HostDesk } from "./useHostDesk";
 import "./host.css";
 
@@ -23,13 +24,52 @@ type Props = {
   metrics: HostMetrics | null;
   features: Features | null;
   desk: HostDesk;
+  /** The one players count of the console (the roster), so the Start hint agrees with the rest of the page. */
+  joined: number;
 };
 
-export function ControlPanel({ state, offsetMs, metrics, features, desk }: Props) {
+// The gold pill of ui/Button, made taller: this is the one button the host presses all night. Written out here
+// (not buttonClass) because that helper's size classes would fight the larger type.
+const KEY =
+  "host-key press relative isolate inline-flex min-h-[76px] w-full items-center justify-center gap-3 overflow-hidden rounded-pill bg-gold px-6 font-display text-h3 leading-none font-extrabold tracking-tight text-ink select-none disabled:pointer-events-none disabled:bg-stage-2 disabled:text-muted-on-stage aria-disabled:bg-stage-2 aria-disabled:text-muted-on-stage";
+
+function StageKey({ spec, busy, onPress }: { spec: PrimarySpec; busy: boolean; onPress: () => void }) {
+  const inner = (
+    <>
+      {busy ? <LoaderCircle aria-hidden="true" className="size-6 animate-spin motion-reduce:animate-none" /> : null}
+      <span>{spec.label}</span>
+      {busy ? <span className="sr-only">Working…</span> : null}
+    </>
+  );
+  if (spec.href) {
+    return (
+      <Link href={spec.href} data-testid="host-primary" data-action="story" className={KEY}>
+        {inner}
+      </Link>
+    );
+  }
+  return (
+    <button
+      type="button"
+      data-testid="host-primary"
+      data-action={spec.action?.action ?? "wait"}
+      data-waiting={spec.waiting || undefined}
+      disabled={spec.disabled || busy}
+      aria-busy={busy || undefined}
+      onClick={onPress}
+      className={KEY}
+    >
+      {inner}
+    </button>
+  );
+}
+
+export function ControlPanel({ state, offsetMs, metrics, features, desk, joined }: Props) {
   const [confirmEnd, setConfirmEnd] = useState(false);
-  const spec = primarySpec(state);
+  const spec = primarySpec(state.phase === "LOBBY" ? { ...state, stats: { ...state.stats, players: joined } } : state);
   const can = controlAvailability(state);
   const { run, busy, pending } = desk;
+  const over = state.phase === "ENDED";
 
   const toggle = (key: "auto" | "strict" | "voice") => {
     const current = key === "auto" ? metrics?.autoAdvance : key === "strict" ? metrics?.strictFilter : metrics?.voice;
@@ -37,7 +77,7 @@ export function ControlPanel({ state, offsetMs, metrics, features, desk }: Props
     return {
       checked: value,
       busy: key in pending && busy.has(key),
-      disabled: metrics === null || state.phase === "ENDED",
+      disabled: metrics === null || over,
       onChange: (next: boolean) =>
         void run(
           key,
@@ -47,73 +87,51 @@ export function ControlPanel({ state, offsetMs, metrics, features, desk }: Props
     };
   };
 
-  const primaryBusy = busy.has("primary");
-  const keyInner = (
-    <>
-      <span>{spec.label}</span>
-      {primaryBusy ? <span className="sr-only">Working…</span> : null}
-    </>
-  );
-
   return (
-    <section aria-labelledby="control-title" className="flex min-h-0 flex-col gap-4 rounded-card border border-line bg-surface p-4 lg:overflow-y-auto host-scroll">
+    <section aria-labelledby="control-title" className="host-scroll flex min-h-0 flex-col gap-4 rounded-card border border-stage-line bg-stage-1 p-4 lg:overflow-y-auto">
       <h2 id="control-title" className="sr-only">
         Control
       </h2>
-      <PhaseHeader state={state} offsetMs={offsetMs} className="shrink-0" />
+      <div className="shrink-0 space-y-3">
+        <PhaseHeader state={state} offsetMs={offsetMs} />
+        <PhaseTimeline timeline={timeline(state)} />
+      </div>
 
       <div className="shrink-0">
-        {spec.href ? (
-          <Link href={spec.href} data-testid="host-primary" data-action="story" className="stage-key" style={{ textDecoration: "none" }}>
-            {keyInner}
-          </Link>
-        ) : (
-          <button
-            type="button"
-            data-testid="host-primary"
-            data-action={spec.action?.action ?? "wait"}
-            data-waiting={spec.waiting || undefined}
-            disabled={spec.disabled || primaryBusy}
-            aria-busy={primaryBusy || undefined}
-            onClick={() => spec.action && void run("primary", spec.action)}
-            className={cn("stage-key", primaryBusy && "opacity-80")}
-          >
-            {keyInner}
-          </button>
-        )}
-        <p className="mt-3 min-h-10 px-1 text-center text-sm leading-5 text-muted" data-testid="host-primary-hint">
+        <StageKey spec={spec} busy={busy.has("primary")} onPress={() => spec.action && void run("primary", spec.action)} />
+        <p className="mt-3 min-h-10 px-1 text-center text-small leading-5 text-muted-on-stage" data-testid="host-primary-hint">
           {spec.hint}
         </p>
       </div>
 
-      {state.phase === "ENDED" ? (
-        <div className="shrink-0 rounded-card border border-line bg-surface-2 p-4" data-testid="host-ended-card">
-          <p className="font-display text-lg leading-6">That&apos;s a wrap</p>
-          <p className="mt-1 text-sm text-muted">The story page stays online, so you can share it any time. Nobody can join this show now.</p>
+      {over ? (
+        <div className="shrink-0 rounded-card border border-stage-line bg-stage-2 p-4" data-testid="host-ended-card">
+          <p className="font-display text-lead leading-6">That&apos;s a wrap</p>
+          <p className="mt-1 text-small text-muted-on-stage">The story page stays online, so you can share it any time. Nobody can join this show now.</p>
           <ButtonLink href="/host" variant="secondary" block className="mt-4" data-testid="host-new-show">
             Host another show
           </ButtonLink>
         </div>
       ) : null}
 
-      <div className={cn("grid shrink-0 grid-cols-2 gap-2", state.phase === "ENDED" && "hidden")}>
+      <div className={cn("grid shrink-0 grid-cols-2 gap-3", over && "hidden")}>
         <ActionButton
           variant={state.paused ? "accent" : "secondary"}
+          size="lg"
           data-testid="host-pause"
           disabled={state.paused ? false : !can.canPause}
           loading={busy.has("pause")}
           onClick={() => void run("pause", { action: state.paused ? "resume" : "pause" })}
-          className="min-h-12"
         >
           {state.paused ? <Play aria-hidden="true" className="size-4" /> : <Pause aria-hidden="true" className="size-4" />}
           {state.paused ? "Resume" : "Pause"}
         </ActionButton>
         <ActionButton
+          size="lg"
           data-testid="host-extend"
           disabled={!can.canExtend}
           loading={busy.has("extend")}
           onClick={() => void run("extend", { action: "extend", ms: 10000 })}
-          className="min-h-12"
           aria-label="Add 10 seconds"
         >
           <Plus aria-hidden="true" className="size-4" />
@@ -121,20 +139,15 @@ export function ControlPanel({ state, offsetMs, metrics, features, desk }: Props
         </ActionButton>
       </div>
 
-      <div className={cn("flex shrink-0 flex-col gap-2", state.phase === "ENDED" && "hidden")}>
-        <Switch
-          label="Auto-advance"
-          hint="Off: you press Next round after each reveal."
-          testId="host-auto"
-          {...toggle("auto")}
-        />
-        <Switch label="Strict filter" hint="Blocks edgy ideas before anyone sees them." testId="host-strict" {...toggle("strict")} />
+      <div className={cn("flex shrink-0 flex-col gap-2", over && "hidden")}>
+        <Switch label="Auto-advance" hint="Off: you press Next round." testId="host-auto" {...toggle("auto")} />
+        <Switch label="Strict filter" hint="Hides edgy ideas from the screen." testId="host-strict" {...toggle("strict")} />
         {features?.tts ? <Switch label="Voice" hint="The narrator reads each reveal aloud on the big screen." testId="host-voice" {...toggle("voice")} /> : null}
       </div>
 
-      {state.phase === "FINALE" || state.phase === "ENDED" ? null : (
+      {state.phase === "FINALE" || over ? null : (
         <div className="mt-auto shrink-0 pt-2">
-          <ActionButton variant="danger" block disabled={!can.canEnd} data-testid="host-end" onClick={() => setConfirmEnd(true)} className="min-h-12">
+          <ActionButton variant="danger" size="lg" block disabled={!can.canEnd} data-testid="host-end" onClick={() => setConfirmEnd(true)}>
             <Power aria-hidden="true" className="size-4" />
             End show
           </ActionButton>
@@ -142,14 +155,14 @@ export function ControlPanel({ state, offsetMs, metrics, features, desk }: Props
       )}
 
       <Sheet open={confirmEnd} onClose={() => setConfirmEnd(false)} title="End the show now?">
-        <p className="text-muted">Everyone jumps to the finale and the story is saved. You can&apos;t restart this show.</p>
+        <p className="text-muted-on-stage">Everyone jumps to the finale and the story is saved. You can&apos;t restart this show.</p>
         <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <ActionButton variant="ghost" className="min-h-12" onClick={() => setConfirmEnd(false)}>
+          <ActionButton variant="secondary" size="lg" onClick={() => setConfirmEnd(false)}>
             Keep playing
           </ActionButton>
-          <ActionButton
+          <Button
             variant="danger"
-            className="min-h-12"
+            size="md"
             data-testid="host-end-confirm"
             loading={busy.has("end")}
             onClick={() => {
@@ -159,7 +172,7 @@ export function ControlPanel({ state, offsetMs, metrics, features, desk }: Props
             }}
           >
             End show
-          </ActionButton>
+          </Button>
         </div>
       </Sheet>
     </section>

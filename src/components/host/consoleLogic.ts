@@ -4,8 +4,12 @@
 //   newerState(a, b)          pick the PublicState with the higher version (HTTP, feed and action replies race)
 //   votePercent / optionTag   ballot maths and labels
 //   filterPlayers / isOnline  the roster
+//   headcount(players, now)   the one players count: joined (not removed) and online right now
+//   timeline(state)           round pips + the five phases of a round, for the phase timeline
+//   aiTime / aiProviderLabel / aiStatus   plain words for the diagnostics
+//   actionToast(action)       the short confirmation each host action shows
 //   hostErrorMessage(code)    friendly copy for host-only error codes
-import type { HostActionInput, HostFeedPlayer } from "@/lib/api/contracts";
+import type { HostActionInput, HostFeedPlayer, HostMetrics, RoomLinks } from "@/lib/api/contracts";
 import { COPY, friendlyError } from "@/lib/copy";
 import type { Phase, PublicOption, PublicState } from "@/lib/realtime/types";
 
@@ -147,6 +151,22 @@ export function originLinks(origin: string, code: string): { join: string; scree
   return { join: `${base}/join/${code}`, screen: `${base}/screen/${code}`, obs: `${base}/screen/${code}?obs=1` };
 }
 
+/** The server's links once the first host feed has arrived, the origin-built ones until then. */
+export function resolveLinks(
+  feed: { links: RoomLinks } | null,
+  origin: string,
+  code: string,
+  hostKey: string,
+): { join: string; screen: string; obs: string; host: string } {
+  const own = originLinks(origin, code);
+  return {
+    join: feed?.links.join ?? own.join,
+    screen: feed?.links.screen ?? own.screen,
+    obs: feed?.links.obs ?? own.obs,
+    host: feed?.links.host ?? `${origin}/host/${code}?k=${encodeURIComponent(hostKey)}`,
+  };
+}
+
 /** "http://x.test/join/ABCDE" -> "x.test/join/ABCDE" */
 export function shortLink(url: string): string {
   return url.replace(/^https?:\/\//, "");
@@ -161,4 +181,121 @@ const HOST_ERRORS: Record<string, string> = {
 /** Host-only error codes first, then the shared copy table. */
 export function hostErrorMessage(code: string, serverMessage?: string): string {
   return HOST_ERRORS[code] ?? friendlyError(code, serverMessage);
+}
+
+// ---------- one players count ----------
+
+export type Headcount = {
+  /** Everyone who joined and was not removed. This is the number the console shows everywhere. */
+  joined: number;
+  /** Joined players whose page was open in the last 45 s. */
+  online: number;
+};
+
+/** One source for every count on the console: the roster itself, so the number and the list can never disagree. */
+export function headcount(players: readonly Pick<HostFeedPlayer, "banned" | "lastSeenAt">[], now: number): Headcount {
+  const present = players.filter((p) => !p.banned);
+  return { joined: present.length, online: present.filter((p) => isOnline(p.lastSeenAt, now)).length };
+}
+
+// ---------- phase timeline ----------
+
+export type StepStatus = "done" | "now" | "next";
+export type Timeline = {
+  rounds: { n: number; status: StepStatus }[];
+  steps: { phase: Phase; label: string; status: StepStatus }[];
+  /** "Waiting to start", "Round 2 of 5" or "Story complete": the spoken summary. */
+  caption: string;
+  /** A short visible line beside the pips; null while a round is live (the phase header already says "Round 2 / 5"). */
+  label: string | null;
+};
+
+const ROUND_STEPS: { phase: Phase; label: string }[] = [
+  { phase: "PROMPT", label: "Scene" },
+  { phase: "STORM", label: "Ideas" },
+  { phase: "DISTILL", label: "Reading" },
+  { phase: "VOTE", label: "Vote" },
+  { phase: "REVEAL", label: "Reveal" },
+];
+
+/** Where the show is: which rounds are done, and which of the five phases of this round is live. */
+export function timeline(s: Pick<PublicState, "phase" | "roundNo" | "roundsTotal">): Timeline {
+  const before = s.phase === "LOBBY";
+  const after = s.phase === "FINALE" || s.phase === "ENDED";
+  const total = Math.max(1, s.roundsTotal);
+  const rounds = Array.from({ length: total }, (_, i) => {
+    const n = i + 1;
+    const status: StepStatus = after || (!before && n < s.roundNo) ? "done" : !before && n === s.roundNo ? "now" : "next";
+    return { n, status };
+  });
+  const at = ROUND_STEPS.findIndex((x) => x.phase === s.phase);
+  const steps = ROUND_STEPS.map((x, i) => ({
+    ...x,
+    status: (after ? "done" : before ? "next" : i < at ? "done" : i === at ? "now" : "next") as StepStatus,
+  }));
+  const caption = before ? "Waiting to start" : after ? (s.phase === "ENDED" ? "Show ended" : "Story complete") : `Round ${s.roundNo} of ${total}`;
+  const label = before ? `${total} ${total === 1 ? "round" : "rounds"}` : after ? (s.phase === "ENDED" ? "Show ended" : "Story complete") : null;
+  return { rounds, steps, caption, label };
+}
+
+// ---------- plain words for the diagnostics ----------
+
+/** 859 -> "859 ms", 2400 -> "2.4 s", null -> "—" */
+export function aiTime(ms: number | null | undefined): string {
+  if (ms == null || !Number.isFinite(ms) || ms < 0) return "—";
+  return ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(1)} s`;
+}
+
+const PROVIDER_LABEL: Record<string, string> = {
+  anthropic: "Claude",
+  openai: "OpenAI",
+  mock: "Practice mode, no live AI",
+  heuristic: "Simple options, no AI",
+  template: "Narrator's own options",
+};
+
+export function aiProviderLabel(provider: string | null | undefined): string | undefined {
+  if (!provider) return undefined;
+  return PROVIDER_LABEL[provider] ?? provider;
+}
+
+/** "Working normally" or "Backup options used": the same wording as the pill above the options. */
+export function aiStatus(m: Pick<HostMetrics, "fallbackUsed"> | null): { text: string; warn: boolean } {
+  return m?.fallbackUsed ? { text: "Backup options used", warn: true } : { text: "Working normally", warn: false };
+}
+
+// ---------- confirmations ----------
+
+export type ActionToast = { title: string; body?: string };
+
+/** What a host action says when it worked. Moves of the show itself (start, next, end storm) show on screen already, so they stay quiet. */
+export function actionToast(a: HostActionInput): ActionToast | null {
+  switch (a.action) {
+    case "pause":
+      return { title: "Show paused", body: "Everyone sees the pause. Press Resume to carry on." };
+    case "resume":
+      return { title: "Show resumed" };
+    case "extend":
+      return { title: `Added ${Math.round(a.ms / 1000)} seconds` };
+    case "veto":
+      return { title: "Option vetoed", body: "A replacement is on its way." };
+    case "forceWin":
+      return { title: "Winner chosen", body: "Your pick beats the crowd's vote." };
+    case "reroll":
+      return { title: "Re-rolling the options", body: "You can only do this once per round." };
+    case "deleteIdea":
+      return { title: "Idea removed", body: "It is gone from the big screen." };
+    case "mute":
+      return { title: a.on ? "Player muted" : "Player unmuted", body: a.on ? "Their new ideas are not accepted." : undefined };
+    case "ban":
+      return { title: a.on ? "Player removed" : "Player let back in" };
+    case "autoAdvance":
+      return { title: a.on ? "Auto-advance is on" : "Auto-advance is off", body: a.on ? undefined : "You press Next round after each reveal." };
+    case "strictFilter":
+      return { title: a.on ? "Strict filter is on" : "Strict filter is off" };
+    case "voice":
+      return { title: a.on ? "Narrator voice is on" : "Narrator voice is off" };
+    default:
+      return null;
+  }
 }

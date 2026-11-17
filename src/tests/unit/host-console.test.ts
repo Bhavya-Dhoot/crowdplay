@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  actionToast,
+  aiProviderLabel,
+  aiStatus,
+  aiTime,
   controlAvailability,
   filterPlayers,
+  headcount,
   hostErrorMessage,
   ideaStatusLabel,
   isOnline,
@@ -10,7 +15,9 @@ import {
   ONLINE_WINDOW_MS,
   originLinks,
   primarySpec,
+  resolveLinks,
   shortLink,
+  timeline,
   votePercent,
 } from "@/components/host/consoleLogic";
 import { hostPath, loadHostKey, resolveHostKey, saveHostKey, type KeyStore } from "@/components/host/hostKey";
@@ -232,5 +239,120 @@ describe("host key storage", () => {
 
   it("hostPath encodes the key", () => {
     expect(hostPath("ABCDE", "a b/c")).toBe("/host/ABCDE?k=a%20b%2Fc");
+  });
+});
+
+describe("headcount: one players count", () => {
+  const now = 1_000_000;
+  const p = (lastSeenAt: number, banned = false) => ({ lastSeenAt, banned });
+
+  it("joined skips removed players, online needs a page seen in the last 45 s", () => {
+    const c = headcount([p(now), p(now - 10_000), p(now - ONLINE_WINDOW_MS - 1), p(now, true)], now);
+    expect(c).toEqual({ joined: 3, online: 2 });
+  });
+
+  it("an empty room is zero and zero", () => {
+    expect(headcount([], now)).toEqual({ joined: 0, online: 0 });
+  });
+
+  it("online can never exceed joined", () => {
+    const c = headcount([p(now), p(now, true), p(now, true)], now);
+    expect(c.online).toBeLessThanOrEqual(c.joined);
+  });
+});
+
+describe("timeline", () => {
+  it("LOBBY: nothing started, every round and phase is still to come", () => {
+    const t = timeline({ phase: "LOBBY", roundNo: 1, roundsTotal: 3 });
+    expect(t.rounds.map((r) => r.status)).toEqual(["next", "next", "next"]);
+    expect(t.steps.every((s) => s.status === "next")).toBe(true);
+    expect(t.caption).toBe("Waiting to start");
+    expect(t.label).toBe("3 rounds");
+  });
+
+  it("marks finished rounds, the live round and the live phase", () => {
+    const t = timeline({ phase: "VOTE", roundNo: 2, roundsTotal: 4 });
+    expect(t.rounds.map((r) => r.status)).toEqual(["done", "now", "next", "next"]);
+    expect(t.steps.map((s) => [s.label, s.status])).toEqual([
+      ["Scene", "done"],
+      ["Ideas", "done"],
+      ["Reading", "done"],
+      ["Vote", "now"],
+      ["Reveal", "next"],
+    ]);
+    expect(t.caption).toBe("Round 2 of 4");
+    expect(t.label).toBeNull();
+  });
+
+  it("FINALE and ENDED finish everything", () => {
+    for (const phase of ["FINALE", "ENDED"] as const) {
+      const t = timeline({ phase, roundNo: 3, roundsTotal: 3 });
+      expect(t.rounds.every((r) => r.status === "done")).toBe(true);
+      expect(t.steps.every((s) => s.status === "done")).toBe(true);
+    }
+    expect(timeline({ phase: "ENDED", roundNo: 3, roundsTotal: 3 }).caption).toBe("Show ended");
+    expect(timeline({ phase: "FINALE", roundNo: 3, roundsTotal: 3 }).caption).toBe("Story complete");
+  });
+
+  it("always has exactly one live phase during a round", () => {
+    for (const phase of ["PROMPT", "STORM", "DISTILL", "VOTE", "REVEAL"] as const) {
+      expect(timeline({ phase, roundNo: 1, roundsTotal: 3 }).steps.filter((s) => s.status === "now")).toHaveLength(1);
+    }
+  });
+});
+
+describe("plain words for diagnostics", () => {
+  it("aiTime keeps ms under a second and shows seconds above it", () => {
+    expect(aiTime(859)).toBe("859 ms");
+    expect(aiTime(2400)).toBe("2.4 s");
+    expect(aiTime(null)).toBe("—");
+    expect(aiTime(undefined)).toBe("—");
+    expect(aiTime(-5)).toBe("—");
+  });
+
+  it("names the provider without jargon, and passes unknown ones through", () => {
+    expect(aiProviderLabel("heuristic")).toBe("Simple options, no AI");
+    expect(aiProviderLabel("anthropic")).toBe("Claude");
+    expect(aiProviderLabel("somethingnew")).toBe("somethingnew");
+    expect(aiProviderLabel(null)).toBeUndefined();
+  });
+
+  it("AI status says Backup options used, never fallback", () => {
+    expect(aiStatus({ fallbackUsed: true })).toEqual({ text: "Backup options used", warn: true });
+    expect(aiStatus({ fallbackUsed: false })).toEqual({ text: "Working normally", warn: false });
+    expect(aiStatus(null).warn).toBe(false);
+  });
+});
+
+describe("actionToast", () => {
+  it("confirms what the host did, in the words of the button", () => {
+    expect(actionToast({ action: "pause" })?.title).toBe("Show paused");
+    expect(actionToast({ action: "resume" })?.title).toBe("Show resumed");
+    expect(actionToast({ action: "extend", ms: 10000 })?.title).toBe("Added 10 seconds");
+    expect(actionToast({ action: "veto", optionId: "o1" })?.title).toBe("Option vetoed");
+    expect(actionToast({ action: "mute", userId: "u", on: true })?.title).toBe("Player muted");
+    expect(actionToast({ action: "mute", userId: "u", on: false })?.title).toBe("Player unmuted");
+    expect(actionToast({ action: "ban", userId: "u", on: false })?.title).toBe("Player let back in");
+    expect(actionToast({ action: "autoAdvance", on: false })?.title).toBe("Auto-advance is off");
+  });
+
+  it("stays quiet when the screen already shows the change", () => {
+    for (const action of [{ action: "start" }, { action: "next" }, { action: "endStorm" }, { action: "endShow" }, { action: "heartbeat" }] as const) {
+      expect(actionToast(action)).toBeNull();
+    }
+  });
+});
+
+describe("resolveLinks", () => {
+  it("uses the server's links once the feed is here", () => {
+    const links = { join: "https://x.test/join/ABCDE", play: "p", screen: "https://x.test/screen/ABCDE", obs: "https://x.test/screen/ABCDE?obs=1", host: "https://x.test/host/ABCDE?k=K" };
+    expect(resolveLinks({ links }, "http://localhost:3000", "ABCDE", "K")).toEqual({ join: links.join, screen: links.screen, obs: links.obs, host: links.host });
+  });
+
+  it("builds them from the origin until then, including the host key", () => {
+    const l = resolveLinks(null, "http://localhost:3000", "ABCDE", "k e/y");
+    expect(l.join).toBe("http://localhost:3000/join/ABCDE");
+    expect(l.obs).toBe("http://localhost:3000/screen/ABCDE?obs=1");
+    expect(l.host).toBe("http://localhost:3000/host/ABCDE?k=k%20e%2Fy");
   });
 });

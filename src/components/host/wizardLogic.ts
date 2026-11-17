@@ -131,3 +131,9 @@ export function estimateMinutes(rounds: number, stormS: number, voteS: number): 
 export function sliderFill(value: number, min = MIN_ROUNDS, max = MAX_ROUNDS): number {
   return Math.round(((value - min) / (max - min)) * 100);
 }
+
+/** One plain sentence for the collapsed "Pace and rules" row, so the defaults can be read without opening it. */
+export function paceSummary(f: Pick<WizardForm, "rounds" | "stormS" | "voteS" | "autoAdvance" | "strictFilter">): string {
+  const flow = f.autoAdvance ? "Runs itself" : "You press Next round";
+  return `${f.rounds} rounds, ${f.stormS} s of ideas and ${f.voteS} s of voting each. ${flow}, strict filter ${f.strictFilter ? "on" : "off"}.`;
+}
