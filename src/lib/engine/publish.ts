@@ -74,6 +74,56 @@ export async function contributorsByOption(
   return out;
 }
 
+// ---------- credit cache ----------
+// The contributors of an option are fixed once the ballot exists, yet every state build (join, poll, host feed,
+// each publish) used to re-read all source ideas plus users: ~85 ms at 1,500 ideas on PGlite, and the DB is
+// single-file. Entries live per option id (veto / re-roll make new ids) and are dropped when anything that can
+// change them signals through markStatsDirty (joins, ideas, host delete / ban, delete-my-data); the TTL is only
+// a backstop for a rename that signals nothing.
+
+type Credits = { people: Contributor[]; ideas: number };
+type CreditStore = { gen: Map<string, number>; entries: Map<string, { gen: number; at: number; value: Credits }> };
+const CREDIT_TTL_MS = 10_000;
+const CREDIT_MAX_ENTRIES = 300;
+const CREDIT_MAX_ROOMS = 2000; // generation counters are one number per room; past this the whole store restarts empty
+const gc = globalThis as unknown as { __cpCredits?: CreditStore };
+const creditStore = (): CreditStore => (gc.__cpCredits ??= { gen: new Map(), entries: new Map() });
+
+/** Forget the cached contributors of one room (or of every room). Cheap: entries are invalidated by generation. */
+export function invalidateCredits(roomId?: string): void {
+  const c = creditStore();
+  if (roomId === undefined || c.gen.size >= CREDIT_MAX_ROOMS) {
+    c.gen.clear();
+    c.entries.clear();
+  }
+  if (roomId !== undefined) c.gen.set(roomId, (c.gen.get(roomId) ?? 0) + 1);
+}
+
+async function cachedContributors(
+  db: Db,
+  roomId: string,
+  opts: { id: string; sourceIdeaIds: string[] }[],
+): Promise<Map<string, Credits>> {
+  const c = creditStore();
+  const gen = c.gen.get(roomId) ?? 0;
+  const now = Date.now();
+  const hit = (id: string): Credits | null => {
+    const e = c.entries.get(id);
+    return e && e.gen === gen && now - e.at <= CREDIT_TTL_MS ? e.value : null;
+  };
+  const missing = opts.filter((o) => hit(o.id) === null);
+  const fresh = missing.length ? await contributorsByOption(db, missing) : new Map<string, Credits>();
+  // A signal that arrived while the query ran (generation moved on) means the answer may already be stale: use it once, do not keep it.
+  if ((c.gen.get(roomId) ?? 0) === gen) {
+    for (const [id, value] of fresh) {
+      c.entries.delete(id);
+      c.entries.set(id, { gen, at: now, value });
+    }
+    while (c.entries.size > CREDIT_MAX_ENTRIES) c.entries.delete(c.entries.keys().next().value as string);
+  }
+  return new Map(opts.map((o) => [o.id, hit(o.id) ?? fresh.get(o.id)!]));
+}
+
 const toCredit = (people: Contributor[]): { credit: Credit[]; more: number } => ({
   credit: people.slice(0, 3).map((p) => ({ name: p.name, bot: p.bot })),
   more: Math.max(0, people.length - 3),
@@ -102,8 +152,9 @@ export async function buildPublicState(roomId: string): Promise<PublicState> {
 
   const withOptions = phase === "VOTE" || phase === "REVEAL" || phase === "FINALE" || phase === "ENDED";
   const optionRows = round && withOptions ? await liveOptions(db, round.id) : [];
-  const contributors = await contributorsByOption(
+  const contributors = await cachedContributors(
     db,
+    roomId,
     optionRows.map((o) => ({ id: o.id, sourceIdeaIds: o.sourceIdeaIds as string[] })),
   );
 
@@ -440,6 +491,7 @@ export function markTallyDirty(roomId: string): void {
 
 /** Ideas/players changed: stats get re-published (coalesced, ≤ every 2 s). */
 export function markStatsDirty(roomId: string): void {
+  invalidateCredits(roomId);
   mark(`stats:${roomId}`, STATS_GAP_MS, () => runStats(roomId));
 }
 
@@ -469,4 +521,5 @@ export function resetPublishQueues(): void {
   for (const c of queues().values()) if (c.timer) clearTimeout(c.timer);
   g.__cpPublishQ = undefined;
   gi.__cpI18n = undefined;
+  gc.__cpCredits = undefined;
 }

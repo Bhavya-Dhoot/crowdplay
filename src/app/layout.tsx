@@ -1,13 +1,15 @@
-// Root layout: fonts (next/font, self-hosted), global styles, theme/viewport, skip link and the
-// toast provider. Pages render their own <main id="main"> so the skip link has a target.
+// Root layout: fonts (next/font, self-hosted: Bricolage Grotesque display, Inter body, Fraunces for the
+// "script" voice), global styles, theme/viewport, skip link and the toast provider. Pages render their own
+// <main id="main"> so the skip link has a target.
 import type { Metadata, Viewport } from "next";
-import { Bricolage_Grotesque, Inter } from "next/font/google";
+import { Bricolage_Grotesque, Fraunces, Inter } from "next/font/google";
 import type { ReactNode } from "react";
 import { ToastProvider } from "@/components/ui/Toast";
 import "./globals.css";
 // Route-specific stylesheets live in the root bundle on purpose: a <Link> prefetch (landing -> /host, /how-it-works)
 // preloads a route's own CSS chunk, and Chrome warns about every preloaded stylesheet that is not used within a few
 // seconds. These two are tiny (about 7 KB before compression), so one shared bundle beats a console warning on the landing page.
+import "@/components/ui/miniature.css";
 import "@/components/depth/depth.css";
 import "@/components/host/host.css";
 
@@ -22,6 +24,14 @@ const body = Inter({
   subsets: ["latin"],
   weight: ["400", "500", "600"],
   variable: "--font-inter",
+  display: "swap",
+});
+
+// Prompts, narration, recap and story pages: the "script" voice. Variable weight, optical size on.
+const script = Fraunces({
+  subsets: ["latin"],
+  axes: ["opsz"],
+  variable: "--font-fraunces",
   display: "swap",
 });
 
@@ -54,13 +64,13 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#0B0B12",
+  themeColor: "#0F0D16",
   colorScheme: "dark",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" data-scroll-behavior="smooth" className={`${display.variable} ${body.variable}`}>
+    <html lang="en" data-scroll-behavior="smooth" className={`${display.variable} ${body.variable} ${script.variable}`}>
       <body>
         <a href="#main" className="skip-link">
           Skip to content

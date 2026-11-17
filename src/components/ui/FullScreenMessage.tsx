@@ -12,6 +12,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { COPY } from "@/lib/copy";
 import { Button } from "./Button";
 import { m, MotionScope } from "./motion";
+import { TRANSITION } from "./motionTokens";
 
 type Props = {
   title: string;
@@ -46,18 +47,18 @@ export function FullScreenMessage({ title, body, icon, onRetry, retryEveryMs = 4
 
   return (
     <MotionScope>
-      <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-bg/95 p-6 backdrop-blur-sm" role="status" aria-live="polite">
+      <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-stage-0/95 p-6" role="status" aria-live="polite">
         <m.div
           initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+          transition={TRANSITION.medium}
           className="flex max-w-sm flex-col items-center gap-4 text-center"
         >
           <div aria-hidden="true" className="grid size-16 place-items-center text-4xl">
-            {icon ?? <span className="size-4 rounded-full bg-accent shadow-[0_0_0_8px_rgb(255_210_63/0.18)] motion-safe:animate-pulse" />}
+            {icon ?? <span className="size-4 rounded-full bg-light ring-8 ring-light/20 motion-safe:animate-pulse" />}
           </div>
-          <h1 className="font-display text-3xl leading-tight">{title}</h1>
-          {body ? <p className="text-muted">{body}</p> : null}
+          <h1 className="font-display text-h1 leading-tight">{title}</h1>
+          {body ? <p className="text-muted-on-stage">{body}</p> : null}
           {onRetry ? (
             <>
               <Button variant="secondary" onClick={() => void retry()} disabled={busy}>

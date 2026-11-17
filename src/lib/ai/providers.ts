@@ -135,6 +135,18 @@ function forOpenAI(node: unknown): unknown {
 
 const TOOL_NAME = "submit_result";
 
+// OPENAI_REASONING_EFFORT: how hard gpt-5-family models think before answering. Unset = the parameter is not sent
+// (the model's own default applies). Read from process.env because src/lib/config.ts is frozen (as MOCK_DISTILL_DELAY_MS).
+const EFFORTS = new Set<string>(["none", "minimal", "low", "medium", "high", "xhigh"]);
+const noReasoningEffort = new Set<string>(); // models that answered 400 to the parameter
+
+/** The reasoning effort to send for this model, or undefined to omit the parameter. */
+export function openaiReasoningEffort(model: string): OpenAI.ReasoningEffort | undefined {
+  const v = process.env.OPENAI_REASONING_EFFORT?.trim().toLowerCase();
+  if (!v || !EFFORTS.has(v) || !/^gpt-5/i.test(model) || noReasoningEffort.has(model)) return undefined;
+  return v as OpenAI.ReasoningEffort;
+}
+
 // Learned per model id from 400s, so an unexpected model id costs at most one extra round trip.
 const noForcedTool = new Set<string>();
 const noEffort = new Set<string>();
@@ -201,32 +213,47 @@ async function anthropicOnce(
   }
 }
 
-async function openaiOnce(a: CallJSONArgs<unknown>, user: string, schema: JsonSchema, ms: number): Promise<unknown> {
+async function openaiOnce(a: CallJSONArgs<unknown>, user: string, schema: JsonSchema, ms: number, retry = true): Promise<unknown> {
   const ac = new AbortController();
-  const res = await raceTimeout(
-    openaiClient().chat.completions.create(
-      {
-        model: modelFor("openai", a.role),
-        messages: [
-          { role: "system", content: a.system },
-          { role: "user", content: user },
-        ],
-        response_format: {
-          type: "json_schema",
-          json_schema: {
-            name: a.name.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 60) || "result",
-            strict: true,
-            schema: forOpenAI(schema) as JsonSchema,
+  const started = Date.now();
+  const model = modelFor("openai", a.role);
+  const effort = openaiReasoningEffort(model);
+  let res: OpenAI.ChatCompletion;
+  try {
+    res = await raceTimeout(
+      openaiClient().chat.completions.create(
+        {
+          model,
+          messages: [
+            { role: "system", content: a.system },
+            { role: "user", content: user },
+          ],
+          response_format: {
+            type: "json_schema",
+            json_schema: {
+              name: a.name.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 60) || "result",
+              strict: true,
+              schema: forOpenAI(schema) as JsonSchema,
+            },
           },
+          max_completion_tokens: a.maxTokens ?? 1500,
+          ...(effort !== undefined ? { reasoning_effort: effort } : {}),
         },
-        max_completion_tokens: a.maxTokens ?? 1500,
-      },
-      { signal: ac.signal },
-    ),
-    ms,
-    ac,
-    `openai:${a.name}`,
-  );
+        { signal: ac.signal },
+      ),
+      ms,
+      ac,
+      `openai:${a.name}`,
+    );
+  } catch (err) {
+    // A model that rejects the parameter is remembered and retried once without it (like the Anthropic effort field).
+    const left = ms - (Date.now() - started);
+    if (retry && effort !== undefined && err instanceof LlmError && err.status === 400 && /reasoning|effort/i.test(err.message) && left > 800) {
+      noReasoningEffort.add(model);
+      return openaiOnce(a, user, schema, left, false);
+    }
+    throw err;
+  }
   const msg = res.choices[0]?.message;
   if (msg?.refusal) throw new LlmError("refusal", `openai:${a.name} refused`);
   if (!msg?.content) throw new LlmError("empty", `openai:${a.name} returned no content`);

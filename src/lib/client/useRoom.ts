@@ -41,7 +41,7 @@ import {
   type ReceiptPayload,
   type Unsub,
 } from "@/lib/realtime/types";
-import { getMe, getState, joinRoom as httpJoin, postIdea, postVote, type ClientErr } from "./api";
+import { getMe, getRoomMe, getState, joinRoom as httpJoin, postIdea, postVote, type ClientErr } from "./api";
 import { getOffsetMs, seedOffset, startClockSync, subscribeOffset } from "./clock";
 import { ensureSession, getStoredName, type SessionInfo } from "./session";
 import { initialStore, needsResync, reduce, type CheerItem, type FeedIdea, type IncomingIdea, type RoomAction, type RoomStore } from "./store";
@@ -54,6 +54,8 @@ export const IDEA_MAX_CHARS = 140;
 export const IDEA_COOLDOWN_MS = 2000;
 const POLL_MS = 2000;
 const FLUSH_MS = 120;
+/** Phase-change refresh of "my options" is spread over this window so 300 phones do not ask in the same instant. */
+const ME_JITTER_MS = 1500;
 const CHEER_GAP_MS = 400;
 const RETRY_MS = 3000;
 const WATCHDOG_MS = 20_000;
@@ -94,6 +96,38 @@ export type RoomApi = {
   onNotice(cb: (text: string) => void): Unsub;
   refresh(): Promise<void>;
 };
+
+/**
+ * Leading-edge batching for the idea feed: the first item after a quiet gap is delivered at once (an isolated
+ * idea renders immediately), the rest of a burst is delivered together, at most once per `gapMs`.
+ */
+export function createLeadingBatcher<T>(deliver: (items: T[]) => void, gapMs: number): { push(item: T): void; clear(): void } {
+  let buf: T[] = [];
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  let lastAt = Number.NEGATIVE_INFINITY;
+  const fire = (): void => {
+    timer = null;
+    if (buf.length === 0) return;
+    const items = buf;
+    buf = [];
+    lastAt = Date.now();
+    deliver(items);
+  };
+  return {
+    push(item) {
+      buf.push(item);
+      if (timer) return;
+      const wait = lastAt + gapMs - Date.now();
+      if (wait <= 0) fire();
+      else timer = setTimeout(fire, wait);
+    },
+    clear() {
+      if (timer) clearTimeout(timer);
+      timer = null;
+      buf = [];
+    },
+  };
+}
 
 const bad = (code: string, message?: string): SendResult => ({ ok: false, code, message: friendlyError(code, message) });
 const OK: SendResult = { ok: true };
@@ -143,8 +177,7 @@ function createController(code: string, role: RoomRole, publish: (v: View) => vo
   let sessionRetried = false;
   let transportAttempt = 0;
   let lastCheerAt = 0;
-  let buf: IncomingIdea[] = [];
-  let flushTimer: ReturnType<typeof setTimeout> | null = null;
+  const ideaBatch = createLeadingBatcher<IncomingIdea>((items) => dispatch({ type: "ideas", items, now: Date.now() }), FLUSH_MS);
   let resyncTimer: ReturnType<typeof setTimeout> | null = null;
   let watchdog: ReturnType<typeof setTimeout> | null = null;
   let pollTimer: ReturnType<typeof setInterval> | null = null;
@@ -186,7 +219,7 @@ function createController(code: string, role: RoomRole, publish: (v: View) => vo
   /** Players refresh "which options carry my ideas" at VOTE and REVEAL, spread out so 300 phones don't stampede. */
   function onPhase(s: PublicState): void {
     if (role !== "player") return;
-    if (s.phase === "VOTE" || s.phase === "REVEAL") later(200 + Math.random() * 1000, () => void load());
+    if (s.phase === "VOTE" || s.phase === "REVEAL") later(200 + Math.random() * ME_JITTER_MS, () => void refreshMe());
     if (s.phase === "REVEAL") later(2500 + Math.random() * 2000, () => void pollReceipts(s.showId, s.roundNo));
   }
 
@@ -239,6 +272,17 @@ function createController(code: string, role: RoomRole, publish: (v: View) => vo
     noteOk();
     dispatch({ type: "state", state: r.state });
     return { ok: true };
+  }
+
+  /** Only my own view (GET .../me): no join, no state build. A full join only when the server does not know me. */
+  async function refreshMe(): Promise<void> {
+    const r = await getRoomMe(code);
+    if (stopped) return;
+    if (r.ok) {
+      noteOk();
+      dispatch({ type: "me", me: r.me });
+    } else if (transient(r.code)) noteFail(r);
+    else void load();
   }
 
   /** Fallback for a receipt whose direct message never arrived: ask the server once per REVEAL. */
@@ -313,14 +357,6 @@ function createController(code: string, role: RoomRole, publish: (v: View) => vo
     if (c) void c.disconnect().catch(noop);
   }
 
-  function flush(): void {
-    flushTimer = null;
-    if (buf.length === 0) return;
-    const items = buf;
-    buf = [];
-    dispatch({ type: "ideas", items, now: Date.now() });
-  }
-
   function onConnection(status: ConnectionStatus): void {
     const was = view.connection;
     commit({ connection: status });
@@ -357,10 +393,7 @@ function createController(code: string, role: RoomRole, publish: (v: View) => vo
         c.on("state", (state) => dispatch({ type: "state", state })),
         c.on("patch", (p) => dispatch({ type: "patch", v: p.v, fields: p.fields })),
         c.on("tally", (tally) => dispatch({ type: "tally", tally })),
-        c.on("idea", (i) => {
-          buf.push(i);
-          if (!flushTimer) flushTimer = setTimeout(flush, FLUSH_MS);
-        }),
+        c.on("idea", (i) => ideaBatch.push(i)),
         c.on("cheer", (cheer) => {
           if (cheer.userId !== store.meId) dispatch({ type: "cheer", cheer, now: Date.now() });
         }),
@@ -489,7 +522,8 @@ function createController(code: string, role: RoomRole, publish: (v: View) => vo
       window.removeEventListener("online", onOnline);
       timers.forEach(clearTimeout);
       timers.clear();
-      for (const t of [flushTimer, resyncTimer, watchdog]) if (t) clearTimeout(t);
+      ideaBatch.clear();
+      for (const t of [resyncTimer, watchdog]) if (t) clearTimeout(t);
       if (pollTimer) clearInterval(pollTimer);
       const c = client;
       const ch = view.channelId;

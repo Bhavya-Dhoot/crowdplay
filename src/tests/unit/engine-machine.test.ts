@@ -140,16 +140,16 @@ describe("machine: transitions", () => {
     expect(next(mk("DISTILL", {}, { distill: "done" }), deadline(s), { type: "TICK" }).changed).toBe(false);
   });
 
-  it("VOTE -> REVEAL: CLOSE_VOTE before PUBLISH, then receipts, narration, next prompt", () => {
+  it("VOTE -> REVEAL: CLOSE_VOTE and narration before PUBLISH, then receipts and the next prompt", () => {
     const s = mk("VOTE");
     const r = next(s, deadline(s), { type: "TICK" });
     expect(r.state.phase).toBe("REVEAL");
     expect(r.state.phaseEndsAt).toBe(deadline(s) + T.revealMs);
     expect(r.effects).toEqual([
       { type: "CLOSE_VOTE", roundNo: 1, forcedWinnerId: null },
+      { type: "GEN_NARRATION", roundNo: 1 },
       { type: "PUBLISH", phaseChanged: true },
       { type: "SEND_RECEIPTS", roundNo: 1, kind: "CANON" },
-      { type: "GEN_NARRATION", roundNo: 1 },
       { type: "GEN_PROMPT", roundNo: 2, mode: "pregen" },
     ]);
     expect(next(s, deadline(s) - 1, { type: "TICK" }).changed).toBe(false);
@@ -159,7 +159,7 @@ describe("machine: transitions", () => {
   it("VOTE -> REVEAL in the last round does not pregenerate a prompt", () => {
     const s = mk("VOTE", { roundNo: 3 });
     const r = next(s, deadline(s), { type: "TICK" });
-    expect(types(r.effects)).toEqual(["CLOSE_VOTE", "PUBLISH", "SEND_RECEIPTS", "GEN_NARRATION"]);
+    expect(types(r.effects)).toEqual(["CLOSE_VOTE", "GEN_NARRATION", "PUBLISH", "SEND_RECEIPTS"]);
   });
 
   it("REVEAL holds (phaseEndsAt null) in manual mode, and TICK does nothing there", () => {

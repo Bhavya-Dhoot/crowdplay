@@ -3,6 +3,7 @@
 import { and, asc, desc, eq, inArray, isNotNull, isNull, lt, sql } from "drizzle-orm";
 import { z } from "zod";
 import { distillRound } from "../ai/distill";
+import { flushEmbeddings } from "../ai/embed";
 import { generateFinale } from "../ai/finale";
 import { narrateOutcome } from "../ai/narrate";
 import { fallbackPrompt, generatePrompt } from "../ai/prompts";
@@ -58,11 +59,25 @@ const SLOW: ReadonlySet<Effect["type"]> = new Set([
   "START_BOT_VOTES",
 ]);
 
+/**
+ * Tracked instead of awaited. The pre-generated next scene is slow too: REVEAL lasts 12 s, so it lands long
+ * before it is needed, and an awaited LLM call would hold up every advance() caller (host buttons, polls).
+ * `ensure` stays awaited: the PROMPT publish needs its row.
+ */
+const isSlow = (eff: Exclude<Effect, { type: "PUBLISH" }>): boolean =>
+  SLOW.has(eff.type) || (eff.type === "GEN_PROMPT" && eff.mode === "pregen");
+
 // ---------- tracking of non-blocking effects ----------
 
-const g = globalThis as unknown as { __cpPending?: Set<Promise<void>>; __cpInflight?: Set<string> };
+const g = globalThis as unknown as {
+  __cpPending?: Set<Promise<void>>;
+  __cpInflight?: Set<string>;
+  __cpPublishing?: Map<string, Promise<void>>;
+};
 const pending = () => (g.__cpPending ??= new Set());
 const inflight = () => (g.__cpInflight ??= new Set());
+/** The transition PUBLISH currently in flight per room, so a narration that started early publishes after it. */
+const publishing = () => (g.__cpPublishing ??= new Map());
 
 function track(p: Promise<unknown>): void {
   const set = pending();
@@ -89,6 +104,7 @@ export async function settlePendingEffects(): Promise<void> {
 export function resetPendingEffects(): void {
   g.__cpPending = undefined;
   g.__cpInflight = undefined;
+  g.__cpPublishing = undefined;
 }
 
 // ---------- idempotency ----------
@@ -158,7 +174,13 @@ export async function runEffects(ctx: EffectContext, effects: Effect[], opts: { 
   for (const eff of effects) {
     try {
       if (eff.type === "PUBLISH") {
-        await publishRoomState(ctx.roomId, eff.phaseChanged);
+        const p = publishRoomState(ctx.roomId, eff.phaseChanged);
+        publishing().set(ctx.roomId, p);
+        try {
+          await p;
+        } finally {
+          if (publishing().get(ctx.roomId) === p) publishing().delete(ctx.roomId);
+        }
         continue;
       }
       const { roundNo, disc } = keyOf(eff, ctx.state);
@@ -172,7 +194,7 @@ export async function runEffects(ctx: EffectContext, effects: Effect[], opts: { 
           inflight().delete(key);
         }
       })().catch((err) => log.error({ err, effect: eff.type, roundNo, roomId: ctx.roomId }, "effect failed"));
-      if (SLOW.has(eff.type)) track(exec);
+      if (isSlow(eff)) track(exec);
       else await exec;
     } catch (err) {
       log.error({ err, effect: eff.type, roomId: ctx.roomId }, "effect dispatch failed");
@@ -348,6 +370,7 @@ async function computeDistill(input: DistillInput, narrator: [string, string, st
 
 async function runDistill(db: Db, ctx: EffectContext, roundNo: number, mode: "full" | "heuristic" | "reroll"): Promise<void> {
   const started = Date.now();
+  flushEmbeddings(); // the STORM just ended: the last ideas embed while the rows below load
   const show = await loadShow(db, ctx.state.showId);
   let round = await loadRoundRow(db, show.id, roundNo);
   if (!round) {
@@ -374,7 +397,9 @@ async function runDistill(db: Db, ctx: EffectContext, roundNo: number, mode: "fu
   };
   const result = await computeDistill(input, narrator, mode, ctx.roomId);
   const cycleIsReroll = ctx.state.payload.rerollUsed;
-  await persistDistill(db, ctx.roomId, round, result, cycleIsReroll, Date.now() - started);
+  const distillMs = Date.now() - started;
+  await persistDistill(db, ctx.roomId, round, result, cycleIsReroll, distillMs);
+  log.info({ roomId: ctx.roomId, roundNo, mode, provider: result.provider, distillMs, persistMs: Date.now() - started - distillMs }, "distill persisted");
   await advance(ctx.roomId, { type: "DISTILL_DONE", roundNo });
 }
 
@@ -436,15 +461,6 @@ async function persistDistill(db: Db, roomId: string, round: RoundRow, res: Dist
       ...res.backups.map((o, j) => toRow(o, null, 4 + j)),
     ]);
 
-    const byCluster = new Map<number, string[]>();
-    for (const [ideaId, cluster] of Object.entries(res.clusterOf)) byCluster.set(cluster, [...(byCluster.get(cluster) ?? []), ideaId]);
-    for (const [cluster, ids] of byCluster) {
-      await q
-        .update(schema.ideas)
-        .set({ clusterId: cluster })
-        .where(and(eq(schema.ideas.roundId, round.id), inArray(schema.ideas.id, ids)));
-    }
-
     const [counts] = await q
       .select({ ideas: sql<number>`count(*)::int`, people: sql<number>`count(distinct ${schema.ideas.userId})::int` })
       .from(schema.ideas)
@@ -493,12 +509,11 @@ async function closeVote(db: Db, ctx: EffectContext, roundNo: number, forcedWinn
     round.id,
     opts.map((o) => o.id),
   );
-  const firstAt = await firstIdeaTimes(db, opts);
-  const pick = pickWinner(
-    opts.map((o) => ({ id: o.id, slot: o.slot as OptionSlot, firstIdeaAt: firstAt.get(o.id) ?? null })),
-    tally,
-    forcedWinnerId,
-  );
+  // The first-idea times (a read of every source idea) only matter for a tie; the REVEAL waits on this step.
+  const ballot = (firstAt: Map<string, number | null>) =>
+    opts.map((o) => ({ id: o.id, slot: o.slot as OptionSlot, firstIdeaAt: firstAt.get(o.id) ?? null }));
+  let pick = pickWinner(ballot(new Map()), tally, forcedWinnerId);
+  if (pick.reason === "tiebreak") pick = pickWinner(ballot(await firstIdeaTimes(db, opts)), tally, forcedWinnerId);
   await db.update(schema.rounds).set({ winnerOptionId: pick.winnerId, votesCount: total }).where(eq(schema.rounds.id, round.id));
   if (pick.reason === "tiebreak") {
     await db
@@ -573,6 +588,9 @@ async function genNarration(db: Db, ctx: EffectContext, roundNo: number): Promis
     .set({ narration: result.narration, narrationProvider: result.provider, beat: result.beat })
     .where(eq(schema.rounds.id, round.id));
   await db.update(schema.shows).set({ storySummary: clip(result.summary, 1200) }).where(eq(schema.shows.id, show.id));
+  // This effect starts before the REVEAL publish so the model call overlaps it; the narration's own publish
+  // must not overtake it (a stale REVEAL landing second would roll the Open Channel metadata back).
+  await publishing().get(ctx.roomId);
   await publishFresh(ctx.roomId);
 
   const live = await loadEngineState(ctx.roomId, db);

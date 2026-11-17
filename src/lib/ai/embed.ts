@@ -1,4 +1,4 @@
-// Incremental embeddings. Ideas are queued as they arrive and embedded in 500 ms micro-batches into a
+// Incremental embeddings. Ideas are queued as they arrive and embedded in 150 ms micro-batches into a
 // process-wide cache, so distill finds the vectors ready. Live = OpenAI embeddings (2.5 s timeout);
 // mock/local = deterministic hashed bag-of-words (unigrams + bigrams, fixed dim, L2-normalised).
 import { env } from "@/lib/config";
@@ -7,8 +7,10 @@ import { hashString, l2normalize, normalizeText, type Vec } from "./cluster";
 import { openaiClient, raceTimeout } from "./providers";
 
 export const LOCAL_DIM = 512;
-const BATCH_MS = 500;
+const BATCH_MS = 150;
 const PROVIDER_TIMEOUT_MS = 2500;
+/** A few ideas without a provider vector at distill time are embedded on the spot, inside this cap. */
+const STRAGGLER_TIMEOUT_MS = 700;
 const PROVIDER_COOLDOWN_MS = 15_000;
 const CHUNK = 256;
 const MAX_CACHED = 6000;
@@ -93,7 +95,7 @@ function remember(s: Store, id: string, vec: Vec, source: VectorSource): void {
   }
 }
 
-async function embedWithProvider(texts: string[]): Promise<Vec[]> {
+async function embedWithProvider(texts: string[], timeoutMs: number = PROVIDER_TIMEOUT_MS): Promise<Vec[]> {
   const model = env().OPENAI_EMBED_MODEL;
   const ac = new AbortController();
   const res = await raceTimeout(
@@ -107,7 +109,7 @@ async function embedWithProvider(texts: string[]): Promise<Vec[]> {
       },
       { signal: ac.signal },
     ),
-    PROVIDER_TIMEOUT_MS,
+    timeoutMs,
     ac,
     "openai:embeddings",
   );
@@ -146,6 +148,11 @@ function flush(): void {
   s.inflight.add(job);
 }
 
+/** Start embedding whatever is queued right now (the STORM just ended) instead of waiting for the batch timer. */
+export function flushEmbeddings(): void {
+  if (store().pending.length > 0) flush();
+}
+
 /** Fire-and-forget: embed incrementally as ideas arrive (micro-batches). */
 export function queueEmbedding(ideaId: string, text: string): void {
   const s = store();
@@ -162,10 +169,16 @@ export type VectorSet = {
   source: VectorSource;
   /** True when a provider is configured but its vectors were unavailable: the lexical "LLM-only" path. */
   degraded: boolean;
+  /** Ideas that had no provider vector yet and were embedded inside this call (0 when none, for logs). */
+  stragglers: number;
 };
 
+/** How many unembedded ideas still count as "a few": they are embedded on the spot instead of dropping the round to lexical vectors. */
+const stragglerLimit = (n: number): number => Math.max(5, Math.ceil(n * 0.03));
+
 /**
- * Vectors for these ideas. Waits up to `waitMs` for in-flight batches (and flushes the partial one).
+ * Vectors for these ideas. Flushes the partial batch and waits up to `waitMs` for batches already in flight;
+ * the few ideas still missing after that are embedded here, in one call capped at STRAGGLER_TIMEOUT_MS.
  * Provider vectors are used only if every idea has one (vector spaces must not be mixed); otherwise
  * all ideas get local lexical vectors.
  */
@@ -189,13 +202,28 @@ export async function getVectors(
     }
   }
 
+  let stragglers = 0;
   if (live && ideas.length > 0) {
     const out = new Map<string, Vec>();
     for (const i of ideas) {
       const c = s.vectors.get(i.id);
       if (c?.source === "provider") out.set(i.id, c.vec);
     }
-    if (out.size === ideas.length) return { vectors: out, source: "provider", degraded: false };
+    const missing = ideas.filter((i) => !out.has(i.id));
+    if (missing.length > 0 && missing.length <= stragglerLimit(ideas.length) && waitMs > 0 && Date.now() >= s.downUntil) {
+      try {
+        const vecs = await embedWithProvider(missing.map((m) => normalizeText(m.text) || m.text), STRAGGLER_TIMEOUT_MS);
+        missing.forEach((m, k) => {
+          remember(s, m.id, vecs[k], "provider");
+          out.set(m.id, vecs[k]);
+        });
+        stragglers = missing.length;
+      } catch (err) {
+        s.downUntil = Date.now() + PROVIDER_COOLDOWN_MS;
+        log.warn({ err: err instanceof Error ? err.message : String(err), missing: missing.length }, "straggler embeddings failed; distill will use local vectors");
+      }
+    }
+    if (out.size === ideas.length) return { vectors: out, source: "provider", degraded: false, stragglers };
   }
 
   const vectors = new Map<string, Vec>();
@@ -203,5 +231,5 @@ export async function getVectors(
     const c = s.vectors.get(i.id);
     vectors.set(i.id, c?.source === "local" ? c.vec : hashedVector(i.text));
   }
-  return { vectors, source: "local", degraded: live && ideas.length > 0 };
+  return { vectors, source: "local", degraded: live && ideas.length > 0, stragglers };
 }

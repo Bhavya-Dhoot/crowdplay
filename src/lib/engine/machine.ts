@@ -73,10 +73,7 @@ function enterVote(s: EngineState, now: number): MachineResult {
 }
 
 function enterReveal(s: EngineState, now: number, forcedWinnerId: string | null): MachineResult {
-  const after: Effect[] = [
-    { type: "SEND_RECEIPTS", roundNo: s.roundNo, kind: "CANON" },
-    { type: "GEN_NARRATION", roundNo: s.roundNo },
-  ];
+  const after: Effect[] = [{ type: "SEND_RECEIPTS", roundNo: s.roundNo, kind: "CANON" }];
   if (s.roundNo < s.roundsTotal) after.push({ type: "GEN_PROMPT", roundNo: s.roundNo + 1, mode: "pregen" });
   const forced = forcedWinnerId ?? s.payload.forcedWinnerId;
   return commit(
@@ -88,7 +85,12 @@ function enterReveal(s: EngineState, now: number, forcedWinnerId: string | null)
       pausedRemainingMs: null,
       payload: { ...s.payload, forcedWinnerId: forced },
     },
-    [{ type: "CLOSE_VOTE", roundNo: s.roundNo, forcedWinnerId: forced }],
+    // The narration needs the winner (CLOSE_VOTE) but not the published REVEAL, so it starts before PUBLISH
+    // and overlaps the Nexconn REST publish; its own publish waits for that one (effects.ts).
+    [
+      { type: "CLOSE_VOTE", roundNo: s.roundNo, forcedWinnerId: forced },
+      { type: "GEN_NARRATION", roundNo: s.roundNo },
+    ],
     after,
   );
 }

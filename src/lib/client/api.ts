@@ -16,6 +16,7 @@ import type {
   IdeaRes,
   ImpactRes,
   JoinRes,
+  MeInRoom,
   MeRes,
   RoomInfoRes,
   SessionRes,
@@ -131,6 +132,8 @@ export const getRoom = (code: string) => request<RoomInfoRes>(`/api/rooms/${enc(
 export const joinRoom = (code: string, lang?: string) =>
   request<JoinRes>(`/api/rooms/${enc(code)}/join`, { method: "POST", body: lang ? { lang } : {} });
 export const getState = (code: string) => request<StateRes>(`/api/rooms/${enc(code)}/state`);
+/** Just my own view of the room (GET .../me): the cheap refresh for phase changes, no join side effects. */
+export const getRoomMe = (code: string) => request<{ ok: true; me: MeInRoom }>(`/api/rooms/${enc(code)}/me`);
 
 export const postIdea = (code: string, body: { roundNo: number; text: string; clientMsgId: string }) =>
   request<IdeaOk>(`/api/rooms/${enc(code)}/ideas`, { method: "POST", body });

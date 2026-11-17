@@ -3,7 +3,8 @@
 // so phases never shift the layout. It also announces every phase change through an aria-live
 // region, so pages get that for free.
 //   <PhaseHeader state={state} offsetMs={offsetMs} />
-// LOBBY and FINALE show no round number; phases without a deadline show an empty ring.
+// LOBBY and FINALE show no round number; phases without a deadline show an empty ring. The small dot before the
+// round is this round's stage light (see <StageBackdrop>), the ring is the same hue.
 import { phaseAnnouncement, PHASE_LABEL } from "@/lib/copy";
 import type { PublicState } from "@/lib/realtime/types";
 import { Countdown } from "./Countdown";
@@ -23,7 +24,14 @@ export function PhaseHeader({ state, offsetMs, className }: Props) {
     <MotionScope>
       <header className={cn("flex h-[72px] items-center justify-between gap-4", className)}>
         <div className="relative min-w-0 flex-1">
-          <p className="h-5 text-sm font-medium tabular-nums text-muted">{showRound ? `Round ${state.roundNo} / ${state.roundsTotal}` : ""}</p>
+          <p className="flex h-5 items-center gap-2 text-fine font-medium tabular-nums text-muted-on-stage">
+            {showRound ? (
+              <>
+                <span aria-hidden="true" className="size-1.5 rounded-full bg-light" />
+                {`Round ${state.roundNo} / ${state.roundsTotal}`}
+              </>
+            ) : null}
+          </p>
           <div className="relative h-8">
             <AnimatePresence mode="popLayout" initial={false}>
               <m.h2
@@ -32,7 +40,7 @@ export function PhaseHeader({ state, offsetMs, className }: Props) {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={PHASE_TRANSITION}
-                className="truncate font-display text-2xl leading-8 font-extrabold"
+                className="truncate font-display text-h3 leading-8 font-extrabold"
               >
                 {PHASE_LABEL[state.phase]}
               </m.h2>

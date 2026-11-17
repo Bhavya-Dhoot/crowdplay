@@ -98,7 +98,7 @@ export function l2normalize(v: Vec): Vec {
 export type ClusterItem = { id: string; text: string; vec: Vec; createdAt: number };
 
 export type Cluster = {
-  /** Rank by size (0 = largest). Persisted as ideas.cluster_id. */
+  /** Rank by size (0 = largest). Returned as DistillResult.clusterOf; not stored (nothing reads ideas.cluster_id). */
   id: number;
   ideaIds: string[];
   size: number;

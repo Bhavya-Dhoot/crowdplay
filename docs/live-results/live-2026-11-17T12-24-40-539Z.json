@@ -1,0 +1,56 @@
+{
+  "at": "2026-11-17T12:24:40.539Z",
+  "dryRun": false,
+  "server": {
+    "ok": true,
+    "realtimeMode": "nexconn",
+    "llmMode": "live",
+    "db": "pglite",
+    "version": "0.1.0"
+  },
+  "roomCode": "CZVTT",
+  "ideaLatencyMs": [
+    {
+      "toPhone": 497,
+      "toScreen": 497
+    },
+    {
+      "toPhone": 894,
+      "toScreen": 892
+    },
+    {
+      "toPhone": 443,
+      "toScreen": 443
+    },
+    {
+      "toPhone": 409,
+      "toScreen": 927
+    },
+    {
+      "toPhone": 376,
+      "toScreen": 370
+    },
+    {
+      "toPhone": 501,
+      "toScreen": 501
+    }
+  ],
+  "stormEndToOptionsMs": 3413,
+  "distill": {
+    "ms": 1868,
+    "provider": "openai",
+    "fallbackUsed": false
+  },
+  "narrationVisibleAfterRevealMs": 1859,
+  "ballotToastSeenOnAPhone": true,
+  "receiptsOnMe": {
+    "ada": 3,
+    "bo": 1
+  },
+  "finale": {
+    "storyTitle": "Moonlight Heist at the Glittering Vault",
+    "recapChars": 882,
+    "tagline": "A moonlit robbery turns into a sparkling disaster with style."
+  },
+  "consoleProblems": []
+}

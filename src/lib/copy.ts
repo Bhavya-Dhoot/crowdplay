@@ -137,8 +137,22 @@ export const COPY = {
     sub: "Everyone types. AI turns the chaos into three choices. The room decides. You get the credit.",
     join: { heading: "Join a show", hint: "Got a code from the host? Type it here.", button: "Join", codeLabel: "Show code" },
     host: { label: "Host a show", hint: "Pick a premise, set the timing and share the code." },
-    try: { label: "Try it alone (60 s)", hint: "A demo room with simulated players. No host needed." },
+    try: { label: "Play a 60-second demo", hint: "A demo room with simulated players. No host, no setup." },
     stepsHeading: "How a round works",
+    // The looping example round on the landing page. Decoration, labelled "Example round": nothing here is real data.
+    example: {
+      label: "Example round",
+      description: "Example round: ideas rain in, three choices appear, and the winning idea is stamped canon.",
+      prompt: "The alarm just went off at the world's smallest bank. What happens next?",
+      ideas: ["the vault is full of cats", "pull the fire alarm", "swap places with the guard", "everyone freezes", "a pigeon has the key", "free pizza"],
+      options: [
+        { letter: "A", text: "Swap places with the guard", pct: 46 },
+        { letter: "B", text: "Pull the fire alarm", pct: 22 },
+        { letter: "C", text: "A pigeon has the key", pct: 32 },
+      ],
+      narration: "Somebody slips into the guard's coat and waves the customers through. The vault door sighs open.",
+      credit: { name: "priya", more: 23 },
+    },
     steps: [
       { title: "Everyone types", body: "A short storm of ideas, straight from every phone in the room." },
       { title: "AI finds three choices", body: "The crowd's favourites plus one wildcard, written up as options A, B and C." },

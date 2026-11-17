@@ -1,33 +1,38 @@
 // Button / ButtonLink: pill buttons, at least 44 px tall. Server-safe (no hooks).
-//   <Button variant="primary|secondary|ghost|danger|wild" size="md|lg" block loading onClick>..</Button>
+//   <Button variant="primary|secondary|ghost|danger|wild" size="sm|md|lg" block loading onClick>..</Button>
 //   <ButtonLink href="/host" variant="secondary">..</ButtonLink>     (next/link, same look)
 //   buttonClass({ variant, size, block })                             class string for custom elements
-// Text sits on --ink over bright fills for AA contrast. The focus ring comes from globals.css.
+// primary = the gold pill, ONE per view (the phase action, "Play a 60-second demo"). secondary = a paper pill on
+// the stage. ghost = text on the stage. danger / wild are status fills. Text is --ink on every bright fill (AA).
+// Press = 0 ms onset scale(.98) + overlay (the .press class in globals.css), never a layout change; the focus ring
+// is the global 2 px gold at 3 px offset.
 import Link from "next/link";
 import { LoaderCircle } from "lucide-react";
 import type { ButtonHTMLAttributes, ComponentProps, ReactNode } from "react";
 import { cn } from "./cn";
 
 export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "wild";
-export type ButtonSize = "md" | "lg";
+export type ButtonSize = "sm" | "md" | "lg";
 
 const BASE =
-  "inline-flex items-center justify-center gap-2 rounded-pill font-semibold leading-none select-none " +
-  "transition-[transform,background-color,border-color,filter,opacity] duration-150 " +
-  "active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50 " +
-  "motion-reduce:transition-none motion-reduce:active:scale-100";
+  "press inline-flex items-center justify-center gap-2 rounded-pill font-semibold leading-none select-none " +
+  "disabled:pointer-events-none aria-disabled:pointer-events-none";
+
+// A disabled button goes quiet (stage grey, muted text) instead of a washed-out version of its colour.
+const OFF = "disabled:bg-stage-2 disabled:text-muted-on-stage disabled:shadow-none aria-disabled:bg-stage-2 aria-disabled:text-muted-on-stage aria-disabled:shadow-none";
 
 const VARIANT: Record<ButtonVariant, string> = {
-  primary: "bg-accent text-ink hover:brightness-110",
-  secondary: "border border-line bg-surface-2 text-text hover:border-muted",
-  ghost: "bg-transparent text-text hover:bg-surface",
-  danger: "bg-danger text-ink hover:brightness-110",
-  wild: "bg-wild text-ink hover:brightness-110",
+  primary: `bg-gold text-ink ${OFF}`,
+  secondary: `bg-paper text-ink shadow-[0_1px_0_var(--paper-edge)] ${OFF}`,
+  ghost: "bg-transparent text-on-stage [--press-overlay:rgb(255_255_255/0.1)] disabled:text-muted-on-stage/60 aria-disabled:text-muted-on-stage/60",
+  danger: `bg-danger text-ink ${OFF}`,
+  wild: `bg-gel-c text-ink ${OFF}`,
 };
 
 const SIZE: Record<ButtonSize, string> = {
-  md: "min-h-12 px-6 text-base",
-  lg: "min-h-14 px-8 text-lg",
+  sm: "min-h-11 px-4 text-small",
+  md: "min-h-12 px-6 text-body",
+  lg: "min-h-14 px-8 text-lead",
 };
 
 export function buttonClass(o: { variant?: ButtonVariant; size?: ButtonSize; block?: boolean; className?: string } = {}): string {

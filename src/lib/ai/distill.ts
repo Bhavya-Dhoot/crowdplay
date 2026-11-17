@@ -126,7 +126,9 @@ export function validateDistill(raw: unknown, ctx: ValidateCtx): ValidateResult 
 
 const MAX_LEXICAL_SAMPLE = 120;
 const CROWD_CLUSTERS = 8;
-const WILD_CLUSTERS = 30;
+/** Prompt size: the model sees this many wild clusters and, per crowd cluster, this many representative ideas. */
+const WILD_CLUSTERS = 20;
+const CROWD_REPS = 3;
 
 type Prepared = {
   usable: (DistillIdea & { text: string })[];
@@ -139,6 +141,9 @@ type Prepared = {
   preferred: number | null;
   ctx: ValidateCtx;
   degraded: boolean;
+  /** For the timing log: how long the vectors took and how many ideas had to be embedded on the spot. */
+  vectorsMs: number;
+  stragglers: number;
 };
 
 function toCandidate(c: Cluster, textOf: Map<string, string>): Candidate {
@@ -177,10 +182,12 @@ async function prepare(input: DistillInput, rng: () => number): Promise<Prepared
   }
   const textOf = new Map(usable.map((i) => [i.id, i.text]));
 
+  const tVectors = Date.now();
   const vecs = await getVectors(
     usable.map((i) => ({ id: i.id, text: i.text })),
-    { waitMs: input.heuristicOnly ? 0 : 800 },
+    { waitMs: input.heuristicOnly ? 0 : 500 },
   );
+  const vectorsMs = Date.now() - tVectors;
   if (vecs.degraded) {
     log.warn({ roomId: input.roomId, roundNo: input.roundNo }, "embeddings unavailable: lexical clustering on a sample");
   }
@@ -273,6 +280,8 @@ async function prepare(input: DistillInput, rng: () => number): Promise<Prepared
     preferred,
     ctx: { sizes, crowdIds: crowdIdSet, totalIdeas: clusters.reduce((n, c) => n + c.size, 0), excludeLabels: input.excludeLabels ?? [] },
     degraded: vecs.degraded,
+    vectorsMs,
+    stragglers: vecs.stragglers,
   };
 }
 
@@ -297,7 +306,7 @@ Rules
    self-harm, or graphic gore. Mild cartoon peril and absurd humour are fine.
    List every cluster id you skipped for safety in "unsafeClusterIds".
 7. If "preferredWildClusterId" is given and it is safe and fits, use it for the wildcard.
-8. Also return up to three backup options (same rules, clusters not used by the three options) in case the host vetoes one.
+8. Also return up to two backup options (same rules, clusters not used by the three options) in case the host vetoes one.
 9. sourceClusterIds are the integers inside [c#] (for [c12] write 12).
 10. ${UNTRUSTED_NOTE}
 Return only the JSON object required by the schema.`;
@@ -306,7 +315,7 @@ function buildUser(input: DistillInput, p: Prepared): string {
   const story = input.story.summary.trim() || input.story.premise;
   const pct = (c: Candidate) => `${Math.round(c.share * 100)}%`;
   const crowd = p.crowd
-    .map((c) => `[c${c.id}] size=${c.size} share=${pct(c)}\n${c.reps.map((r) => `  - ${fenceIdea(r.text)}`).join("\n")}`)
+    .map((c) => `[c${c.id}] size=${c.size} share=${pct(c)}\n${c.reps.slice(0, CROWD_REPS).map((r) => `  - ${fenceIdea(r.text)}`).join("\n")}`)
     .join("\n");
   const wild = p.wild.map((c) => `[c${c.id}] size=${c.size} — ${c.reps[0] ? fenceIdea(c.reps[0].text) : ""}`).join("\n");
   const lines = [
@@ -413,6 +422,7 @@ export async function distillRound(input: DistillInput): Promise<DistillResult> 
   const rng = seededRng(`${input.roomId}:${input.roundNo}:${input.excludeLabels?.length ?? 0}:${input.boostUserId ?? ""}`);
 
   const p = await prepare(input, rng);
+  const prepareMs = Date.now() - t0;
   const base = { roomId: input.roomId, roundNo: input.roundNo };
   const heuristicArgs = {
     narratorOptions: input.narratorOptions,
@@ -479,6 +489,7 @@ export async function distillRound(input: DistillInput): Promise<DistillResult> 
       });
       const v = validateDistill(r.data, p.ctx);
       if (!v.ok) throw new Error(v.errors.join("; "));
+      log.info({ ...base, provider: step.provider, prepareMs, vectorsMs: p.vectorsMs, stragglers: p.stragglers, llmMs: r.ms, ideas: p.ctx.totalIdeas }, "distill timing");
       return fromValid(p, v.value, { provider: step.provider, fallbackUsed: attempted > 1, t0 });
     } catch (err) {
       log.warn({ ...base, provider: step.provider, err: err instanceof Error ? err.message : String(err) }, "distill step failed");

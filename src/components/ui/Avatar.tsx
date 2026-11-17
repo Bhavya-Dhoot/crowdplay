@@ -1,10 +1,11 @@
 // Avatar: generated initials on a stable colour (same name, same colour). Server-safe and
-// decorative (the name is always written next to it), so it is hidden from screen readers.
+// decorative (the name is always written next to it), so it is hidden from screen readers. Ink initials on gold, the
+// gels and the teal / lilac stage lights (all AA).
 //   <Avatar name="Brave Otter" size={32} />      initials("Brave Otter") === "BO"
 import type { CSSProperties } from "react";
 import { cn } from "./cn";
 
-const COLORS = ["var(--accent)", "var(--opt-a)", "var(--opt-b)", "var(--opt-c)", "var(--warn)"] as const;
+const COLORS = ["var(--gold)", "var(--gel-a)", "var(--gel-b)", "var(--gel-c)", "var(--light-2)", "var(--light-3)"] as const;
 
 export function initials(name: string): string {
   const words = name.split(/[^\p{L}\p{N}]+/u).filter(Boolean);

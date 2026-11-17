@@ -1,14 +1,15 @@
 "use client";
 // Sheet: a modal built on the native <dialog>, so focus trapping, Esc, inert background and the
 // top layer come from the browser. Slides up from the bottom on phones, pops in centred on desktop.
+// A glass layer (blur 24, opaque under reduced transparency / high contrast); the grab bar is decorative.
 //   <Sheet open={open} onClose={() => setOpen(false)} title="Share the show">…</Sheet>
 // `open` is controlled: Esc, the backdrop and the close button all call onClose and you flip it.
-// Closing plays a short exit animation before the dialog is really closed.
+// Closing plays a short exit animation (175 ms) before the dialog is really closed.
 import { X } from "lucide-react";
 import { useEffect, useId, useRef, type ReactNode } from "react";
 import { cn } from "./cn";
 
-const EXIT_MS = 180;
+const EXIT_MS = 175;
 
 type Props = { open: boolean; onClose: () => void; title: string; children: ReactNode; className?: string };
 
@@ -51,15 +52,16 @@ export function Sheet({ open, onClose, title, children, className }: Props) {
       }}
     >
       <div className={cn("flex max-h-[inherit] flex-col pb-[var(--safe-bottom)]", className)}>
-        <div className="flex items-center justify-between gap-4 border-b border-line px-6 py-3">
-          <h2 id={titleId} className="font-display text-xl">
+        <span aria-hidden="true" className="mx-auto mt-2 h-1 w-9 rounded-pill bg-stage-line md:hidden" />
+        <div className="flex items-center justify-between gap-4 border-b border-stage-line px-6 py-3">
+          <h2 id={titleId} className="font-display text-lead">
             {title}
           </h2>
           <button
             type="button"
             aria-label="Close"
             onClick={onClose}
-            className="-mr-3 grid size-11 place-items-center rounded-full text-muted transition-colors hover:text-text motion-reduce:transition-none"
+            className="press -mr-3 grid size-11 place-items-center rounded-full text-muted-on-stage [--press-overlay:rgb(255_255_255/0.1)]"
           >
             <X aria-hidden="true" className="size-5" />
           </button>

@@ -6,12 +6,12 @@ import { cn } from "./cn";
 import { NexconnBadge } from "./NexconnBadge";
 
 const LINK =
-  "inline-flex min-h-11 items-center rounded-pill px-3 text-sm font-medium text-muted transition-colors hover:text-text motion-reduce:transition-none";
+  "press inline-flex min-h-11 items-center rounded-pill px-3 text-small font-medium text-muted-on-stage [--press-overlay:rgb(255_255_255/0.08)] hover:text-on-stage";
 
 export function Footer({ className }: { className?: string }) {
   const repo = process.env.NEXT_PUBLIC_REPO_URL;
   return (
-    <footer className={cn("border-t border-line", className)}>
+    <footer className={cn("border-t border-stage-line", className)}>
       <div className="mx-auto flex w-full max-w-6xl flex-col items-start gap-3 px-4 py-6 md:flex-row md:items-center md:justify-between md:px-8">
         <nav aria-label="Footer" className="-ml-3 flex flex-wrap items-center">
           <Link href="/how-it-works" className={LINK}>

@@ -1,0 +1,230 @@
+/* The landing page's looping example round (RoundMiniature.tsx). Only transform and opacity animate.
+   Every animated element has a settled, readable style of its own; reduced motion shows that still frame. */
+
+.mini-stage {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  padding: 16px;
+  border-radius: var(--r-sheet);
+  border: 1px solid var(--stage-line);
+  background:
+    radial-gradient(90% 55% at 50% -12%, color-mix(in srgb, var(--light) 14%, transparent), transparent 72%),
+    var(--stage-1);
+}
+.mini-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  height: 52px;
+}
+.mini-phase {
+  animation: mini-phase-in var(--dur-medium) var(--ease-arrive) both;
+}
+@keyframes mini-phase-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+.mini-ring {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  animation: mini-ring-run var(--ring-ms, 4s) linear both;
+}
+@keyframes mini-ring-run {
+  to {
+    stroke-dashoffset: 1;
+  }
+}
+.mini-prompt {
+  margin: 4px 0 14px;
+  min-height: 3em;
+  font-size: 15px;
+  line-height: 1.5;
+}
+.mini-body {
+  position: relative;
+  height: 236px;
+  transition:
+    opacity var(--dur-fast) var(--ease-exit),
+    transform var(--dur-fast) var(--ease-exit);
+}
+.mini-body[data-leaving="true"] {
+  opacity: 0;
+  transform: translateY(6px) scale(0.985);
+}
+
+/* STORM: idea cards land on the desk with a little overshoot. */
+.mini-idea {
+  position: absolute;
+  max-width: 100%;
+  animation:
+    mini-drop var(--land-ms, 700ms) var(--land-ease, var(--ease-arrive)) var(--delay, 0ms) both,
+    mini-fade 140ms linear var(--delay, 0ms) both;
+}
+@keyframes mini-drop {
+  from {
+    transform: translateY(-170px);
+  }
+}
+@keyframes mini-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+/* VOTE: three script cards rise in turn; their bars fill from the left (transform, not width). */
+.mini-opt {
+  animation: mini-rise var(--dur-medium) var(--ease-arrive) var(--delay, 0ms) both;
+}
+@keyframes mini-rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+.mini-bar {
+  display: block;
+  height: 6px;
+  overflow: hidden;
+  border-radius: var(--r-pill);
+  background: var(--paper-2);
+}
+.mini-bar > i {
+  display: block;
+  height: 100%;
+  border-radius: var(--r-pill);
+  background: var(--g);
+  transform-origin: left center;
+  transform: scaleX(var(--w, 1));
+  animation: mini-fill 800ms var(--ease-arrive) calc(var(--delay, 0ms) + 250ms) both;
+}
+@keyframes mini-fill {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+/* REVEAL: the winner lifts, the narration page slides up behind it, the credit fades in last. */
+.mini-win {
+  animation: mini-lift var(--lift-ms, 600ms) var(--lift-ease, var(--ease-arrive)) both;
+}
+@keyframes mini-lift {
+  from {
+    transform: translateY(12px) scale(0.96);
+  }
+}
+/* The narration sits on a ruled script page. */
+.mini-page {
+  animation: mini-rise var(--dur-medium) var(--ease-arrive) 350ms both;
+}
+.mini-page::before {
+  content: "";
+  position: absolute;
+  inset: 12px 0;
+  pointer-events: none;
+  background: linear-gradient(to bottom, transparent calc(100% - 1px), rgb(28 24 40 / 0.09) 0) 0 0 / 100% 26.35px; /* 17 px x 1.55 line height */
+}
+.mini-credit {
+  opacity: 0;
+  transition: opacity var(--dur-medium) var(--ease-arrive);
+}
+.mini-credit[data-show="true"] {
+  opacity: 1;
+}
+
+/* The three steps under the stage: the active one is lit. */
+.mini-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 20px;
+}
+.mini-steps li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.mini-num {
+  display: grid;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  margin-top: 1px;
+  place-items: center;
+  border-radius: 9999px;
+  background: var(--stage-2);
+  color: var(--muted-on-stage);
+  font-family: var(--f-display);
+  font-weight: 800;
+  font-size: 15px;
+  transition:
+    background-color var(--dur-fast) linear,
+    color var(--dur-fast) linear;
+}
+.mini-steps li[data-active="true"] .mini-num {
+  background: var(--gold);
+  color: var(--ink);
+}
+
+@media (min-width: 768px) {
+  .mini-stage {
+    padding: 20px;
+  }
+  .mini-body {
+    height: 240px;
+  }
+  .mini-prompt {
+    min-height: 3em;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mini-phase,
+  .mini-idea,
+  .mini-opt,
+  .mini-bar > i,
+  .mini-win,
+  .mini-page,
+  .mini-ring {
+    animation: none;
+  }
+  .mini-body,
+  .mini-credit,
+  .mini-num {
+    transition: none;
+  }
+}
+
+/* Landing layout: hero, example round, join. One column on phones (that order), two columns from 1024 px. */
+.landing-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "hero"
+    "mini"
+    "join";
+  gap: 32px;
+}
+.landing-hero {
+  grid-area: hero;
+}
+.landing-mini {
+  grid-area: mini;
+}
+.landing-join {
+  grid-area: join;
+}
+@media (min-width: 1024px) {
+  .landing-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 32rem);
+    grid-template-areas:
+      "hero mini"
+      "join mini";
+    column-gap: 64px;
+    row-gap: 40px;
+    align-content: start;
+  }
+}

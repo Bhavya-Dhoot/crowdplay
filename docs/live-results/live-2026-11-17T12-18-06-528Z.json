@@ -1,0 +1,56 @@
+{
+  "at": "2026-11-17T12:18:06.528Z",
+  "dryRun": false,
+  "server": {
+    "ok": true,
+    "realtimeMode": "nexconn",
+    "llmMode": "live",
+    "db": "pglite",
+    "version": "0.1.0"
+  },
+  "roomCode": "AMQEZ",
+  "ideaLatencyMs": [
+    {
+      "toPhone": 406,
+      "toScreen": 427
+    },
+    {
+      "toPhone": 388,
+      "toScreen": 387
+    },
+    {
+      "toPhone": 398,
+      "toScreen": 397
+    },
+    {
+      "toPhone": 421,
+      "toScreen": 420
+    },
+    {
+      "toPhone": 887,
+      "toScreen": 888
+    },
+    {
+      "toPhone": 415,
+      "toScreen": 923
+    }
+  ],
+  "stormEndToOptionsMs": 2683,
+  "distill": {
+    "ms": 1652,
+    "provider": "openai",
+    "fallbackUsed": false
+  },
+  "narrationVisibleAfterRevealMs": 1340,
+  "ballotToastSeenOnAPhone": true,
+  "receiptsOnMe": {
+    "ada": 3,
+    "bo": 1
+  },
+  "finale": {
+    "storyTitle": "Midnight on the Moon Bank",
+    "recapChars": 860,
+    "tagline": "A heist goes sideways and turns into a moonlit dance."
+  },
+  "consoleProblems": []
+}

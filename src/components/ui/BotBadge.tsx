@@ -9,7 +9,7 @@ export function BotBadge({ className }: { className?: string }) {
       role="img"
       aria-label={COPY.botTooltip}
       title={COPY.botTooltip}
-      className={cn("inline-flex items-center rounded-pill border border-line bg-surface-2 px-1.5 text-xs leading-5", className)}
+      className={cn("inline-flex items-center rounded-pill border border-stage-line bg-stage-2 px-1.5 text-fine leading-5", className)}
     >
       🤖
     </span>

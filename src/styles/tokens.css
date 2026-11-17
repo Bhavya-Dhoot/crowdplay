@@ -1,34 +1,126 @@
 /*
- * CROWDPLAY design tokens (UX_SPEC §1). Late-night game show: a dark stage, one bright accent.
+ * CROWDPLAY design tokens, v2 "The Writers' Room" (plans/design-v2.md).
+ * Warm paper cards on a tinted ink stage, lit by a stage light whose hue changes every round.
  * Plain CSS variables so non-Tailwind code (canvas, SVG, inline styles) can use them too;
  * globals.css wires them into Tailwind 4 through @theme.
  *
- * Contrast on --bg (WCAG, computed): text 18.1, muted 7.1, accent 13.6, ok 11.1, warn 8.4,
- * danger 6.4, option A 6.2, option C 6.3; muted on --surface-2 is 6.0. Text on a bright fill is --ink.
+ * Measured contrast (WCAG): text on stage 16.8, muted on stage 7.8 (6.4 on stage-2), ink on paper 15.3,
+ * muted ink on paper 6.1 (5.5 on paper-2), ink on gold 11.2, ink on gel A 4.7 / B 7.8 / C 5.2, white on gel A 3.7 /
+ * C 3.4 (large bold only), ink on ok/warn/danger 9+/10+/5.7, danger-on-paper 4.9. Gels on stage 5.2-8.7.
+ * Colour never carries meaning alone: gels come with a letter, status with an icon and words.
+ *
+ * Legacy token names (--bg, --surface, --accent, --opt-a ...) live at the bottom as aliases.
  */
+
+/* Registered so a round change cross-fades the whole page's light instead of snapping. */
+@property --light {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #ffb547;
+}
+
 :root {
-  --bg: #0b0b12;
-  --surface: #15151f;
-  --surface-2: #1e1e2b;
-  --line: #2a2a3a;
-  --text: #f5f5fa;
-  --muted: #9a9ab0;
+  /* Stage: tinted, never pure black. Higher number = raised = lighter. */
+  --stage-0: #0f0d16; /* page */
+  --stage-1: #191724; /* raised panel */
+  --stage-2: #232032; /* raised more */
+  --stage-line: #34304a;
+  --ink-on-stage: #f3efe6; /* text on stage */
+  --muted-on-stage: #a7a1bc; /* secondary text on stage */
 
-  --accent: #ffd23f; /* crowd / primary */
-  --wild: #ff4d8d; /* wildcard */
-  --ok: #3ddc97;
-  --warn: #ff8a3d;
-  --danger: #ff5a5a;
-  --ink: #0b0b12; /* text on any bright fill */
+  /* Paper: the one signature surface (idea cards, script cards, the narration page). */
+  --paper: #f6f0e4;
+  --paper-2: #ede4d3; /* pressed / stacked */
+  --paper-edge: #d9cdb6;
+  --ink: #1c1828; /* text on paper AND on any bright fill (gold, gels, status) */
+  --ink-muted: #5e566f;
 
-  /* Option colours are always paired with a letter or icon, never colour-only. */
-  --opt-a: #5b8cff;
-  --opt-b: #3ddc97;
-  --opt-c: #ff4d8d;
+  /* Stage light per round: backdrop spotlight, countdown ring and small highlights ONLY.
+     <StageBackdrop roundNo> sets --light on the document root. Round 1 amber, 2 teal, 3 lilac, then cycle. */
+  --light-1: #ffb547;
+  --light-2: #4fd1c5;
+  --light-3: #b892ff;
+  --light: var(--light-1);
 
+  /* Option gels. Always shown with the letter (A, B, bolt for the wildcard C). */
+  --gel-a: #4c7dff;
+  --gel-b: #22c58b;
+  --gel-c: #ff3d7f;
+
+  /* Gold: "canon" and the single primary action per view. Nothing else is gold. */
+  --gold: #ffc83d;
+
+  /* Status: always with an icon and words. */
+  --ok: #34d399;
+  --warn: #ffb547;
+  --danger: #ff5c5c;
+  --danger-on-paper: #c4262b; /* danger borders and text on paper (4.9:1) */
+
+  /* Concentric radii: nested radius = outer minus the gap. */
+  --r-inner: 6px;
+  --r-element: 10px;
   --r-card: 16px;
-  --r-pill: 999px;
+  --r-sheet: 24px;
+  --r-pill: 9999px;
 
+  /* 4 px grid. Gap tiers: 8 inside a control, 12 between controls (min between vote cards),
+     20 between groups, 32 between sections. */
+  --gap-control: 8px;
+  --gap-between: 12px;
+  --gap-group: 20px;
+  --gap-section: 32px;
+
+  /* Paper gets a crisp contact shadow. No coloured glows, no wide diffuse shadows on stage elements. */
+  --contact-shadow: 0 1px 0 var(--paper-edge), 0 8px 18px -10px rgb(0 0 0 / 0.55);
+  --paper-highlight: inset 0 1px 0 rgb(255 255 255 / 0.55);
+
+  /* Glass: ONLY on floating layers (composer bar, toasts, connection banner, host top bar, sheets). Never on cards. */
+  --glass-bg: color-mix(in srgb, var(--stage-1) 72%, transparent);
+  --glass-filter: blur(24px) saturate(1.4);
+
+  /* Motion (mirrors motionTokens.ts). Only transform and opacity animate. */
+  --dur-fast: 175ms; /* press release, chips, vote confirm, exits */
+  --dur-medium: 410ms; /* phase change, sheet */
+  --dur-slow: 975ms; /* the reveal moment, once per round */
+  --ease-arrive: cubic-bezier(0.24, 1, 0.4, 1);
+  --ease-exit: cubic-bezier(0.3, 0, 0.6, 0.6);
+
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
+
+  /* Set by next/font in layout.tsx; the fallbacks keep text readable while fonts load. */
+  --f-display: var(--font-bricolage), "Arial Black", ui-sans-serif, system-ui, sans-serif;
+  --f-body: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-script: var(--font-fraunces), "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+
+  transition: --light var(--dur-slow) var(--ease-arrive);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    transition-duration: var(--dur-fast);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Legacy aliases. Pages that have not been restyled yet keep using    */
+/* these names; each maps to the closest v2 value so nothing breaks.   */
+/* ------------------------------------------------------------------ */
+:root {
+  --bg: var(--stage-0);
+  --surface: var(--stage-1);
+  --surface-2: var(--stage-2);
+  --line: var(--stage-line);
+  --text: var(--ink-on-stage);
+  --muted: var(--muted-on-stage);
+  --accent: var(--gold);
+  --wild: var(--gel-c);
+  --opt-a: var(--gel-a);
+  --opt-b: var(--gel-b);
+  --opt-c: var(--gel-c);
+  /* --r-card, --r-pill, --ok, --warn, --danger, --ink, --safe-bottom keep their names (new values). */
+  --ease-out: var(--ease-arrive);
+  --dur-phase: var(--dur-medium);
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -36,12 +128,4 @@
   --space-6: 24px;
   --space-8: 32px;
   --space-12: 48px;
-
-  --dur-phase: 250ms;
-  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
-  --safe-bottom: env(safe-area-inset-bottom, 0px);
-
-  /* Set by next/font in layout.tsx; the fallbacks keep text readable while fonts load. */
-  --f-display: var(--font-bricolage), "Arial Black", ui-sans-serif, system-ui, sans-serif;
-  --f-body: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 }

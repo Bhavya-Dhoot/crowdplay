@@ -1,0 +1,56 @@
+{
+  "at": "2026-11-17T12:15:56.706Z",
+  "dryRun": false,
+  "server": {
+    "ok": true,
+    "realtimeMode": "nexconn",
+    "llmMode": "live",
+    "db": "pglite",
+    "version": "0.1.0"
+  },
+  "roomCode": "XGNAW",
+  "ideaLatencyMs": [
+    {
+      "toPhone": 416,
+      "toScreen": 441
+    },
+    {
+      "toPhone": 918,
+      "toScreen": 918
+    },
+    {
+      "toPhone": 371,
+      "toScreen": 357
+    },
+    {
+      "toPhone": 875,
+      "toScreen": 369
+    },
+    {
+      "toPhone": 393,
+      "toScreen": 390
+    },
+    {
+      "toPhone": 395,
+      "toScreen": 396
+    }
+  ],
+  "stormEndToOptionsMs": 2550,
+  "distill": {
+    "ms": 1652,
+    "provider": "openai",
+    "fallbackUsed": false
+  },
+  "narrationVisibleAfterRevealMs": 1876,
+  "ballotToastSeenOnAPhone": true,
+  "receiptsOnMe": {
+    "ada": 3,
+    "bo": 1
+  },
+  "finale": {
+    "storyTitle": "Midnight at the Moon Bank",
+    "recapChars": 928,
+    "tagline": "A moonlit heist turns into a dazzling disaster."
+  },
+  "consoleProblems": []
+}

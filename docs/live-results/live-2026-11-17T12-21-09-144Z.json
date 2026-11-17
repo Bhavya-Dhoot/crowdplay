@@ -1,0 +1,56 @@
+{
+  "at": "2026-11-17T12:21:09.144Z",
+  "dryRun": false,
+  "server": {
+    "ok": true,
+    "realtimeMode": "nexconn",
+    "llmMode": "live",
+    "db": "pglite",
+    "version": "0.1.0"
+  },
+  "roomCode": "JKXVR",
+  "ideaLatencyMs": [
+    {
+      "toPhone": 931,
+      "toScreen": 966
+    },
+    {
+      "toPhone": 933,
+      "toScreen": 933
+    },
+    {
+      "toPhone": 1413,
+      "toScreen": 1411
+    },
+    {
+      "toPhone": 410,
+      "toScreen": 409
+    },
+    {
+      "toPhone": 400,
+      "toScreen": 400
+    },
+    {
+      "toPhone": 884,
+      "toScreen": 884
+    }
+  ],
+  "stormEndToOptionsMs": 3016,
+  "distill": {
+    "ms": 1808,
+    "provider": "openai",
+    "fallbackUsed": false
+  },
+  "narrationVisibleAfterRevealMs": 832,
+  "ballotToastSeenOnAPhone": true,
+  "receiptsOnMe": {
+    "ada": 3,
+    "bo": 1
+  },
+  "finale": {
+    "storyTitle": "Midnight at the Moon Bank",
+    "recapChars": 885,
+    "tagline": "When the vault becomes a ballroom, the heist gets delightfully slippery."
+  },
+  "consoleProblems": []
+}

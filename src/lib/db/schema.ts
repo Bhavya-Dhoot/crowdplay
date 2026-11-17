@@ -1,4 +1,5 @@
 // FROZEN CONTRACT (TECH_SPEC §4). Generate migrations with `pnpm db:generate` after any change.
+import { sql } from "drizzle-orm";
 import {
   bigint,
   boolean,
@@ -69,22 +70,27 @@ export const shows = pgTable(
 );
 
 /** Single row per room, row-locked by advance(). */
-export const engineState = pgTable("engine_state", {
-  roomId: text("room_id")
-    .primaryKey()
-    .references(() => rooms.id),
-  showId: text("show_id")
-    .notNull()
-    .references(() => shows.id),
-  roundNo: integer("round_no").notNull().default(0),
-  phase: text("phase").notNull().default("LOBBY"), // Phase
-  phaseStartedAt: ts("phase_started_at").notNull().defaultNow(),
-  phaseEndsAt: ts("phase_ends_at"),
-  pausedRemainingMs: integer("paused_remaining_ms"),
-  version: bigint("version", { mode: "number" }).notNull().default(0),
-  payload: jsonb("payload").notNull(), // EnginePayload
-  updatedAt: ts("updated_at").notNull().defaultNow(),
-});
+export const engineState = pgTable(
+  "engine_state",
+  {
+    roomId: text("room_id")
+      .primaryKey()
+      .references(() => rooms.id),
+    showId: text("show_id")
+      .notNull()
+      .references(() => shows.id),
+    roundNo: integer("round_no").notNull().default(0),
+    phase: text("phase").notNull().default("LOBBY"), // Phase
+    phaseStartedAt: ts("phase_started_at").notNull().defaultNow(),
+    phaseEndsAt: ts("phase_ends_at"),
+    pausedRemainingMs: integer("paused_remaining_ms"),
+    version: bigint("version", { mode: "number" }).notNull().default(0),
+    payload: jsonb("payload").notNull(), // EnginePayload
+    updatedAt: ts("updated_at").notNull().defaultNow(),
+  },
+  // The ticker scans for passed deadlines every 250 ms; finished and held rooms have none and are never visited.
+  (t) => [index("engine_state_deadline_idx").on(t.phaseEndsAt).where(sql`${t.phaseEndsAt} is not null`)],
+);
 
 export const rounds = pgTable(
   "rounds",
@@ -133,9 +139,8 @@ export const ideas = pgTable(
     createdAt: created(),
   },
   (t) => [
-    uniqueIndex("ideas_user_msg_uq").on(t.userId, t.clientMsgId),
-    index("ideas_round_idx").on(t.roundId),
-    index("ideas_user_idx").on(t.userId),
+    uniqueIndex("ideas_user_msg_uq").on(t.userId, t.clientMsgId), // also serves lookups by user alone
+    index("ideas_round_user_idx").on(t.roundId, t.userId), // also serves lookups by round alone (per-user cap count, my ideas, ban)
   ],
 );
 
@@ -200,9 +205,8 @@ export const receipts = pgTable(
     createdAt: created(),
   },
   (t) => [
-    uniqueIndex("receipts_once_uq").on(t.userId, t.roundId, t.type, t.optionId),
-    index("receipts_user_idx").on(t.userId),
-    index("receipts_show_idx").on(t.showId),
+    uniqueIndex("receipts_once_uq").on(t.userId, t.roundId, t.type, t.optionId), // also serves lookups by user alone
+    index("receipts_show_type_user_idx").on(t.showId, t.type, t.userId), // canon-maker counts of a show; also serves show alone
   ],
 );
 

@@ -1,0 +1,56 @@
+{
+  "at": "2026-11-17T12:19:50.260Z",
+  "dryRun": false,
+  "server": {
+    "ok": true,
+    "realtimeMode": "nexconn",
+    "llmMode": "live",
+    "db": "pglite",
+    "version": "0.1.0"
+  },
+  "roomCode": "EUPLW",
+  "ideaLatencyMs": [
+    {
+      "toPhone": 417,
+      "toScreen": 424
+    },
+    {
+      "toPhone": 874,
+      "toScreen": 875
+    },
+    {
+      "toPhone": 399,
+      "toScreen": 398
+    },
+    {
+      "toPhone": 389,
+      "toScreen": 388
+    },
+    {
+      "toPhone": 878,
+      "toScreen": 878
+    },
+    {
+      "toPhone": 887,
+      "toScreen": 378
+    }
+  ],
+  "stormEndToOptionsMs": 2549,
+  "distill": {
+    "ms": 1596,
+    "provider": "openai",
+    "fallbackUsed": false
+  },
+  "narrationVisibleAfterRevealMs": 1862,
+  "ballotToastSeenOnAPhone": true,
+  "receiptsOnMe": {
+    "ada": 3,
+    "bo": 1
+  },
+  "finale": {
+    "storyTitle": "Midnight on the Moon Floor",
+    "recapChars": 881,
+    "tagline": "A moonlit heist takes a dizzying spin into dance."
+  },
+  "consoleProblems": []
+}

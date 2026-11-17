@@ -9,11 +9,11 @@ export function NexconnBadge({ className }: { className?: string }) {
     <Link
       href="/how-it-works"
       className={cn(
-        "inline-flex min-h-11 items-center gap-2 rounded-pill border border-line bg-surface px-4 text-sm font-medium text-muted transition-colors hover:border-accent hover:text-text motion-reduce:transition-none",
+        "press inline-flex min-h-11 items-center gap-2 rounded-pill border border-stage-line bg-stage-1 px-4 text-small font-medium text-muted-on-stage [--press-overlay:rgb(255_255_255/0.08)] hover:text-on-stage",
         className,
       )}
     >
-      <Radio aria-hidden="true" className="size-4 text-accent" />
+      <Radio aria-hidden="true" className="size-4 text-light" />
       {COPY.nexconnBadge}
     </Link>
   );
