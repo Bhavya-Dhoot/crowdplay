@@ -32,8 +32,13 @@ if (!process.env.E2E_PORT) {
 const PORT = Number(process.env.E2E_PORT);
 const baseURL = `http://localhost:${PORT}`;
 
+// E2E_LIVE=1 (`pnpm live:check`): the live spec against the .next-live build with the real .env (Nexconn + AI).
+// LIVE_DRY_RUN=1 runs that spec against the mock e2e server to check the spec itself without credentials.
+const LIVE = process.env.E2E_LIVE === "1";
+const serverCmd = LIVE && process.env.LIVE_DRY_RUN !== "1" ? "node scripts/e2e-server.mjs --live" : "node scripts/e2e-server.mjs";
+
 export default defineConfig({
-  testDir: "src/tests/e2e",
+  testDir: LIVE ? "src/tests/live" : "src/tests/e2e",
   testMatch: /.*\.spec\.ts/,
   // One shared server and one database: specs run in order, one at a time.
   fullyParallel: false,
@@ -52,7 +57,7 @@ export default defineConfig({
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
-    command: "node scripts/e2e-server.mjs",
+    command: serverCmd,
     url: `${baseURL}/api/health`,
     reuseExistingServer: false,
     timeout: 120_000,

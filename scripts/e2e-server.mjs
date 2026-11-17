@@ -1,17 +1,25 @@
 // Starts the production build for the Playwright suite (playwright.config.ts runs this as its webServer).
-// Mock realtime + mock LLM, a fresh database, and short phase timers. It never builds: `pnpm verify`
+// Default: mock realtime + mock LLM, a fresh database, and short phase timers. It never builds: `pnpm verify`
 // builds once and the suite then tests exactly that build.
+// --live (`pnpm live:check`): the .next-live build with the real .env modes and keys (Nexconn + live AI),
+// a fresh database in .data/live and real phase timers.
 import { spawn } from "node:child_process";
 import { existsSync, rmSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const live = process.argv.includes("--live");
 const port = process.env.E2E_PORT || "3100";
-const dataDir = path.join(root, ".data", "e2e");
+const distDir = live ? ".next-live" : ".next";
+const dataDir = path.join(root, ".data", live ? "live" : "e2e");
 
-if (!existsSync(path.join(root, ".next", "BUILD_ID"))) {
-  console.error("e2e: no production build found in .next. Run `pnpm build` first (`pnpm verify` does this for you).");
+if (!existsSync(path.join(root, distDir, "BUILD_ID"))) {
+  console.error(
+    live
+      ? "live: no build in .next-live. Run `pnpm live:check` (it builds with your .env first)."
+      : "e2e: no production build found in .next. Run `pnpm build` first (`pnpm verify` does this for you).",
+  );
   process.exit(1);
 }
 const nextBin = path.join(root, "node_modules", "next", "dist", "bin", "next");
@@ -40,7 +48,17 @@ const NO_CREDENTIALS = [
   "FEATURE_MULTILINGUAL",
 ];
 
-const env = {
+// Live: keep the developer's .env (Next loads it at start) and only pin what must differ per run.
+const liveEnv = {
+  ...process.env,
+  NODE_ENV: "production",
+  NEXT_DIST_DIR: distDir,
+  PGLITE_DIR: ".data/live",
+  APP_URL: `http://localhost:${port}`,
+  PORT: port,
+};
+
+const mockEnv = {
   ...process.env,
   ...Object.fromEntries(NO_CREDENTIALS.map((k) => [k, ""])),
   NODE_ENV: "production",
@@ -59,6 +77,7 @@ const env = {
   PORT: port,
 };
 
+const env = live ? liveEnv : mockEnv;
 const child = spawn(process.execPath, [nextBin, "start", "-p", port], { cwd: root, env, stdio: "inherit" });
 
 const stop = () => child.kill();

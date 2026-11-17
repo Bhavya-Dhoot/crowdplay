@@ -1,0 +1,132 @@
+// Live check for the submission (`pnpm live:check`): one full round over the real Nexconn transport with two
+// headless phones and the big screen, against a production build that uses the developer's .env (Nexconn + AI).
+// It records what it measured in docs/live-results/ instead of asserting on provider-dependent numbers.
+// LIVE_DRY_RUN=1 runs the same spec against the mock server to check the spec itself without credentials.
+import fs from "node:fs";
+import path from "node:path";
+import { expect, test, type Browser, type Page } from "@playwright/test";
+
+const DRY = process.env.LIVE_DRY_RUN === "1";
+
+async function phone(browser: Browser, name: string, code: string, problems: string[]): Promise<Page> {
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const page = await ctx.newPage();
+  page.on("console", (m) => (m.type() === "error" || m.type() === "warning") && problems.push(`${name}: ${m.text()}`));
+  page.on("pageerror", (e) => problems.push(`${name}: ${e.message}`));
+  await page.goto(`/join/${code}`);
+  await page.getByTestId("name-input").fill(name);
+  await page.getByTestId("join-submit").click();
+  await page.waitForURL(`**/play/${code}`);
+  return page;
+}
+
+const phaseOf = (page: Page) => page.getByTestId("phase").first();
+const waitPhase = (page: Page, phase: string, timeout = 30_000) => expect(phaseOf(page)).toHaveAttribute("data-phase", phase, { timeout });
+
+/** ms from now until `text` is visible on `page` (null if it never shows within the timeout). */
+async function msUntilVisible(page: Page, text: string, started: number, timeout = 10_000): Promise<number | null> {
+  try {
+    await expect(page.getByText(text, { exact: false }).first()).toBeVisible({ timeout });
+    return Date.now() - started;
+  } catch {
+    return null;
+  }
+}
+
+test("live: one full round over Nexconn with two phones and the big screen", async ({ browser, request }) => {
+  test.setTimeout(300_000);
+  const problems: string[] = [];
+  const health = await (await request.get("/api/health")).json();
+  if (!DRY) expect(health.realtimeMode, "the server must run REALTIME_MODE=nexconn").toBe("nexconn");
+
+  // Host through the API (the console itself is covered by the mock e2e suite).
+  const host = (await browser.newContext()).request;
+  expect((await host.post("/api/session", { data: { displayName: "Live Host" } })).ok()).toBe(true);
+  const created = await (
+    await host.post("/api/rooms", {
+      data: {
+        title: "Live check",
+        preset: "heist",
+        premise: "A crew of misfits robs the moon bank at midnight, and everything goes wrong at once.",
+        roundsTotal: 3,
+        stormMs: 25_000,
+        voteMs: 15_000,
+        autoAdvance: true,
+        strictFilter: true,
+      },
+    })
+  ).json();
+  expect(created.ok, JSON.stringify(created)).toBe(true);
+  const { code, hostKey } = created as { code: string; hostKey: string };
+  const act = (action: string) => host.post(`/api/rooms/${code}/host`, { headers: { "x-host-key": hostKey }, data: { action } });
+
+  const screen = await (await browser.newContext({ viewport: { width: 1280, height: 720 } })).newPage();
+  screen.on("console", (m) => (m.type() === "error" || m.type() === "warning") && problems.push(`screen: ${m.text()}`));
+  await screen.goto(`/screen/${code}`);
+  const ada = await phone(browser, "Ada Live", code, problems);
+  const bo = await phone(browser, "Bo Live", code, problems);
+  await waitPhase(ada, "LOBBY");
+  await waitPhase(bo, "LOBBY");
+
+  expect((await act("start")).ok()).toBe(true);
+  await waitPhase(ada, "STORM", 30_000);
+  await waitPhase(bo, "STORM", 30_000);
+
+  // Ideas typed on one phone must reach the other phone and the screen through the transport.
+  const ideas = [
+    { from: ada, to: bo, text: "The vault door opens onto a glittering ballroom" },
+    { from: bo, to: ada, text: "A security guard starts singing opera at full volume" },
+  ];
+  const latency: { toPhone: number | null; toScreen: number | null }[] = [];
+  for (const i of ideas) {
+    await i.from.getByTestId("idea-input").fill(i.text);
+    const t0 = Date.now();
+    await i.from.getByTestId("idea-send").click();
+    const [toPhone, toScreen] = await Promise.all([msUntilVisible(i.to, i.text, t0), msUntilVisible(screen, i.text, t0)]);
+    latency.push({ toPhone, toScreen });
+    await ada.waitForTimeout(2_200); // per-player rate limit is 1 idea / 2 s
+  }
+
+  // DISTILL runs the live AI chain; VOTE must follow on its own.
+  const stormEndedAt = Date.now();
+  await waitPhase(ada, "VOTE", 60_000);
+  const optionsVisibleMs = Date.now() - stormEndedAt;
+  for (const slot of ["A", "B", "C"]) await expect(ada.getByTestId(`option-${slot}`)).toBeVisible();
+  const ballotToast = (await msUntilVisible(ada, "on the ballot", Date.now(), 8_000)) !== null || (await msUntilVisible(bo, "on the ballot", Date.now(), 2_000)) !== null;
+  await ada.getByTestId("option-A").click();
+  await bo.getByTestId("option-B").click();
+
+  await waitPhase(ada, "REVEAL", 60_000);
+  const revealAt = Date.now();
+  await expect(ada.getByTestId("narration")).toBeVisible({ timeout: 20_000 });
+  const narrationVisibleMs = Date.now() - revealAt;
+
+  const feed = await (await host.get(`/api/rooms/${code}/host/feed`, { headers: { "x-host-key": hostKey } })).json();
+  const meA = await (await ada.context().request.get("/api/me")).json();
+  const meB = await (await bo.context().request.get("/api/me")).json();
+
+  expect((await act("endShow")).ok()).toBe(true);
+  await waitPhase(ada, "FINALE", 30_000);
+
+  const results = {
+    at: new Date().toISOString(),
+    dryRun: DRY,
+    server: health,
+    roomCode: code,
+    ideaLatencyMs: latency,
+    stormEndToOptionsMs: optionsVisibleMs,
+    distill: { ms: feed.metrics?.distillMs ?? null, provider: feed.metrics?.distillProvider ?? null, fallbackUsed: feed.metrics?.fallbackUsed ?? null },
+    narrationVisibleAfterRevealMs: narrationVisibleMs,
+    ballotToastSeenOnAPhone: ballotToast,
+    receiptsOnMe: { ada: meA.receipts?.length ?? 0, bo: meB.receipts?.length ?? 0 },
+    consoleProblems: problems,
+  };
+  console.log("LIVE_RESULTS " + JSON.stringify(results));
+  const dir = path.join(process.cwd(), "docs", "live-results");
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, `${DRY ? "dry-run" : "live"}-${results.at.replace(/[:.]/g, "-")}.json`), JSON.stringify(results, null, 2));
+
+  // Hard requirements: ideas crossed the transport and every phase was reached.
+  for (const l of latency) expect(l.toPhone, "idea reached the other phone").not.toBeNull();
+  expect(meA.receipts.length + meB.receipts.length, "BALLOT receipts were issued").toBeGreaterThan(0);
+});
