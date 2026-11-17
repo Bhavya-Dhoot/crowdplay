@@ -53,6 +53,18 @@ The 13 skipped tests are the Nexconn half of `realtime-contract.test.ts`; they r
 The same suite also passed 3 consecutive times in the working tree before this run (QA agent log), and
 `pnpm e2e` ran green in isolation after the last e2e spec (`7-links`) was added.
 
+### Re-run with a local `.env` present (2026-11-17)
+
+After `.env` was created (Nexconn/AI lines still empty), `pnpm verify` was run again in the working tree:
+`Test Files 52 passed (52)`, `Tests 947 passed | 13 skipped`, `check:secrets: OK — 8 secret value(s) checked`
+(now including the `.env` session secret and admin token), `10 passed (4.3m)`, `verify: all gates passed`.
+Two earlier re-runs exposed timing flakes that were fixed rather than retried: the DISTILL screenshot race (mock
+DISTILL widened to 3 s in the e2e server) and two wall-clock unit bounds that failed under parallel load.
+
+Live checks are one command once the Nexconn lines in `.env` are filled: `pnpm live:check` (smoke → Nexconn
+contract → build into `.next-live` → two headless phones + big screen play one full round over Nexconn; results are
+written to `docs/live-results/`). Its spec was dry-run against the mock server (`E2E_LIVE=1 LIVE_DRY_RUN=1`): passed.
+
 ## 2. GOAL A–F → evidence
 
 Test files are under `src/tests/`. "e2e" = Playwright specs above; numbers are from the clean-checkout run.
@@ -185,8 +197,7 @@ Not tested: the image with a real Postgres (`DATABASE_URL`) or on Railway/Fly.
 ## 7. Human steps left (cannot be done without credentials / people)
 
 1. Create `.env` with the Nexconn App Key/Secret, API domains, area, `SESSION_SECRET`, `ADMIN_TOKEN` (and Anthropic/OpenAI keys for live AI), following the console checklist in `docs/NEXCONN_FINDINGS.md` §4.
-2. `pnpm smoke:nexconn` → appends live answers to `docs/NEXCONN_FINDINGS.md`.
-3. `REALTIME_CONTRACT=nexconn pnpm exec vitest run src/tests/integration/realtime-contract.test.ts`.
-4. One full live show: `REALTIME_MODE=nexconn LLM_MODE=live pnpm build && REALTIME_MODE=nexconn LLM_MODE=live pnpm start`, then `/host` on one device and `/play` on two phones; record the result here.
+2. `pnpm live:check` — runs the smoke test (appends live answers to `docs/NEXCONN_FINDINGS.md`), the Nexconn contract test, a live build and an automated two-phone live show.
+3. One show with real people on real phones (`pnpm build && pnpm start`, or the deployed URL); record the result here.
 5. Deploy (README → Railway / Fly), set the webhook URL `https://<host>/api/nexconn/webhook` in the console.
 6. Run real sessions; capture `/impact` afterwards (the `impact-*.png` screenshots in `docs/screens/` are test data).
