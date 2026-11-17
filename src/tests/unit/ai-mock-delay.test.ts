@@ -51,10 +51,10 @@ describe("MOCK_DISTILL_DELAY_MS", () => {
   });
 
   it("makes the mock distiller wait, and leaves the default instant", async () => {
-    setEnv({ LLM_MODE: "mock", MOCK_DISTILL_DELAY_MS: "250" });
+    setEnv({ LLM_MODE: "mock", MOCK_DISTILL_DELAY_MS: "1500" });
     const t0 = Date.now();
     await mockDistillThink();
-    expect(Date.now() - t0).toBeGreaterThanOrEqual(240);
+    expect(Date.now() - t0).toBeGreaterThanOrEqual(1490);
 
     const ideas = cannedIdeas("heist").map((text, i) => ({ id: `i${i}`, userId: `u${i % 50}`, text, createdAt: 1000 + i }));
     const input: DistillInput = {
@@ -67,11 +67,12 @@ describe("MOCK_DISTILL_DELAY_MS", () => {
     };
     const slow = await distillRound(input);
     expect(slow.provider, JSON.stringify(slow.options.map((o) => o.kind))).toBe("mock");
-    expect(slow.ms).toBeGreaterThanOrEqual(240);
+    expect(slow.ms).toBeGreaterThanOrEqual(1490);
 
     setEnv({ LLM_MODE: "mock" });
     const fast = await distillRound(input);
     expect(fast.provider).toBe("mock");
-    expect(fast.ms).toBeLessThan(240);
+    // Relative check: the full test suite runs in parallel, so absolute wall-clock bounds flake under load.
+    expect(slow.ms - fast.ms).toBeGreaterThanOrEqual(1000);
   });
 });

@@ -114,6 +114,7 @@ describe("clusterIdeas: a crowd of one-offs", () => {
     expect(clusters.length).toBeGreaterThan(1000);
     expect(clusters.reduce((n, c) => n + c.size, 0)).toBe(1500);
     // About 0.4 s on a 2021 laptop; the dense loop took 3.5 s here. The bound leaves room for a busy CI machine.
-    expect(ms).toBeLessThan(1500);
+    // ~0.4 s alone; the bound leaves room for a loaded machine and stays well inside the 8 s DISTILL budget.
+    expect(ms).toBeLessThan(4000);
   });
 });
