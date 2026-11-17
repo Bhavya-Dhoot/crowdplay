@@ -25,7 +25,7 @@ const BEAT_MS = 1000;
 /** How long an optimistic value may outlive its request while the feed catches up. */
 const OPTIMISTIC_MS = 2500;
 
-export type Optimistic = { key: string; value: boolean };
+type Optimistic = { key: string; value: boolean };
 
 export type HostDesk = {
   feed: HostFeedRes | null;

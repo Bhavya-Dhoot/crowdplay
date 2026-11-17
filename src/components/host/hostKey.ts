@@ -7,7 +7,7 @@ const PREFIX = "cp_host_key_";
 const nameFor = (code: string) => `${PREFIX}${code.toUpperCase()}`;
 
 /** sessionStorage first (this tab), then localStorage (survives closing the tab). */
-export function browserKeyStores(): KeyStore[] {
+function browserKeyStores(): KeyStore[] {
   const out: KeyStore[] = [];
   for (const pick of [() => window.sessionStorage, () => window.localStorage]) {
     try {

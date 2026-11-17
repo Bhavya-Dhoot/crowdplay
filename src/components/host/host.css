@@ -1,14 +1,18 @@
-/* Host UI only: the waiting sweep on the phase key, the on-air lamp, the rounds slider and thin scrollbars.
-   Colours come from the v2 tokens (src/styles/tokens.css). Everything else is Tailwind in the components. */
+/* Host UI only (design v3 "Live Sketchnote"): the waiting sweep on the phase key, the on-air ink dot, the rounds slider and thin
+   scrollbars. Colours come from the v3 tokens (src/styles/tokens.css). Everything else is Tailwind in the components. */
 
-/* DISTILL: the key is parked ("Reading ideas…"). A slow sweep tells the host the show is alive, not stuck.
-   .press already owns ::after (its press overlay), so the sweep lives on ::before. Transform only. */
+/* DISTILL: the key is parked ("Reading ideas…"). A slow pale streak crossing the grey marker face tells the host the show is alive,
+   not stuck. .btn has no ::after of its own, but the key is also isolated so the streak stays under the label. Transform only. */
+.host-key[data-waiting="true"] {
+  isolation: isolate;
+  overflow: hidden;
+}
 .host-key[data-waiting="true"]::before {
   content: "";
   position: absolute;
   inset: 0;
   z-index: -1;
-  background: linear-gradient(105deg, transparent 30%, rgb(255 255 255 / 0.1) 50%, transparent 70%);
+  background: linear-gradient(105deg, transparent 30%, rgb(255 254 250 / 0.75) 50%, transparent 70%);
   transform: translateX(-100%);
   animation: key-sweep 1.6s linear infinite;
   pointer-events: none;
@@ -26,25 +30,29 @@
   }
 }
 
-/* On-air lamp in the top bar. */
+/* On-air dot in the top bar: "live" is an ink dot that pulses. Paused = the same dot drawn hollow. */
 .lamp {
-  width: 10px;
-  height: 10px;
-  border-radius: 999px;
-  background: var(--muted-on-stage);
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--ink);
+  border-radius: var(--r-blob);
+  background: transparent;
 }
 .lamp[data-on="true"] {
-  background: var(--ok);
-  box-shadow: 0 0 0 4px rgb(52 211 153 / 0.18);
+  background: var(--ink);
   animation: lamp-pulse 2s ease-in-out infinite;
 }
 .lamp[data-paused="true"] {
-  background: var(--warn);
-  box-shadow: 0 0 0 4px rgb(255 181 71 / 0.2);
+  border-color: var(--ink-notes);
+  background: transparent;
 }
 @keyframes lamp-pulse {
-  50% {
-    box-shadow: 0 0 0 7px rgb(52 211 153 / 0);
+  0% {
+    box-shadow: 0 0 0 0 rgb(30 30 34 / 0.35);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 8px rgb(30 30 34 / 0);
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -53,8 +61,8 @@
   }
 }
 
-/* Rounds slider (setup wizard). --fill is the filled share of the track, set inline. Paper fill and thumb: gold is
-   kept for the one primary action. */
+/* Rounds slider (setup wizard): a hand-drawn track that fills with grey marker (--fill is the filled share, set inline) and a
+   paper blob for the thumb. No yellow: that stays on the one primary key. */
 .host-range {
   -webkit-appearance: none;
   appearance: none;
@@ -67,50 +75,62 @@
   outline: none;
 }
 .host-range::-webkit-slider-runnable-track {
-  height: 8px;
-  border-radius: 999px;
-  background: linear-gradient(to right, var(--paper) var(--fill, 0%), var(--stage-line) var(--fill, 0%));
+  box-sizing: border-box;
+  height: 14px;
+  border: 2px solid var(--ink);
+  border-radius: var(--r-pill);
+  background: linear-gradient(to right, var(--marker-3) var(--fill, 0%), var(--paper-raised) var(--fill, 0%));
 }
 .host-range::-moz-range-track {
-  height: 8px;
-  border-radius: 999px;
-  background: var(--stage-line);
+  box-sizing: border-box;
+  height: 14px;
+  border: 2px solid var(--ink);
+  border-radius: var(--r-pill);
+  background: var(--paper-raised);
 }
 .host-range::-moz-range-progress {
-  height: 8px;
-  border-radius: 999px;
-  background: var(--paper);
+  height: 10px;
+  border-radius: var(--r-pill);
+  background: var(--marker-3);
 }
 .host-range::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 28px;
-  height: 28px;
-  margin-top: -10px;
-  border-radius: 999px;
-  border: 4px solid var(--stage-1);
-  background: var(--paper);
-  box-shadow: 0 0 0 2px var(--paper);
+  box-sizing: border-box;
+  width: 30px;
+  height: 30px;
+  margin-top: -9px;
+  border: 2.5px solid var(--ink);
+  border-radius: var(--r-blob);
+  background: var(--paper-raised);
+  box-shadow: 2px 3px 0 var(--marker-2);
 }
 .host-range::-moz-range-thumb {
-  width: 20px;
-  height: 20px;
-  border-radius: 999px;
-  border: 4px solid var(--stage-1);
-  background: var(--paper);
-  box-shadow: 0 0 0 2px var(--paper);
+  box-sizing: border-box;
+  width: 30px;
+  height: 30px;
+  border: 2.5px solid var(--ink);
+  border-radius: var(--r-blob);
+  background: var(--paper-raised);
+  box-shadow: 2px 3px 0 var(--marker-2);
 }
 .host-range:focus-visible::-webkit-slider-thumb {
-  outline: 2px solid var(--gold);
-  outline-offset: 4px;
+  outline: 3px solid var(--ink);
+  outline-offset: 3px;
 }
 .host-range:focus-visible::-moz-range-thumb {
-  outline: 2px solid var(--gold);
-  outline-offset: 4px;
+  outline: 3px solid var(--ink);
+  outline-offset: 3px;
 }
 
 /* Thin scrollbars for the console's inner lists. */
 .host-scroll {
   scrollbar-width: thin;
-  scrollbar-color: var(--stage-line) transparent;
+  scrollbar-color: var(--ink-faint) transparent;
+}
+
+/* The phase key: the one yellow key, made taller and larger than a ui/Button (unlayered, so it wins over the size utilities). */
+.host-key {
+  min-height: 72px;
+  font-size: 24px;
 }

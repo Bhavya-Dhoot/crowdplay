@@ -1,5 +1,5 @@
 // Pure helpers for the host console (no React, no browser APIs), so they are unit-tested.
-//   primarySpec(state)        what the big stage-key button says and does for each phase (UX §3.4, D7)
+//   primarySpec(state)        what the big phase key says and does for each phase (UX §3.4, D7)
 //   controlAvailability(s)    which secondary controls the engine will actually honour right now
 //   newerState(a, b)          pick the PublicState with the higher version (HTTP, feed and action replies race)
 //   votePercent / optionTag   ballot maths and labels
@@ -80,7 +80,7 @@ export function primarySpec(s: StateLike): PrimarySpec {
   return spec;
 }
 
-export type ControlAvailability = {
+type ControlAvailability = {
   canPause: boolean;
   canResume: boolean;
   canExtend: boolean;
@@ -264,7 +264,7 @@ export function aiStatus(m: Pick<HostMetrics, "fallbackUsed"> | null): { text: s
 
 // ---------- confirmations ----------
 
-export type ActionToast = { title: string; body?: string };
+type ActionToast = { title: string; body?: string };
 
 /** What a host action says when it worked. Moves of the show itself (start, next, end storm) show on screen already, so they stay quiet. */
 export function actionToast(a: HostActionInput): ActionToast | null {

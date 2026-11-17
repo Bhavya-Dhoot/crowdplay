@@ -72,7 +72,7 @@ export function nextTitle(prevPreset: PresetId, prevTitle: string, nextPreset: P
 
 export type WizardField = "hostName" | "title" | "premise";
 export type WizardErrors = Partial<Record<WizardField, string>>;
-export type WizardValidation = { ok: true; hostName: string; body: CreateRoomInput } | { ok: false; errors: WizardErrors };
+type WizardValidation = { ok: true; hostName: string; body: CreateRoomInput } | { ok: false; errors: WizardErrors };
 
 const count = (s: string) => [...s].length;
 
