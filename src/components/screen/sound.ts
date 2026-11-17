@@ -3,7 +3,7 @@
 // every audio call is wrapped, because autoplay rules can refuse at any time.
 import type { Phase, PublicState } from "@/lib/realtime/types";
 
-export type Cue = "tick" | "whoosh" | "sting";
+type Cue = "tick" | "whoosh" | "sting";
 
 /** A tick is due when the whole-seconds figure changes to 5..1 during STORM or VOTE. */
 export function tickDue(phase: Phase, seconds: number | null, prev: number | null, paused: boolean): boolean {

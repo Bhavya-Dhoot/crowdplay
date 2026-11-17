@@ -80,6 +80,16 @@ describe("planDesk", () => {
     expect(plan.rows).toBe(Math.ceil((plan.count + plan.ghosts) / plan.perRow));
   });
 
+  it("clamps long ideas to maxLines, so six long ones still fit the mini screen without a heap", () => {
+    const long = "the whole crew climbs out of the ventilation shaft and keeps climbing while the guard counts sheep and sheep";
+    const mini = { areaW: 768, areaH: 317, ladder: DESK_LADDER.compact, gapPx: 10, cap: 6 } as const;
+    expect(estimateLines(long)).toBeGreaterThan(3);
+    expect(planDesk(feedOf(6, long), mini).overlapPx).toBeGreaterThan(0);
+    const clamped = planDesk(feedOf(6, long), { ...mini, maxLines: 3 });
+    expect(clamped.overlapPx).toBe(0);
+    expect(clamped.rows).toBeLessThanOrEqual(2);
+  });
+
   it("drops rejected ideas and handles an empty feed", () => {
     const plan = planDesk([idea("bad", { status: "rejected", rejectCode: "BLOCKED" })], FULL);
     expect(plan.count).toBe(0);

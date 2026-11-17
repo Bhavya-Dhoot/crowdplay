@@ -53,8 +53,8 @@ export function PenLoop({ children, play = true, delayMs = 0, seed = "loop", ton
   const style = { "--draw-ms": `${DRAW_MS.loop}ms`, "--draw-delay": `${delayMs}ms` } as CSSProperties;
 
   return (
+    // The loop is drawn first, so a positioned child (a card, the CANON ribbon pinned to it) paints over its line.
     <span ref={box} className={cn("pen-wrap", className)}>
-      {children}
       {size && size.w > 0 && size.h > 0 ? (
         <svg
           aria-hidden="true"
@@ -72,6 +72,7 @@ export function PenLoop({ children, play = true, delayMs = 0, seed = "loop", ton
           <path d={(round ? roundLoopPath : loopPath)(W, H, seed, strokeWidth + 2)} pathLength="1" className="draw" data-play={play} style={style} />
         </svg>
       ) : null}
+      {children}
     </span>
   );
 }

@@ -3,16 +3,18 @@
 export const SCREEN_COPY = {
   lobby: {
     scan: "Scan to join",
+    typeCode: "Or type the code",
     noQr: "Join the show",
+    openSite: "Open",
+    enterCode: "and type the code",
     inRoom: (n: number) => (n === 1 ? "1 player in the room" : `${n} players in the room`),
     waiting: "Waiting for the host to start",
-    openSite: "Or open",
-    enterCode: "and type the code",
     admit: "Admit one",
     seat: (n: number) => `Seat ${n}`,
   },
   prompt: { ready: "Ideas open in a moment" },
   storm: {
+    banner: "Ideas",
     empty: "Type the first idea on your phone",
     ghost: "An idea lands here",
     ideas: (n: number) => (n === 1 ? "1 idea" : `${n} ideas`),
@@ -32,7 +34,10 @@ export const SCREEN_COPY = {
   },
   finale: {
     writing: "Writing the finale",
-    makers: "Canon makers",
+    scene: "Scene",
+    canon: "Canon",
+    makers: "makers",
+    makersLabel: "Canon makers",
     noMakers: "No one made canon this time",
     untitled: "The story so far",
   },
@@ -41,6 +46,7 @@ export const SCREEN_COPY = {
     loading: "Getting the show ready",
     players: (n: number) => (n === 1 ? "1 playing" : `${n} playing`),
     join: "Join:",
+    scene: (n: number, of: number) => `Scene ${n} of ${of}`,
     storySoFar: "Story so far",
   },
   notFound: {

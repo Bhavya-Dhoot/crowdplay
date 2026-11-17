@@ -10,7 +10,7 @@ import { RAIN_CAP, unit, usableIdeas } from "./rain";
 /** Card font sizes in stage em (1 em = 28 canvas px), largest first. */
 export const DESK_LADDER = {
   full: [2, 1.75, 1.5, 1.3, 1.15, 1, 0.9, 0.8],
-  compact: [1.1, 0.95, 0.82, 0.72],
+  compact: [1.1, 0.95, 0.82, 0.72, 0.62],
 } as const;
 
 /** With fewer real cards than this, dashed ghost cards keep the desk from looking empty. */
@@ -21,7 +21,7 @@ export const CARD_EM = 11;
 export const CHARS_PER_LINE = 17;
 const PAD_Y_EM = 0.5;
 const LINE_EM = 1.2;
-const NAME_EM = 1.2;
+const NAME_EM = 1.6;
 /** Heap rows never cover more than this share of the row below them; the oldest rows then leave over the top edge. */
 const MAX_OVERLAP = 0.3;
 
@@ -40,7 +40,7 @@ export type DeskCard = {
   row: number;
 };
 
-export type DeskPlan = {
+type DeskPlan = {
   /** Oldest first. */
   cards: DeskCard[];
   ghosts: number;
@@ -85,6 +85,8 @@ type Opts = {
   cap?: number;
   fontPx?: number;
   ghostMin?: number;
+  /** Notes are clamped to this many lines (the mini screen), so a long idea cannot push a row past the area. */
+  maxLines?: number;
 };
 
 function flow(lines: readonly number[], fe: number, o: Opts & { fontPx: number }) {
@@ -106,7 +108,7 @@ export function planDesk(feed: readonly FeedIdea[], o: Opts): DeskPlan {
   const usable = usableIdeas(feed);
   const shown = usable.slice(Math.max(0, usable.length - (o.cap ?? RAIN_CAP)));
   const ghosts = Math.max(0, (o.ghostMin ?? GHOST_MIN) - shown.length);
-  const lines = [...shown.map((i) => estimateLines(i.text)), ...Array<number>(ghosts).fill(2)];
+  const lines = [...shown.map((i) => Math.min(estimateLines(i.text), o.maxLines ?? Infinity)), ...Array<number>(ghosts).fill(2)];
 
   let at = o.ladder.length - 1;
   let fits = false;

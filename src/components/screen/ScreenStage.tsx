@@ -6,12 +6,16 @@
 //   <ScreenStage code="ABCDE" compact />                 mini screen: 16:9 at the width of its parent
 //   <ScreenStage code="ABCDE" obs qr />                  transparent OBS overlay, QR on request
 //
+// Design v3 "Live Sketchnote": the screen is the room's page, built up live on dot-grid paper. The page itself is
+// the document's dot grid (the mini screen paints its own sheet; the OBS overlay is transparent), and every view is
+// ink-outlined paper boxes, so the same boxes read over a video.
+//
 // The parent of the full stage must have a size (the page gives it the whole viewport). The stage
 // fits itself inside, letterboxed, and never reflows between phases: header, main region and
 // footer have fixed heights, and each phase view fills the main region. Phase views change one at a
-// time (old one out in 175 ms, new one in over 410 ms), so two headings never overlap.
+// time (old one out in 175 ms, new one placed over 410 ms), so two headings never overlap.
 import { Pause, Volume2, VolumeX, WifiOff } from "lucide-react";
-import { useEffect, useMemo, useState, useSyncExternalStore, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { cn } from "@/components/ui/cn";
 import { ConnectionBanner } from "@/components/ui/ConnectionBanner";
@@ -34,14 +38,14 @@ import { FinaleView } from "./FinaleView";
 import { LobbyView } from "./LobbyView";
 import { PromptView } from "./PromptView";
 import { RevealView } from "./RevealView";
-import { COMPACT_STAGE, FULL_STAGE, STAGE_FONT_PX, StageProvider, useStage, type StageCtx } from "./stage";
+import { COMPACT_STAGE, FULL_STAGE, STAGE_FONT_PX, StageProvider, tiltStyle, useStage, type StageCtx } from "./stage";
 import { StageHeader } from "./StageHeader";
 import { StormView } from "./StormView";
 import { useScreenSound } from "./useScreenSound";
 import { VoteView } from "./VoteView";
 import "./screen.css";
 
-export type ScreenStageProps = {
+type ScreenStageProps = {
   code: string;
   /** Mini screen for embedding (Judge Mode): smaller canvas, no sound, no QR, no corner controls. */
   compact?: boolean;
@@ -89,7 +93,7 @@ function PhaseView({ state, feed }: { state: PublicState; feed: ReturnType<typeo
     case "STORM":
       return <StormView state={state} feed={feed} />;
     case "DISTILL":
-      return <DistillView feed={feed} />;
+      return <DistillView state={state} feed={feed} />;
     case "VOTE":
       return <VoteView state={state} />;
     case "REVEAL":
@@ -101,52 +105,76 @@ function PhaseView({ state, feed }: { state: PublicState; feed: ReturnType<typeo
   }
 }
 
+/** The subtitle slips of the notebook: the last two story beats, the newest in full ink. */
 function StoryStrip({ state, soundButton }: { state: PublicState; soundButton: boolean }) {
-  const { metrics, obs, px } = useStage();
+  const { metrics, px } = useStage();
   const beats = state.phase === "LOBBY" || state.phase === "FINALE" || state.phase === "ENDED" ? [] : state.storySoFar.slice(-2);
   return (
     <footer
       className="relative z-10 flex shrink-0 items-center"
-      style={{ height: px(metrics.footer), paddingLeft: px(metrics.padX), paddingRight: soundButton ? `max(${px(metrics.padX)}px, ${SOUND_RESERVE_PX}px)` : px(metrics.padX), gap: px(32) }}
+      style={{ height: px(metrics.footer), paddingLeft: px(metrics.padX), paddingRight: soundButton ? `max(${px(metrics.padX)}px, ${SOUND_RESERVE_PX}px)` : px(metrics.padX), gap: px(40) }}
       aria-label={SCREEN_COPY.stage.storySoFar}
     >
       <AnimatePresence initial={false}>
         {beats.map((b, i) => (
-          <m.p
+          <m.div
             key={b}
             layout="position"
-            initial={{ opacity: 0, y: 12 }}
+            initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
             transition={TRANSITION.medium}
-            className={cn("line-clamp-2 min-w-0 flex-1 border-l-[0.12em] pl-[0.6em] leading-[1.25]", i === beats.length - 1 ? "border-light text-on-stage" : "border-stage-line text-muted-on-stage", obs && "cps-obs-panel rounded-[0.4em] py-[0.2em] pr-[0.5em]")}
+            style={tiltStyle(i % 2 ? 0.5 : -0.5)}
+            className={cn("cps-slip cps-tape min-w-0 flex-1 px-[0.8em] py-[0.35em]", i === beats.length - 1 ? "text-ink" : "text-ink-notes")}
           >
-            {b}
-          </m.p>
+            <p className="line-clamp-2 leading-[1.25]">{b}</p>
+          </m.div>
         ))}
       </AnimatePresence>
     </footer>
   );
 }
 
-function PausedOverlay({ obs }: { obs: boolean }) {
-  const { compact } = useStage();
+/** A paper slip laid over the page (paused, unreachable): washi tape on its corner, a few words, nothing loud. */
+function Slip({ testId, icon, title, body, children, compact, scrim, z }: { testId: string; icon: ReactNode; title: string; body: string; children?: ReactNode; compact: boolean; scrim: boolean; z: string }) {
   return (
     <m.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.25 }}
+      transition={TRANSITION.medium}
       role="status"
-      data-testid="screen-paused"
-      className={cn("absolute inset-0 z-20 grid place-items-center", obs ? "" : "bg-stage-0/85 backdrop-blur-sm")}
+      data-testid={testId}
+      className={cn("absolute inset-0 grid place-items-center", z, scrim && "bg-paper/80")}
     >
-      <div className={cn("flex flex-col items-center text-center", obs ? "cps-obs-panel rounded-[1em] px-[1.6em] py-[1.2em]" : "", compact ? "gap-[0.3em]" : "gap-[0.5em]")}>
-        <Pause aria-hidden="true" fill="currentColor" className={cn("text-light", compact ? "size-[2em]" : "size-[4.5em]")} />
-        <h2 className={cn("font-display leading-none font-extrabold", compact ? "text-[1.2em]" : "text-[4em]")}>{COPY.states.paused.title}</h2>
-        <p className={cn("text-muted-on-stage", compact ? "text-[0.7em]" : "text-[1.5em]")}>{COPY.states.paused.body}</p>
-      </div>
+      <m.div
+        initial={{ y: 6 }}
+        animate={{ y: 0 }}
+        transition={TRANSITION.medium}
+        style={tiltStyle(-1)}
+        className={cn("cps-box cps-box-poster cps-tape flex flex-col items-center text-center", compact ? "max-w-[22em] gap-[0.3em] px-[1em] py-[0.7em]" : "max-w-[24em] gap-[0.4em] px-[1.6em] py-[1.2em]")}
+      >
+        {icon}
+        <h2 className={cn("leading-[1.05] text-balance", compact ? "text-[1.15em]" : "text-[2.6em]")}>{title}</h2>
+        <p className={cn("text-ink-notes", compact ? "text-[0.75em]" : "text-[1.2em]")}>{body}</p>
+        {children}
+      </m.div>
     </m.div>
+  );
+}
+
+function PausedOverlay({ obs }: { obs: boolean }) {
+  const { compact } = useStage();
+  return (
+    <Slip
+      testId="screen-paused"
+      icon={<Pause aria-hidden="true" fill="currentColor" className={compact ? "size-[1.6em]" : "size-[2.6em]"} />}
+      title={COPY.states.paused.title}
+      body={COPY.states.paused.body}
+      compact={compact}
+      scrim={!obs}
+      z="z-20"
+    />
   );
 }
 
@@ -158,26 +186,21 @@ function UnreachableOverlay({ onRetry }: { onRetry: () => void | Promise<unknown
     return () => clearInterval(t);
   }, [onRetry]);
   return (
-    <m.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.25 }}
-      role="status"
-      data-testid="screen-unreachable"
-      className="absolute inset-0 z-30 grid place-items-center bg-stage-0/90 backdrop-blur-sm"
+    <Slip
+      testId="screen-unreachable"
+      icon={<WifiOff aria-hidden="true" className={compact ? "size-[1.6em]" : "size-[2.4em]"} />}
+      title={COPY.states.unreachable.title}
+      body={COPY.states.unreachable.body}
+      compact={compact}
+      scrim
+      z="z-30"
     >
-      <div className={cn("flex flex-col items-center text-center", compact ? "gap-[0.3em]" : "gap-[0.5em]")}>
-        <WifiOff aria-hidden="true" className={cn("text-warn", compact ? "size-[2em]" : "size-[4em]")} />
-        <h2 className={cn("max-w-[14em] font-display leading-[1.05] font-extrabold text-balance", compact ? "text-[1.1em]" : "text-[3.4em]")}>{COPY.states.unreachable.title}</h2>
-        <p className={cn("max-w-[24em] text-muted-on-stage", compact ? "text-[0.65em]" : "text-[1.4em]")}>{COPY.states.unreachable.body}</p>
-        {compact ? null : (
-          <Button variant="secondary" onClick={() => void onRetry()} className="mt-[0.4em]">
-            Try now
-          </Button>
-        )}
-      </div>
-    </m.div>
+      {compact ? null : (
+        <Button variant="secondary" onClick={() => void onRetry()} className="mt-[0.4em]">
+          Try now
+        </Button>
+      )}
+    </Slip>
   );
 }
 
@@ -189,8 +212,8 @@ function LoadingStage() {
         <Skeleton className={compact ? "h-[1.2em] w-[10em]" : "h-[1.6em] w-[14em]"} />
       </div>
       <div className="grid flex-1 place-items-center">
-        <p className={cn("flex items-center gap-[0.5em] font-display font-extrabold text-muted-on-stage", compact ? "text-[0.9em]" : "text-[2em]")}>
-          <span aria-hidden="true" className="size-[0.5em] rounded-full bg-light motion-safe:animate-pulse" />
+        <p className={cn("cps-slip flex items-center gap-[0.5em] px-[0.9em] py-[0.4em] font-display", compact ? "text-[0.9em]" : "text-[2em]")}>
+          <span aria-hidden="true" className="size-[0.5em] rounded-full bg-ink motion-safe:animate-pulse" />
           {SCREEN_COPY.stage.loading}
         </p>
       </div>
@@ -203,8 +226,8 @@ function NotFoundMessage({ compact }: { compact: boolean }) {
     return (
       <div role="status" className={paperCardClass({ className: "grid aspect-video w-full place-items-center p-4 text-center" })}>
         <div>
-          <p className="font-display text-lg font-extrabold">{SCREEN_COPY.notFound.title}</p>
-          <p className="mt-1 text-sm text-ink-muted">{SCREEN_COPY.notFound.body}</p>
+          <p className="font-display text-lead">{SCREEN_COPY.notFound.title}</p>
+          <p className="mt-1 text-small text-ink-notes">{SCREEN_COPY.notFound.body}</p>
         </div>
       </div>
     );
@@ -298,29 +321,30 @@ function StageView({ code, compact = false, obs = false, qr = false, state, feed
     fontSize: STAGE_FONT_PX * (k || 1),
     visibility: k > 0 ? "visible" : "hidden",
     ["--spacing" as string]: "0.25em",
+    ["--u" as string]: `${k || 1}px`,
   };
   const swap = reduced ? { duration: 0.175 } : undefined;
 
   return (
     <MotionScope>
       <StageProvider value={ctx}>
-        {/* The full screen sits on the page's stage light; OBS stays transparent; the mini screen paints its own. */}
-        {!compact && !obs ? <StageBackdrop roundNo={state?.roundNo ?? 0} breathe /> : null}
+        {/* The full screen is the page's dot-grid paper (plus its grain layer); OBS stays transparent; the mini screen paints its own sheet. */}
+        {!compact && !obs ? <StageBackdrop /> : null}
         <div
           ref={setBox}
           data-testid={compact ? "screen-stage" : "phase"}
           data-phase={state?.phase ?? "LOADING"}
           data-round={state?.roundNo ?? undefined}
           data-obs={obs ? "1" : undefined}
-          className={cn("relative grid place-items-center overflow-hidden text-on-stage", compact ? "aspect-video w-full rounded-card ring-1 ring-stage-line" : "h-full w-full")}
+          className={cn("relative grid place-items-center overflow-hidden text-ink", compact ? "aspect-video w-full rounded-card" : "h-full w-full")}
         >
-          <div className={cn("relative flex flex-col overflow-hidden", obs ? "cps-obs" : compact ? "cps-compact-bg" : "", compact && "rounded-card")} style={stageStyle}>
+          <div className={cn("cps-stage relative flex flex-col overflow-hidden", compact && "dot-grid rounded-card")} style={stageStyle}>
             <ConfettiLayer
               fireKey={confettiKey}
               width={Math.round(metrics.w * (k || 1))}
               height={Math.round(metrics.h * (k || 1))}
               reduced={reduced}
-              scalar={(compact ? 1.7 : 2) * (k || 1)}
+              scalar={(compact ? 0.9 : 1.7) * (k || 1)}
             />
             {state ? (
               <>
@@ -329,9 +353,9 @@ function StageView({ code, compact = false, obs = false, qr = false, state, feed
                   <AnimatePresence mode="wait" initial={false}>
                     <m.div
                       key={viewKey(state)}
-                      initial={{ opacity: 0, y: 24 }}
+                      initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0, transition: swap ?? TRANSITION.medium }}
-                      exit={{ opacity: 0, y: -12, transition: swap ?? TRANSITION.exit }}
+                      exit={{ opacity: 0, transition: swap ?? TRANSITION.exit }}
                       className="absolute inset-0"
                     >
                       <PhaseView state={state} feed={feed} />
@@ -356,7 +380,6 @@ function StageView({ code, compact = false, obs = false, qr = false, state, feed
   );
 }
 
-
 /** A real button with a visible label: a presenter can find it, and its name says what a click does. */
 function SoundToggle({ on, toggle, obs }: { on: boolean; toggle: () => void; obs: boolean }) {
   const Icon = on ? Volume2 : VolumeX;
@@ -366,7 +389,7 @@ function SoundToggle({ on, toggle, obs }: { on: boolean; toggle: () => void; obs
       onClick={toggle}
       data-testid="screen-sound"
       className={cn(
-        "glass press absolute right-4 bottom-4 z-40 inline-flex min-h-12 items-center gap-2 rounded-pill border border-stage-line px-5 text-[17px] font-semibold text-on-stage [--press-overlay:rgb(243_239_230/0.12)]",
+        "slip press absolute right-4 bottom-4 z-40 inline-flex min-h-12 items-center gap-2 rounded-pill px-5 text-body",
         obs && "opacity-0 transition-opacity focus-visible:opacity-100 hover:opacity-100",
       )}
     >

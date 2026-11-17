@@ -13,8 +13,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return { title: `Big screen ${code.toUpperCase()}`, robots: { index: false, follow: false } };
 }
 
-// The root layout paints --bg on <html> and <body>. In OBS both must be see-through, and
-// color-scheme must not repaint the canvas dark. Unlayered CSS beats the layered base styles.
+// The page is dot-grid paper on <html> (see globals.css). In OBS both <html> and <body> must be see-through, and
+// color-scheme must not repaint the canvas. Unlayered CSS beats the layered base styles.
 const OBS_CSS = "html,body{background:transparent !important;color-scheme:normal !important}";
 
 export default async function ScreenPage({ params, searchParams }: Props) {

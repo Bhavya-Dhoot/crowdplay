@@ -1,55 +1,140 @@
-/* CROWDPLAY big screen: only what Tailwind cannot say (keyframes, masks, the mini screen's own backdrop).
-   Everything here is prefixed cps- and scoped to the screen components. The full screen sits on the page's
-   <StageBackdrop> (the stage light for the round); only the embedded mini screen paints its own. */
+/* CROWDPLAY big screen, design v3 "Live Sketchnote": the room's page, built up live on dot-grid paper.
+   Only what Tailwind cannot say lives here (scaled lines, the paper box, washi tape, keyframes, masks); all of it is
+   prefixed cps- and scoped to the screen components.
 
-/* The mini screen: stage floor with the round's light from the top, the same recipe as <StageBackdrop>. */
-.cps-compact-bg {
-  background:
-    radial-gradient(72% 56% at 50% -6%, color-mix(in srgb, var(--light) 18%, transparent), transparent 70%),
-    var(--stage-0);
+   The stage root sets --u (real px per canvas px, the fit factor), so a 3 px line on the 1920 canvas is 3 x --u on
+   any screen: the page keeps the same weight on a projector and on a laptop. Everything is paper laid on the page
+   (ink outline, hand-drawn radius, grey marker shadow down-right), so the same boxes read on an OBS overlay where the
+   page itself is transparent. */
+
+.cps-stage {
+  --bw: calc(var(--u, 1px) * 4);
+  --bw-s: calc(var(--u, 1px) * 3);
+  --r-box: calc(var(--u, 1px) * 20) calc(var(--u, 1px) * 28) calc(var(--u, 1px) * 18) calc(var(--u, 1px) * 26) /
+    calc(var(--u, 1px) * 26) calc(var(--u, 1px) * 18) calc(var(--u, 1px) * 28) calc(var(--u, 1px) * 20);
+  --r-box-alt: calc(var(--u, 1px) * 28) calc(var(--u, 1px) * 18) calc(var(--u, 1px) * 26) calc(var(--u, 1px) * 20) /
+    calc(var(--u, 1px) * 18) calc(var(--u, 1px) * 26) calc(var(--u, 1px) * 20) calc(var(--u, 1px) * 28);
+  --r-note: calc(var(--u, 1px) * 10) calc(var(--u, 1px) * 14) calc(var(--u, 1px) * 9) calc(var(--u, 1px) * 13) /
+    calc(var(--u, 1px) * 13) calc(var(--u, 1px) * 9) calc(var(--u, 1px) * 14) calc(var(--u, 1px) * 10);
+  --r-note-alt: calc(var(--u, 1px) * 14) calc(var(--u, 1px) * 9) calc(var(--u, 1px) * 13) calc(var(--u, 1px) * 10) /
+    calc(var(--u, 1px) * 9) calc(var(--u, 1px) * 13) calc(var(--u, 1px) * 10) calc(var(--u, 1px) * 14);
+  --sh-box: calc(var(--u, 1px) * 7) calc(var(--u, 1px) * 8) 0 var(--marker-2);
+  --sh-poster: calc(var(--u, 1px) * 10) calc(var(--u, 1px) * 11) 0 var(--marker-2);
+  --sh-note: calc(var(--u, 1px) * 5) calc(var(--u, 1px) * 6) 0 var(--marker-2);
+  --sh-slip: calc(var(--u, 1px) * 4) calc(var(--u, 1px) * 5) 0 var(--marker-2);
 }
 
-/* OBS: text must stay readable over any video behind it. */
-.cps-obs {
-  text-shadow:
-    0 0 3px rgb(0 0 0 / 0.85),
-    0 2px 16px rgb(0 0 0 / 0.8);
+/* A box: paper laid on the page (it hides the dots). */
+.cps-box {
+  position: relative;
+  color: var(--ink);
+  background-color: var(--paper-raised);
+  border: var(--bw) solid var(--ink);
+  border-radius: var(--r-box);
+  box-shadow: var(--sh-box);
+  rotate: var(--tilt, 0deg);
 }
-.cps-obs-panel {
-  background: rgb(15 13 22 / 0.72);
-  backdrop-filter: blur(6px);
+.cps-box-alt {
+  border-radius: var(--r-box-alt);
 }
-/* Paper keeps its own ink: the OBS text shadow would smear dark text on a light card. */
-.cps-obs [data-surface="paper"],
-.cps-obs .paper {
-  text-shadow: none;
+.cps-box-poster {
+  box-shadow: var(--sh-poster);
+}
+/* A greyer sheet (the options that lost, stacked notes). */
+.cps-box-grey {
+  background-image: linear-gradient(var(--marker-1), var(--marker-1));
+}
+.cps-box-dashed {
+  border-style: dashed;
 }
 
-/* The storm desk: its top edge fades, so a card falling in or a heap row sliding up leaves the desk softly. */
+/* A note pinned to the page: smaller box, a pin at the top edge. */
+.cps-note {
+  position: relative;
+  color: var(--ink);
+  background-color: var(--paper-raised);
+  border: var(--bw-s) solid var(--ink);
+  border-radius: var(--r-note);
+  box-shadow: var(--sh-note);
+  rotate: var(--tilt, 0deg);
+}
+.cps-note-alt {
+  border-radius: var(--r-note-alt);
+}
+.cps-pin::before {
+  content: "";
+  position: absolute;
+  top: calc(var(--u, 1px) * -9);
+  left: 50%;
+  width: calc(var(--u, 1px) * 15);
+  height: calc(var(--u, 1px) * 15);
+  margin-left: calc(var(--u, 1px) * -7.5);
+  border: calc(var(--u, 1px) * 2.2) solid var(--ink);
+  border-radius: 50%;
+  background: var(--marker-3);
+  pointer-events: none;
+  z-index: 1;
+}
+/* An empty slot where an idea is about to land. */
+.cps-ghost {
+  border: var(--bw-s) dashed var(--ink-faint);
+  border-radius: var(--r-note);
+  background-color: color-mix(in srgb, var(--paper-raised) 72%, transparent);
+  color: var(--ink-notes);
+}
+
+/* A slip: the subtitle strip of the notebook, with a piece of grey washi tape on its corner. */
+.cps-slip {
+  position: relative;
+  color: var(--ink);
+  background-color: var(--paper-raised);
+  border: var(--bw-s) solid var(--ink);
+  border-radius: var(--r-note);
+  box-shadow: var(--sh-slip);
+  rotate: var(--tilt, 0deg);
+}
+.cps-tape::before {
+  content: "";
+  position: absolute;
+  top: calc(var(--u, 1px) * -11);
+  left: calc(var(--u, 1px) * 22);
+  width: calc(var(--u, 1px) * 66);
+  height: calc(var(--u, 1px) * 20);
+  background: var(--marker-2);
+  clip-path: polygon(0 0, 100% 0, 97% 25%, 100% 50%, 97% 75%, 100% 100%, 0 100%, 3% 75%, 0 50%, 3% 25%);
+  rotate: -5deg;
+  pointer-events: none;
+}
+/* A paper disc behind a countdown, so the ring reads over any video. */
+.cps-disc {
+  border-radius: 50%;
+  background-color: var(--paper-raised);
+  box-shadow: var(--sh-note);
+}
+
+/* The storm desk: its top edge fades, so a note leaving a heap row goes softly. */
 .cps-desk {
   -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 7%);
   mask-image: linear-gradient(to bottom, transparent 0, #000 7%);
 }
 
-/* A new idea card gets a ring in this round's light for a moment (opacity only). */
-.cps-fresh {
-  position: absolute;
-  inset: -0.12em;
-  border: 0.1em solid var(--light);
-  border-radius: 0.62em;
-  pointer-events: none;
-  animation: cps-fresh 1.6s var(--ease-arrive) 1 both;
+/* A vote bar: ink-outlined track (positioned by its caller), grey marker fill rising from the base (the fill is .bar-fill-grey). */
+.cps-bar {
+  overflow: hidden;
+  border: var(--bw-s) solid var(--ink);
+  border-radius: calc(var(--u, 1px) * 14);
+  background-color: var(--paper-raised);
 }
-@keyframes cps-fresh {
-  from {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
-  }
+.cps-bar > span {
+  position: absolute;
+  inset: auto 0 0 0;
+  transition: height var(--dur-medium) var(--ease-arrive);
+}
+.cps-bar > span[data-up="1"] {
+  border-top: var(--bw-s) solid var(--ink);
 }
 
-/* Typing dots for "the narrator is writing" / "writing the finale". */
+/* "The narrator is writing": three ink dots that take turns. */
 .cps-dots span {
   display: inline-block;
   width: 0.28em;
@@ -69,12 +154,10 @@
   0%,
   70%,
   100% {
-    opacity: 0.25;
-    transform: translateY(0);
+    opacity: 0.2;
   }
   35% {
     opacity: 1;
-    transform: translateY(-0.18em);
   }
 }
 
@@ -97,15 +180,14 @@
 
 /* Reduced motion: everything settles where it would have ended up. */
 @media (prefers-reduced-motion: reduce) {
-  .cps-fresh,
   .cps-roll,
   .cps-dots span {
     animation: none;
   }
-  .cps-fresh {
-    opacity: 0;
-  }
   .cps-dots span {
     opacity: 0.8;
+  }
+  .cps-bar > span {
+    transition: none;
   }
 }

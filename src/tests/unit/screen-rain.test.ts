@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { FeedIdea } from "@/lib/client/store";
-import { hash, slidePath, unit, usableIdeas } from "@/components/screen/rain";
+import { deal, hash, unit, usableIdeas } from "@/components/screen/rain";
 
 let n = 0;
 function idea(text: string, over: Partial<FeedIdea> = {}): FeedIdea {
@@ -40,27 +40,20 @@ describe("hash and unit", () => {
   });
 });
 
-describe("slidePath", () => {
-  const W = 1700;
-  const H = 520;
-  it("is deterministic, keeps starts inside the area and deals cards to three even stacks", () => {
+describe("deal", () => {
+  it("is deterministic and deals notes to three even boxes", () => {
     const keys = Array.from({ length: 24 }, (_, i) => `k${i}`);
     const piles = [0, 0, 0];
     keys.forEach((k, i) => {
-      const p = slidePath(k, i, W, H);
-      expect(slidePath(k, i, W, H)).toEqual(p);
-      expect(Math.abs(p.from.x)).toBeLessThanOrEqual(W / 2);
-      expect(Math.abs(p.from.y)).toBeLessThanOrEqual(H / 2);
-      piles[p.pile] += 1;
+      const d = deal(k, i);
+      expect(deal(k, i)).toEqual(d);
+      piles[d.pile] += 1;
     });
     expect(piles).toEqual([8, 8, 8]);
   });
 
-  it("lands each stack on its own side of the centre", () => {
-    const left = slidePath("a", 0, W, H).to.x;
-    const mid = slidePath("a", 1, W, H).to.x;
-    const right = slidePath("a", 2, W, H).to.x;
-    expect(left).toBeLessThan(mid);
-    expect(mid).toBeLessThan(right);
+  it("gives every note a small stable tilt of at most 3 degrees", () => {
+    for (let i = 0; i < 30; i++) expect(Math.abs(deal(`n${i}`, i).tilt)).toBeLessThanOrEqual(3);
+    expect(deal("a", 0).tilt).toBe(deal("a", 0).tilt);
   });
 });
