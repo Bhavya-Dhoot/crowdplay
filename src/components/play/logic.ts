@@ -5,9 +5,9 @@ import { friendlyError, STORM_NUDGES } from "@/lib/copy";
 import { PRESETS } from "@/lib/presets";
 import { PLAY_COPY } from "./playCopy";
 
-export const IDEA_LIMIT = 140;
+const IDEA_LIMIT = 140;
 
-export type BodyKey = "lobby" | "prompt" | "storm" | "vote" | "reveal" | "finale";
+type BodyKey = "lobby" | "prompt" | "storm" | "vote" | "reveal" | "finale";
 
 /** Which body a phase renders. STORM and DISTILL share one so the feed does not remount between them. */
 export function bodyKey(phase: Phase): BodyKey {
@@ -30,7 +30,7 @@ export function bodyKey(phase: Phase): BodyKey {
 }
 
 /** Which content fills the dock's top slot: the composer, the "reading ideas" status, the finale actions or nothing. */
-export type DockKey = "composer" | "distill" | "finale" | "none";
+type DockKey = "composer" | "distill" | "finale" | "none";
 
 export function dockKey(phase: Phase): DockKey {
   switch (phase) {
@@ -79,7 +79,7 @@ export function charsLeft(text: string, max = IDEA_LIMIT): number {
   return max - text.length;
 }
 
-export type LockInput = {
+type LockInput = {
   phase: Phase;
   paused: boolean;
   connection: "connected" | "connecting" | "disconnected";
@@ -108,7 +108,7 @@ export function voteShare(tally: Record<string, number> | undefined, total: numb
 export const votePercent = (tally: Record<string, number> | undefined, total: number | undefined, optionId: string): number =>
   Math.round(voteShare(tally, total, optionId) * 100);
 
-export type OptionFlags = { narrator: boolean; wildcard: boolean; boosted: boolean };
+type OptionFlags = { narrator: boolean; wildcard: boolean; boosted: boolean };
 
 export function optionFlags(o: Pick<PublicOption, "kind" | "boosted">): OptionFlags {
   return { narrator: o.kind === "narrator", wildcard: o.kind === "wildcard", boosted: Boolean(o.boosted) };
@@ -177,6 +177,15 @@ export function coachStep(i: { phase: Phase; ideasThisRound: number; voted: bool
   return null;
 }
 
+/**
+ * Scene number of the i-th beat when only the last `count` beats are known (the state keeps the last three) and `last` is
+ * the number of the last scene played: a show that played 3 scenes numbers them 1, 2, 3; one that played 5 numbers its
+ * last three 3, 4, 5.
+ */
+export function sceneNumber(i: number, count: number, last: number): number {
+  return Math.max(1, last - count + 1) + i;
+}
+
 export type CanonMaker = { name: string; bot: boolean; count: number };
 
 /** Top n by canon count (ties keep their incoming order). */
@@ -188,7 +197,7 @@ export function topCanonMakers(makers: readonly CanonMaker[], n = 5): CanonMaker
     .map((x) => x.m);
 }
 
-export type ReceiptLike = { type: "BALLOT" | "CANON"; showId: string; roundNo: number };
+type ReceiptLike = { type: "BALLOT" | "CANON"; showId: string; roundNo: number };
 
 /** One receipt per (type, show, round) is announced; the same receipt arriving twice is ignored. */
 export function receiptKey(r: ReceiptLike): string {
@@ -235,7 +244,7 @@ export function shortLang(locale: string | null | undefined): string {
   return m ? m[0].toLowerCase() : "en";
 }
 
-export type Translated = {
+type Translated = {
   prompt: { title: string; text: string } | undefined;
   label: (o: PublicOption) => string;
   narration: string | null;

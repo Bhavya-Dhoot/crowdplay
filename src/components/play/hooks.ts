@@ -21,7 +21,7 @@ function viewportKey(): string {
   return vv ? `${Math.round(vv.offsetTop)}:${Math.round(vv.height)}` : "";
 }
 
-export type ViewportBox = { top: number; height: number; keyboard: boolean };
+type ViewportBox = { top: number; height: number; keyboard: boolean };
 
 /** The visible part of the page. `keyboard` is true when something (the soft keyboard) ate a big slice of it. */
 export function useVisualViewport(): ViewportBox | null {

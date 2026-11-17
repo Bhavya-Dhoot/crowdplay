@@ -1,34 +1,25 @@
-/* Motion that only the player screens need. Everything has a still, readable reduced-motion form
-   (fades only, no travel, scale or rotation). Transform and opacity only. */
+/* Motion and small drawings only the player screens need (design-v3 "Live Sketchnote"). Things are placed or drawn,
+   never slid across; every one has a still, complete form under prefers-reduced-motion. Transform and opacity only. */
 
-/* Someone else's idea lands in the feed. */
-.ideaIn {
-  animation: idea-in 240ms var(--ease-out) both;
+/* A phase body (or an overlay) is placed: opacity and a 6 px settle. Like the global .placed, minus the rotation, so a
+   whole column never tilts. */
+.settle {
+  animation: settle var(--dur-medium) var(--ease-arrive) both;
 }
-@keyframes idea-in {
+@keyframes settle {
   from {
     opacity: 0;
-    transform: translateY(10px) scale(0.97);
-  }
-  to {
-    opacity: 1;
-    transform: none;
+    translate: 0 6px;
   }
 }
 
-/* My idea lands with the spring (the one arrival in the feed that means something). --land-ease/--land-ms come from SPRING.land. */
-.ideaMine {
-  animation: idea-land var(--land-ms, 500ms) var(--land-ease, var(--ease-out)) both;
-  transform-origin: 100% 100%;
+/* The dock's slot changes (composer, reading, finale actions): a plain 175 ms fade. */
+.fade {
+  animation: fade var(--dur-fast) linear both;
 }
-@keyframes idea-land {
+@keyframes fade {
   from {
     opacity: 0;
-    transform: translateY(16px) scale(0.88);
-  }
-  to {
-    opacity: 1;
-    transform: none;
   }
 }
 
@@ -55,93 +46,65 @@
   }
 }
 
-/* The admit-one ticket on /join: two paper parts with a punched notch on each side of the perforation. The crisp
-   drop-shadow lives on the wrapper because a mask would clip a box-shadow. */
-.ticketWrap {
-  filter: drop-shadow(0 1px 0 var(--paper-edge)) drop-shadow(0 10px 8px rgb(0 0 0 / 0.32));
-}
-.ticketTop {
-  -webkit-mask: radial-gradient(circle 12px at 0 100%, #0000 97%, #000) left / 51% 100% no-repeat, radial-gradient(circle 12px at 100% 100%, #0000 97%, #000) right / 51% 100% no-repeat;
-  mask: radial-gradient(circle 12px at 0 100%, #0000 97%, #000) left / 51% 100% no-repeat, radial-gradient(circle 12px at 100% 100%, #0000 97%, #000) right / 51% 100% no-repeat;
-}
-.ticketStub {
-  -webkit-mask: radial-gradient(circle 12px at 0 0, #0000 97%, #000) left / 51% 100% no-repeat, radial-gradient(circle 12px at 100% 0, #0000 97%, #000) right / 51% 100% no-repeat;
-  mask: radial-gradient(circle 12px at 0 0, #0000 97%, #000) left / 51% 100% no-repeat, radial-gradient(circle 12px at 100% 0, #0000 97%, #000) right / 51% 100% no-repeat;
+/* A strip of grey washi tape on a note's corner (the style's subtitle slip). The host card must be positioned. */
+.tape::before {
+  content: "";
+  position: absolute;
+  top: -11px;
+  left: 20px;
+  width: 58px;
+  height: 18px;
+  background: var(--marker-2);
+  clip-path: polygon(0 0, 100% 0, 97% 25%, 100% 50%, 97% 75%, 100% 100%, 0 100%, 3% 75%, 0 50%, 3% 25%);
+  rotate: -5deg;
+  pointer-events: none;
 }
 
-/* Small chips (Your vote, Yours) pop in when they appear. */
-.chipIn {
-  animation: chip-in var(--dur-fast) var(--ease-arrive) both;
+/* Your vote: the box sinks into its shadow and stays there. Unlayered, so it beats the paper utilities. */
+.picked {
+  translate: 3px 4px;
+  box-shadow: 3px 3px 0 var(--marker-2);
 }
-@keyframes chip-in {
-  from {
+.picked.pickedMine {
+  box-shadow:
+    inset 5px 0 0 var(--hl-deep),
+    3px 3px 0 var(--marker-2);
+}
+
+/* The canon moment's timer: an ink line that is un-drawn over --ms, right to left. */
+.undraw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  animation: undraw var(--ms, 2500ms) linear both;
+}
+@keyframes undraw {
+  to {
+    stroke-dashoffset: 1;
+  }
+}
+
+/* An emoji from someone's cheer rises once and is gone. */
+.cheer {
+  position: absolute;
+  bottom: 48px;
+  font-size: 30px;
+  line-height: 1;
+  animation: cheer-rise 2200ms ease-out both;
+}
+@keyframes cheer-rise {
+  0% {
     opacity: 0;
-    transform: scale(0.88);
+    translate: 0 24px;
+    scale: 0.8;
   }
-  to {
+  12%,
+  70% {
     opacity: 1;
-    transform: none;
   }
-}
-
-/* "Reading 142 ideas…": a light sweeps across the words. */
-.shimmerText {
-  background: linear-gradient(100deg, var(--muted-on-stage) 30%, var(--ink-on-stage) 50%, var(--muted-on-stage) 70%);
-  background-size: 220% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
-  animation: sweep-text 1.8s linear infinite;
-}
-@keyframes sweep-text {
-  from {
-    background-position: 120% 0;
-  }
-  to {
-    background-position: -120% 0;
-  }
-}
-
-/* The three choices being built: A, B and the wildcard bob in turn. */
-.bob {
-  animation: bob 1.1s ease-in-out infinite;
-  animation-delay: var(--d, 0s);
-}
-@keyframes bob {
-  0%,
   100% {
-    transform: translateY(0);
-  }
-  40% {
-    transform: translateY(-7px);
-  }
-}
-
-/* Canon moment: slow ink rays on the gold. */
-.rays {
-  background: repeating-conic-gradient(from 0deg at 50% 46%, rgb(28 24 40 / 0.07) 0deg 7deg, transparent 7deg 20deg);
-  -webkit-mask-image: radial-gradient(70% 55% at 50% 46%, #000 0%, transparent 80%);
-  mask-image: radial-gradient(70% 55% at 50% 46%, #000 0%, transparent 80%);
-  animation: spin 50s linear infinite;
-}
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* A thin bar that drains while the canon moment is up. */
-.drain {
-  transform-origin: left center;
-  animation: drain var(--ms, 2500ms) linear both;
-}
-@keyframes drain {
-  from {
-    transform: scaleX(1);
-  }
-  to {
-    transform: scaleX(0);
+    opacity: 0;
+    translate: 0 -120px;
+    scale: 1.15;
   }
 }
 
@@ -153,6 +116,7 @@
   display: none;
 }
 
+/* "Live" is an ink dot that pulses. */
 .pulseDot {
   animation: pulse-dot 1.6s ease-in-out infinite;
 }
@@ -160,43 +124,51 @@
   0%,
   100% {
     opacity: 0.45;
-    transform: scale(0.85);
+    scale: 0.85;
   }
   50% {
     opacity: 1;
-    transform: scale(1);
+    scale: 1;
   }
 }
 
+/* The notebook page on /me: ruled lines, and a row of spiral rings hanging over its top edge. */
+.notebook {
+  background-image: repeating-linear-gradient(transparent 0 31px, var(--dots) 31px 33px);
+  background-position: 0 14px;
+}
+.notebook::before {
+  content: "";
+  position: absolute;
+  inset: -13px 18px auto;
+  height: 22px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='30' height='22' viewBox='0 0 30 22'%3E%3Cellipse cx='15' cy='11' rx='5.5' ry='9' fill='none' stroke='%231e1e22' stroke-width='2.4' transform='rotate(-14 15 11)'/%3E%3C/svg%3E");
+  background-repeat: space no-repeat;
+  background-size: 30px 22px;
+  pointer-events: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .ideaIn,
-  .ideaMine,
-  .chipIn {
-    animation: fade-only var(--dur-fast) linear both;
-  }
-  @keyframes fade-only {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
-  }
-  .shake {
-    animation: none;
-  }
-  .shimmerText {
-    animation: none;
-    background: none;
-    -webkit-text-fill-color: currentColor;
-    color: var(--muted-on-stage);
-  }
-  .bob,
-  .rays,
+  .settle,
+  .fade,
+  .shake,
   .pulseDot {
     animation: none;
   }
-  .drain {
+  .undraw {
     animation: none;
+  }
+  .cheer {
+    animation: cheer-still 1200ms linear both;
+  }
+  @keyframes cheer-still {
+    0%,
+    100% {
+      opacity: 0;
+    }
+    15%,
+    80% {
+      opacity: 1;
+    }
   }
 }

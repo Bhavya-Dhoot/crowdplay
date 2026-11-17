@@ -1,10 +1,11 @@
 "use client";
-// The composer (UX §3.3): starter chips, a 140-character box and a gold Send button with the 2 s cooldown ring.
-// It lives inside the dock's glass bar and owns its draft, so typing re-renders only this component (perf audit #8):
-// the feed above never sees a keystroke. `lockedHint` non-null = disabled with that text as the placeholder.
+// The composer (UX §3.3): starter chips, a 140-character box with an ink outline and the one yellow key (Send) with the
+// 2 s cooldown ring around it. It lives on the dock's paper bar and owns its draft, so typing re-renders only this
+// component (perf audit #8): the feed above never sees a keystroke. `lockedHint` non-null = disabled with that text as
+// the placeholder.
 //   ref.edit(text)   puts a refused idea back in the box (the feed's "Edit and resend") and focuses it
 // A refused idea (audit #21): the input row shakes, the phone buzzes, the text comes back to the box (if it is still
-// empty) and a 15 px message with an icon replaces the chip row for a few seconds.
+// empty) and a message with an icon replaces the chip row for a few seconds.
 import { ArrowUp, TriangleAlert } from "lucide-react";
 import { memo, useCallback, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState, type KeyboardEvent, type Ref } from "react";
 import { cn } from "@/components/ui/cn";
@@ -121,12 +122,13 @@ export const Composer = memo(function Composer({ roundNo, lockedHint, chips, coo
   return (
     <div className="flex min-h-[100px] flex-col gap-1">
       {error ? (
-        <p role="alert" className="flex h-11 items-center gap-2 px-2 text-small leading-snug font-semibold text-danger">
+        <p role="alert" className="flex h-11 items-center gap-2 px-2 text-body leading-tight text-danger">
           <TriangleAlert aria-hidden="true" className="size-5 shrink-0" />
-          <span className="min-w-0">{error}</span>
+          <span className="line-clamp-2 min-w-0">{error}</span>
         </p>
       ) : (
-        <div className={cn("-mx-2 flex h-11 shrink-0 items-center gap-2 overflow-x-auto px-2", styles.noBar)} aria-label="Idea starters" role="group">
+        // The vertical padding is room for the 3 px focus ring (it would be clipped by the scroller); the margins take it back.
+        <div className={cn("-mx-2 -my-2 flex h-[60px] shrink-0 items-center gap-2 overflow-x-auto px-2 py-2", styles.noBar)} aria-label="Idea starters" role="group">
           {chips.map((c) => (
             <button
               key={c}
@@ -137,10 +139,7 @@ export const Composer = memo(function Composer({ roundNo, lockedHint, chips, coo
                 setDraft(insertChip(draft, c, IDEA_MAX_CHARS));
                 inputRef.current?.focus({ preventScroll: true });
               }}
-              className={cn(
-                "press inline-flex h-11 shrink-0 items-center rounded-pill border border-stage-line bg-stage-2 px-4 text-small font-medium whitespace-nowrap text-on-stage",
-                "[--press-overlay:rgb(255_255_255/0.1)] disabled:opacity-40",
-              )}
+              className="press inline-flex h-11 shrink-0 items-center rounded-pill border-2 border-ink bg-paper px-4 text-body whitespace-nowrap text-ink disabled:opacity-40"
             >
               {c}
             </button>
@@ -151,9 +150,9 @@ export const Composer = memo(function Composer({ roundNo, lockedHint, chips, coo
       <div ref={rowRef} className="flex items-end gap-2">
         <div
           className={cn(
-            "relative flex min-h-[52px] min-w-0 flex-1 items-center rounded-card border bg-stage-0/60 transition-colors duration-175",
-            error ? "border-danger" : "border-stage-line focus-within:border-light",
-            locked && "opacity-80",
+            "relative flex min-h-[52px] min-w-0 flex-1 items-center rounded-element border-2 bg-paper has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-3 has-[:focus-visible]:outline-ink",
+            error ? "border-danger" : "border-ink",
+            locked && "opacity-70",
           )}
         >
           <textarea
@@ -175,28 +174,28 @@ export const Composer = memo(function Composer({ roundNo, lockedHint, chips, coo
             enterKeyHint="send"
             autoComplete="off"
             autoCapitalize="sentences"
-            className="block min-w-0 flex-1 resize-none bg-transparent px-3.5 py-3.5 text-body leading-6 text-on-stage placeholder:text-muted-on-stage focus:outline-none disabled:cursor-not-allowed"
+            className="block min-w-0 flex-1 resize-none bg-transparent px-3.5 py-3.5 text-body leading-6 text-ink placeholder:text-ink-notes focus:outline-none disabled:cursor-not-allowed"
           />
           <p
             id={counterId}
             className={cn(
               "pointer-events-none",
-              left <= 40 && !locked ? "absolute right-3 -top-2.5 rounded-pill bg-stage-1 px-1.5 text-fine leading-5 tabular-nums" : "sr-only",
-              left <= 0 ? "text-danger" : left <= 20 ? "text-warn" : "text-muted-on-stage",
+              left <= 40 && !locked ? "absolute -top-3 right-3 rounded-pill bg-paper-raised px-1.5 text-fine leading-5 tabular-nums" : "sr-only",
+              left <= 0 ? "text-danger" : left <= 20 ? "text-ink" : "text-ink-notes",
             )}
           >
             {left} characters left
           </p>
         </div>
-        <div className="relative grid size-[52px] shrink-0 place-items-center">
-          {cooling ? <Ring fraction={cd.fraction} size={52} stroke={3} className="absolute inset-0" /> : null}
+        <div className="relative grid size-14 shrink-0 place-items-center">
+          {cooling ? <Ring fraction={cd.fraction} size={56} stroke={3} className="absolute inset-0" /> : null}
           <button
             type="button"
             data-testid="idea-send"
             aria-label={COPY.composer.send}
             disabled={!canSend}
             onClick={() => void send()}
-            className="press grid size-12 place-items-center rounded-full bg-gold text-ink disabled:bg-stage-2 disabled:text-muted-on-stage"
+            className="btn btn-primary size-12 select-none rounded-blob p-0 disabled:pointer-events-none"
           >
             <ArrowUp aria-hidden="true" className="size-6" strokeWidth={2.75} />
           </button>

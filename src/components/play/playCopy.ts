@@ -1,8 +1,9 @@
 // Player-side copy that has no home in src/lib/copy.ts yet (that file belongs to the design system).
 // Same voice: short, playful, second person, never technical. Pure data, safe anywhere.
+import type { Phase } from "@/lib/realtime/types";
+
 export const PLAY_COPY = {
   join: {
-    title: "Get your seat",
     admit: "Admit one",
     hostedBy: (host: string) => `Hosted by ${host}`,
     playersIn: (n: number) => `${n} ${n === 1 ? "player" : "players"} in`,
@@ -44,6 +45,18 @@ export const PLAY_COPY = {
     loading: "Finding your show…",
   },
   play: {
+    scene: (n: number, total: number) => `Scene ${n} of ${total}`,
+    // The word on the header banner ("1 Ideas"); the full phase name stays in the heading and the live region.
+    tag: {
+      LOBBY: "Lobby",
+      PROMPT: "Get ready",
+      STORM: "Ideas",
+      DISTILL: "Choices",
+      VOTE: "Vote",
+      REVEAL: "Reveal",
+      FINALE: "That's a wrap",
+      ENDED: "The end",
+    } satisfies Record<Phase, string>,
     shareTitle: "Join my CrowdPlay show",
     shareText: (title: string, code: string) => `Join "${title}" on CrowdPlay. Code ${code}.`,
     copied: "Link copied",
@@ -51,10 +64,8 @@ export const PLAY_COPY = {
     lobby: {
       waiting: "Waiting for the host…",
       share: "Share",
-      cheerHint: "Cheer while you wait",
-      premise: "The premise",
     },
-    prompt: { question: "What happens next?", getReady: "Get ready…" },
+    prompt: { question: "What happens next?" },
     storm: {
       emptyTitle: "No ideas yet",
       emptyBody: "Be the first. Short and wild works.",
@@ -67,7 +78,6 @@ export const PLAY_COPY = {
       tryAgain: "Edit and resend",
       ideasCount: (n: number) => `${n} ${n === 1 ? "idea" : "ideas"}`,
       sent: "Sent",
-      notSent: "Not sent",
     },
     distill: { reading: (n: number) => `Reading ${n} ${n === 1 ? "idea" : "ideas"}…`, quiet: "Too quiet! The narrator improvises." },
     vote: {
@@ -76,9 +86,7 @@ export const PLAY_COPY = {
       hintVoted: "Locked in. You can still change it.",
       yours: "Yours",
       yourVote: "Your vote",
-      wildcard: "Wildcard",
-      boosted: "⚡ boosted in demo",
-      fromIdeas: (n: number) => `from ${n} ${n === 1 ? "idea" : "ideas"}`,
+      boosted: "boosted in demo",
       votes: (n: number) => `${n} ${n === 1 ? "vote" : "votes"}`,
       failed: "Your vote didn't go through.",
     },
@@ -91,15 +99,14 @@ export const PLAY_COPY = {
       mineCanon: "Your idea is canon",
       pct: (pct: number) => `${pct}% of the vote`,
       lost: "Not this time",
-      next: "Next scene coming up…",
-      finaleNext: "Final scene done. The finale is next.",
       canonBig: "Your idea became canon",
       canonSkip: "Tap to skip",
       ballotTitle: "Your idea is on the ballot",
     },
     finale: {
-      wrap: "That's a wrap",
       writing: "The narrator is writing the finale…",
+      scenes: "The story, scene by scene",
+      scene: "Scene",
       canonMakers: "Canon makers",
       noCanon: "No canon this time. Next show, be the one.",
       yourNight: "Your night",
@@ -117,7 +124,6 @@ export const PLAY_COPY = {
     full: { title: "This show is full", body: "Every seat is taken, but you can still follow along on the big screen.", action: "Watch on the big screen" },
     notFound: { title: "We can't find that show", body: "Check the code and try again.", action: "Back to the start" },
     loading: "Loading the show…",
-    translated: "Translated",
     original: "Show original",
     translate: "Show translation",
     cookiesToast: "Cookies are blocked here. You can keep playing, but your browser may forget you if you close this tab.",

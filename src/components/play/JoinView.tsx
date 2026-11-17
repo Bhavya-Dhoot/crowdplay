@@ -1,26 +1,29 @@
 "use client";
-// /join/[code] (UX §3.2): the "ticket". A paper admit-one ticket on the stage: show title, host and players on the
-// main part, a perforation with two punched notches, then the stub with the name box (dice re-roll) and the language
-// choice. The gold "I'm in" sits on the stage under the ticket. Landing -> typing an idea stays at three taps:
-// code, "I'm in", the idea box.
-import { ArrowRight, Dices, Search, Ticket as TicketIcon, TriangleAlert, Users, WifiOff, Clapperboard } from "lucide-react";
-import Link from "next/link";
+// /join/[code] (UX §3.2, design-v3): the "admit one" ticket, a paper note with an ink outline: the show title, host and
+// players on the main part, a dashed tear line with scissors, then the stub with the name box (dice re-roll) and the
+// language choice. The one yellow key, "I'm in", sits on the page under the ticket. Landing -> typing an idea stays at
+// three taps: code, "I'm in", the idea box.
+import { ArrowRight, Clapperboard, Dices, Scissors, Search, Ticket as TicketIcon, TriangleAlert, Users, WifiOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useState, type FormEvent, type ReactNode } from "react";
 import type { RoomInfoRes } from "@/lib/api/contracts";
+import { Banner } from "@/components/ui/Banner";
 import { Button, ButtonLink } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
 import { cn } from "@/components/ui/cn";
 import { JoinCodeForm } from "@/components/ui/JoinCodeForm";
+import { PaperCard } from "@/components/ui/PaperCard";
+import { PenLoop } from "@/components/ui/PenLoop";
+import { Pill } from "@/components/ui/Pill";
+import { Ribbon } from "@/components/ui/Ribbon";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { StageBackdrop } from "@/components/ui/StageBackdrop";
 import { getRoom, joinRoom } from "@/lib/client/api";
 import { ensureSession, getStoredName } from "@/lib/client/session";
 import { COPY, friendlyError, randomName } from "@/lib/copy";
+import { BrandLink } from "./BrandLink";
 import { getStoredLang, storeLang } from "./hooks";
 import { shortLang } from "./logic";
 import { PLAY_COPY } from "./playCopy";
-import styles from "./play.module.css";
 
 type Room = RoomInfoRes["room"];
 type Info = { status: "loading" } | { status: "ok"; room: Room } | { status: "missing" } | { status: "error"; message: string };
@@ -39,25 +42,16 @@ const LANGUAGES = [
   { code: "zh", label: "中文" },
 ] as const;
 
-const FIELD =
-  "h-14 min-w-0 rounded-element border-2 bg-paper-2 px-4 text-lead font-medium text-ink placeholder:text-ink-muted focus:border-ink focus:outline-none";
-const TAG = "inline-flex items-center gap-1.5 rounded-pill border border-paper-edge bg-paper-2 px-3 py-1.5 text-small font-semibold text-ink";
+const FIELD = "h-14 min-w-0 rounded-element border-2 bg-paper px-4 text-lead text-ink placeholder:text-ink-notes";
 
 function Shell({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-dvh flex-col">
-      <StageBackdrop roundNo={1} />
+      <StageBackdrop />
       <header className="mx-auto flex w-full max-w-md items-center px-4 py-3">
-        <Link href="/" className="inline-flex min-h-11 items-center gap-2 font-display text-lead font-extrabold tracking-tight">
-          <svg width="26" height="26" viewBox="0 0 28 28" aria-hidden="true">
-            <circle cx="8" cy="9" r="5.5" fill="var(--gel-a)" />
-            <circle cx="20" cy="9" r="5.5" fill="var(--gel-b)" />
-            <circle cx="14" cy="20" r="5.5" fill="var(--gel-c)" />
-          </svg>
-          {COPY.brand}
-        </Link>
+        <BrandLink />
       </header>
-      <main id="main" className="mx-auto w-full max-w-md flex-1 px-4 pt-2 pb-12">
+      <main id="main" className="mx-auto w-full max-w-md flex-1 px-4 pt-3 pb-12">
         {children}
       </main>
     </div>
@@ -66,16 +60,25 @@ function Shell({ children }: { children: ReactNode }) {
 
 function Notice({ title, body, children, icon }: { title: string; body: string; children?: ReactNode; icon: ReactNode }) {
   return (
-    <Card as="section" aria-labelledby="notice-title" className="p-6 text-center">
-      <span aria-hidden="true" className="mx-auto grid size-14 place-items-center rounded-full bg-paper text-ink shadow-contact">
+    <PaperCard as="section" aria-labelledby="notice-title" tilt={-0.6} className="rounded-card p-6 text-center">
+      <span aria-hidden="true" className="slip mx-auto grid size-14 place-items-center rounded-blob">
         {icon}
       </span>
-      <h1 id="notice-title" className="mt-4 font-display text-h2 leading-tight">
+      <h1 id="notice-title" className="mt-4 text-h2 leading-tight">
         {title}
       </h1>
-      <p className="mt-2 text-muted-on-stage">{body}</p>
+      <p className="mt-2 text-body text-ink-notes">{body}</p>
       {children ? <div className="mt-5 flex flex-col gap-3">{children}</div> : null}
-    </Card>
+    </PaperCard>
+  );
+}
+
+/** The dashed line you tear along, with a small pair of scissors at its left end. */
+function TearLine() {
+  return (
+    <div aria-hidden="true" className="relative mx-3 border-t-2 border-dashed border-ink">
+      <Scissors className="absolute -top-3 -left-1 size-5 bg-paper-raised pr-0.5 text-ink" />
+    </div>
   );
 }
 
@@ -135,45 +138,51 @@ function Ticket({ room, code, multilingual }: { room: Room; code: string; multil
   const inProgress = room.phase !== "LOBBY";
 
   const main = (
-    <section aria-labelledby="join-title" data-surface="paper" className={cn("rounded-t-card bg-paper px-5 pt-5 pb-7 text-ink", styles.ticketTop)}>
-      <div className="flex items-start justify-between gap-3">
-        <p className="font-script text-small text-ink-muted italic">{PLAY_COPY.join.admit}</p>
-        <p aria-label={`Show code ${code.split("").join(" ")}`} className="font-display text-lead leading-none font-extrabold tracking-[0.18em]">
-          {code}
-        </p>
+    <section aria-labelledby="join-title" className="px-5 pt-6 pb-6">
+      <div className="flex items-center justify-between gap-3">
+        <Banner size="sm" play className="-ml-2">
+          {PLAY_COPY.join.admit}
+        </Banner>
+        <PenLoop seed={code} className="mr-3 ml-3">
+          <span aria-label={`Show code ${code.split("").join(" ")}`} className="block px-2 py-2.5 font-display text-h3 leading-none tracking-[0.16em]">
+            {code}
+          </span>
+        </PenLoop>
       </div>
-      <h1 id="join-title" className="mt-3 font-display text-[34px] leading-[1.04] break-words">
+      <h1 id="join-title" className="mt-5 text-h1 leading-[1.06] break-words">
         {room.title}
       </h1>
-      <p className="mt-2 text-ink-muted">{PLAY_COPY.join.hostedBy(room.hostName)}</p>
+      <p className="mt-2 text-body text-ink-notes">{PLAY_COPY.join.hostedBy(room.hostName)}</p>
       <div className="mt-4 flex flex-wrap items-center gap-2">
-        <span className={TAG}>
+        <Pill>
           <Users aria-hidden="true" className="size-4" />
           <span data-testid="join-players">{PLAY_COPY.join.playersIn(room.players)}</span>
-        </span>
-        <span className={TAG}>{inProgress ? "Live now" : PLAY_COPY.join.startingSoon}</span>
-        {room.isDemo ? <span className={TAG}>{PLAY_COPY.join.demo}</span> : null}
+        </Pill>
+        <Pill>{inProgress ? "Live now" : PLAY_COPY.join.startingSoon}</Pill>
+        {room.isDemo ? <Ribbon kind="demo" size="sm" /> : null}
       </div>
-      {inProgress ? <p className="mt-3 text-small text-ink-muted">{PLAY_COPY.join.inProgress}</p> : null}
+      {room.isDemo ? <p className="mt-2 text-fine text-ink-notes">{PLAY_COPY.join.demo}</p> : null}
+      {inProgress ? <p className="mt-3 text-body text-ink-notes">{PLAY_COPY.join.inProgress}</p> : null}
     </section>
   );
 
   if (cookiesBlocked) {
     return (
       <>
-        <div className={styles.ticketWrap}>
+        <PaperCard className="shadow-poster rounded-card">
           {main}
-          <div data-surface="paper" role="alert" className={cn("rounded-b-card border-t-2 border-dashed border-paper-edge bg-paper px-5 pt-6 pb-5 text-ink", styles.ticketStub)}>
+          <TearLine />
+          <div role="alert" className="px-5 pt-6 pb-5">
             <h2 className="font-display text-h3">{PLAY_COPY.join.cookies.title}</h2>
-            <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-small">
+            <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-body">
               {PLAY_COPY.join.cookies.steps.map((s) => (
                 <li key={s}>{s}</li>
               ))}
             </ol>
-            <p className="mt-3 text-small text-ink-muted">{PLAY_COPY.join.cookies.note}</p>
+            <p className="mt-3 text-body text-ink-notes">{PLAY_COPY.join.cookies.note}</p>
           </div>
-        </div>
-        <Button className="mt-5" size="lg" block onClick={go} data-testid="keep-playing">
+        </PaperCard>
+        <Button className="mt-7" size="lg" block onClick={go} data-testid="keep-playing">
           {PLAY_COPY.join.cookies.keep}
           <ArrowRight aria-hidden="true" className="size-5" />
         </Button>
@@ -183,10 +192,11 @@ function Ticket({ room, code, multilingual }: { room: Room; code: string; multil
 
   return (
     <form onSubmit={submit} noValidate>
-      <div className={styles.ticketWrap}>
+      <PaperCard className="shadow-poster rounded-card">
         {main}
-        <div data-surface="paper" className={cn("rounded-b-card border-t-2 border-dashed border-paper-edge bg-paper px-5 pt-6 pb-5 text-ink", styles.ticketStub)}>
-          <label htmlFor={nameId} className="block text-small font-semibold">
+        <TearLine />
+        <div className="px-5 pt-6 pb-5">
+          <label htmlFor={nameId} className="block font-display text-body">
             {PLAY_COPY.join.nameLabel}
           </label>
           <div className="mt-2 flex gap-2">
@@ -205,7 +215,7 @@ function Ticket({ room, code, multilingual }: { room: Room; code: string; multil
               spellCheck={false}
               aria-describedby={`${nameId}-hint`}
               aria-invalid={error ? true : undefined}
-              className={cn(FIELD, "flex-1", error ? "border-danger-on-paper" : "border-paper-edge")}
+              className={cn(FIELD, "flex-1", error ? "border-danger" : "border-ink")}
             />
             <button
               type="button"
@@ -216,16 +226,16 @@ function Ticket({ room, code, multilingual }: { room: Room; code: string; multil
                 setName(randomName());
                 setError(null);
               }}
-              className="press grid size-14 shrink-0 place-items-center rounded-element border-2 border-paper-edge bg-paper-2 text-ink"
+              className="press grid size-14 shrink-0 place-items-center rounded-element border-2 border-ink bg-paper-raised text-ink"
             >
               <Dices aria-hidden="true" className="size-6" />
             </button>
           </div>
-          <p id={`${nameId}-hint`} className="mt-2 text-small text-ink-muted">
+          <p id={`${nameId}-hint`} className="mt-2 text-body text-ink-notes">
             {PLAY_COPY.join.nameHint}
           </p>
           {error ? (
-            <p role="alert" className="mt-2 flex items-start gap-1.5 text-small font-semibold text-danger-on-paper">
+            <p role="alert" className="mt-2 flex items-start gap-1.5 text-body text-danger">
               <TriangleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
               {error}
             </p>
@@ -233,7 +243,7 @@ function Ticket({ room, code, multilingual }: { room: Room; code: string; multil
 
           {multilingual ? (
             <div className="mt-4">
-              <label htmlFor={langId} className="block text-small font-semibold">
+              <label htmlFor={langId} className="block font-display text-body">
                 {PLAY_COPY.join.langLabel}
               </label>
               <select
@@ -241,7 +251,7 @@ function Ticket({ room, code, multilingual }: { room: Room; code: string; multil
                 data-testid="lang-select"
                 value={lang}
                 onChange={(e) => setLang(e.target.value)}
-                className="mt-2 h-12 w-full rounded-element border-2 border-paper-edge bg-paper-2 px-3 text-body text-ink focus:border-ink focus:outline-none"
+                className="mt-2 h-12 w-full rounded-element border-2 border-ink bg-paper px-3 text-body text-ink"
               >
                 {LANGUAGES.some((l) => l.code === lang) ? null : <option value={lang}>{lang.toUpperCase()}</option>}
                 {LANGUAGES.map((l) => (
@@ -250,15 +260,15 @@ function Ticket({ room, code, multilingual }: { room: Room; code: string; multil
                   </option>
                 ))}
               </select>
-              <p className="mt-1.5 text-small text-ink-muted">{PLAY_COPY.join.langHint}</p>
+              <p className="mt-1.5 text-body text-ink-notes">{PLAY_COPY.join.langHint}</p>
             </div>
           ) : null}
 
-          {cookieHint ? <p className="mt-4 rounded-element border border-paper-edge bg-paper-2 p-3 text-small text-ink">{COPY.states.cookiesBlocked.body}</p> : null}
+          {cookieHint ? <p className="mt-4 rounded-element border-2 border-dashed border-ink-faint bg-paper p-3 text-body text-ink">{COPY.states.cookiesBlocked.body}</p> : null}
         </div>
-      </div>
+      </PaperCard>
 
-      <Button type="submit" size="lg" block loading={busy} className="mt-5" data-testid="join-submit">
+      <Button type="submit" size="lg" block loading={busy} className="mt-7" data-testid="join-submit">
         {busy ? PLAY_COPY.join.joining : PLAY_COPY.join.submit}
         {busy ? null : <ArrowRight aria-hidden="true" className="size-5" />}
       </Button>
@@ -289,9 +299,8 @@ export function JoinView({ code: rawCode, multilingual = false }: { code: string
       <Shell>
         <div role="status">
           <span className="sr-only">{PLAY_COPY.join.loading}</span>
-          <Skeleton tone="paper" className="h-[212px] rounded-b-none rounded-t-card" />
-          <Skeleton tone="paper" className="mt-1 h-[200px] rounded-t-none rounded-b-card" />
-          <Skeleton className="mt-5 h-14 w-full rounded-pill" />
+          <Skeleton className="h-[220px] rounded-card" />
+          <Skeleton className="mt-7 h-14 w-full rounded-pill" />
         </div>
       </Shell>
     );

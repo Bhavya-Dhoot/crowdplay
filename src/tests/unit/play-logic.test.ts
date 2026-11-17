@@ -15,6 +15,7 @@ import {
   pickLine,
   receiptCounts,
   receiptKey,
+  sceneNumber,
   shortLang,
   starterChips,
   supportLine,
@@ -303,5 +304,19 @@ describe("language", () => {
     expect(t.prompt?.title).toBe("The Vault");
     expect(t.label(state.options![0])).toBe("Pick the lock");
     expect(t.narration).toBe("यह खुल गई।");
+  });
+});
+
+describe("sceneNumber", () => {
+  it("numbers a short show 1..n", () => {
+    expect([0, 1, 2].map((i) => sceneNumber(i, 3, 3))).toEqual([1, 2, 3]);
+    expect(sceneNumber(0, 1, 1)).toBe(1);
+  });
+  it("numbers the last beats of a longer show by their real scene", () => {
+    expect([0, 1, 2].map((i) => sceneNumber(i, 3, 5))).toEqual([3, 4, 5]);
+  });
+  it("never starts below scene 1", () => {
+    expect(sceneNumber(0, 3, 2)).toBe(1);
+    expect(sceneNumber(0, 2, 0)).toBe(1);
   });
 });

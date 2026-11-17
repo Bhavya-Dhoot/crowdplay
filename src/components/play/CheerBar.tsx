@@ -1,14 +1,15 @@
 "use client";
 // Cheers (P8), in two parts so they can never cover the composer (audit #15):
-//   <CheerFloat cheers/>   the emoji other people send, drifting up. It fills the feed area (clipped by it, aria-hidden,
-//                          pointer-events none, always below the dock), so nothing can pass over the textbox or Send.
+//   <CheerFloat cheers/>   the emoji other people send, rising once from a stable spot. It fills the feed area (clipped by
+//                          it, aria-hidden, pointer-events none, always below the dock), so nothing can pass over the
+//                          textbox or Send.
 //   <CheerBar onCheer disabled/>   the row of emoji buttons inside the dock. Only mounted when features.cheers is on.
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/components/ui/cn";
-import { m } from "@/components/ui/motion";
 import { haptic } from "@/components/ui/motionTokens";
 import { CHEER_EMOJI } from "@/lib/copy";
 import type { CheerItem } from "@/lib/client/store";
+import styles from "./play.module.css";
 
 const FLOAT_MS = 2200;
 const MAX_FLOATING = 10;
@@ -58,16 +59,9 @@ export function CheerFloat({ cheers }: { cheers: CheerItem[] }) {
   return (
     <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-[5] overflow-hidden">
       {floating.map((f) => (
-        <m.span
-          key={f.id}
-          initial={{ opacity: 0, y: 24, scale: 0.8 }}
-          animate={{ opacity: [0, 1, 1, 0], y: -150, scale: 1.15 }}
-          transition={{ duration: FLOAT_MS / 1000, ease: "easeOut", times: [0, 0.12, 0.7, 1] }}
-          className="absolute bottom-12 text-3xl"
-          style={{ left: `${f.x}%` }}
-        >
+        <span key={f.id} className={styles.cheer} style={{ left: `${f.x}%` }}>
           {f.emoji}
-        </m.span>
+        </span>
       ))}
     </div>
   );
@@ -87,7 +81,7 @@ export function CheerBar({ onCheer, disabled }: { onCheer: (emoji: string) => vo
             haptic("tap");
             onCheer(e);
           }}
-          className={cn("press grid size-11 place-items-center rounded-full text-[22px] leading-none", "[--press-overlay:rgb(255_255_255/0.12)] disabled:opacity-40")}
+          className={cn("press grid size-11 place-items-center rounded-blob text-[22px] leading-none", "disabled:opacity-40")}
         >
           <span aria-hidden="true">{e}</span>
         </button>

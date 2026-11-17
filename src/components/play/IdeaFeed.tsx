@@ -1,28 +1,29 @@
 "use client";
-// STORM / DISTILL body: the scene strip on top and the live idea feed under it. Only the feed scrolls.
-// Ideas are paper index cards: someone else's sit left with their name on the stage above them (bots wear the 🤖
-// badge), mine sit right with a gold edge, land with the spring and keep a small check once they are sent. A pending
-// or refused idea says so on the card itself. The feed memoizes (stable props), so typing never re-renders it, and it
-// renders the newest 100 ideas only. Its scroller ends 36 px under the dock's glass bar, so ideas slide behind it.
-import { ArrowDown, Check, ChevronDown, LoaderCircle, MessageSquareText, RotateCcw, TriangleAlert } from "lucide-react";
-import { memo, useCallback, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+// STORM / DISTILL body: the scene note on top and the live idea feed under it. Only the feed scrolls.
+// Ideas are paper notes with a small seeded tilt (from the idea's key, so it never changes between renders): someone
+// else's sit left with their name above them (bots wear the 🤖 badge), mine sit right with the yellow edge and, once
+// they are sent, a pen check that draws itself on the note. A pending or refused idea says so on the note itself. The
+// feed memoizes (stable props), so typing never re-renders it, and it renders the newest 100 ideas only. Its scroller
+// ends 36 px under the dock, so notes slide behind the paper bar.
+import { ArrowDown, ChevronDown, LoaderCircle, RotateCcw, TriangleAlert } from "lucide-react";
+import { memo, useCallback, useLayoutEffect, useRef, useState } from "react";
 import { Avatar } from "@/components/ui/Avatar";
 import { BotBadge } from "@/components/ui/BotBadge";
+import { Button } from "@/components/ui/Button";
 import { cn } from "@/components/ui/cn";
-import { SPRING, springToLinear } from "@/components/ui/motionTokens";
-import { PaperCard } from "@/components/ui/PaperCard";
+import { FatArrow } from "@/components/ui/FatArrow";
+import { PaperCard, paperCardClass } from "@/components/ui/PaperCard";
+import { PenCheck } from "@/components/ui/PenCheck";
+import { Pill } from "@/components/ui/Pill";
 import type { FeedIdea } from "@/lib/client/store";
 import { useReducedMotion } from "@/lib/client/useReducedMotion";
 import { friendlyError } from "@/lib/copy";
 import { nearBottom } from "./logic";
 import { PLAY_COPY } from "./playCopy";
-import styles from "./play.module.css";
 
 const RENDER_CAP = 100;
-const LAND = springToLinear(SPRING.land.stiffness, SPRING.land.damping);
-const LAND_STYLE = { "--land-ease": LAND.easing, "--land-ms": `${LAND.durationMs}ms` } as CSSProperties;
 
-// ---------- scene strip ----------
+// ---------- scene note ----------
 
 export function PromptStrip({ title, text, ideas, compact }: { title: string; text: string; ideas: number; compact?: boolean }) {
   const [open, setOpen] = useState(false);
@@ -30,28 +31,28 @@ export function PromptStrip({ title, text, ideas, compact }: { title: string; te
   // With the keyboard up there is little height to spare: keep just the title row until the player expands it.
   const slim = Boolean(compact) && !open;
   return (
-    <div className="relative z-10 shrink-0">
+    <div className="relative z-10 shrink-0 px-0.5 pt-0.5">
       <button
         type="button"
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => setOpen((o) => !o)}
-        className={cn(
-          "press flex w-full gap-3 rounded-card border border-stage-line bg-stage-1 px-3.5 py-2.5 text-left [--press-overlay:rgb(255_255_255/0.06)]",
-          slim ? "min-h-11 items-center" : "min-h-[64px] items-start",
-        )}
+        className={paperCardClass({
+          pressable: true,
+          className: cn("flex w-full gap-3 rounded-element px-3.5 py-2.5 text-left shadow-slip", slim ? "min-h-11 items-center" : "min-h-[64px] items-start"),
+        })}
       >
         <span className="min-w-0 flex-1">
-          <span className="block truncate font-script text-body leading-6 font-semibold text-on-stage">{title}</span>
-          <span id={panelId} className={cn("font-script text-small leading-5 text-muted-on-stage", slim ? "hidden" : open ? "block" : "line-clamp-2")}>
+          <span className="block truncate font-display text-body leading-6">{title}</span>
+          <span id={panelId} className={cn("text-body leading-5 text-ink-notes", slim ? "hidden" : open ? "block" : "line-clamp-2")}>
             {text}
           </span>
         </span>
         <span className={cn("flex shrink-0 items-center gap-1.5", slim ? "flex-row" : "flex-col items-end")}>
-          <span className="rounded-pill bg-stage-2 px-2 py-0.5 text-fine font-semibold tabular-nums text-on-stage" aria-label={PLAY_COPY.play.storm.ideasCount(ideas)}>
+          <Pill size="sm" className="tabular-nums" aria-label={PLAY_COPY.play.storm.ideasCount(ideas)}>
             {ideas}
-          </span>
-          <ChevronDown aria-hidden="true" className={cn("size-4 text-muted-on-stage transition-transform duration-175 motion-reduce:transition-none", open && "rotate-180")} />
+          </Pill>
+          <ChevronDown aria-hidden="true" className={cn("size-4 text-ink-notes transition-transform duration-175 motion-reduce:transition-none", open && "rotate-180")} />
         </span>
       </button>
     </div>
@@ -62,68 +63,59 @@ export function PromptStrip({ title, text, ideas, compact }: { title: string; te
 
 type ItemProps = { idea: FeedIdea; fresh: boolean; onEdit: (text: string) => void };
 
+const NOTE = "rounded-element px-3.5 py-2.5 text-body leading-snug break-words";
+
 const FeedItem = memo(function FeedItem({ idea, fresh, onEdit }: ItemProps) {
   const rejected = idea.status === "rejected";
   const pending = idea.status === "pending";
   if (idea.mine) {
     return (
-      <li
-        data-testid="feed-item"
-        data-mine="1"
-        data-status={idea.status}
-        className={cn("flex flex-col items-end gap-1", fresh && styles.ideaMine)}
-        style={fresh ? LAND_STYLE : undefined}
-      >
+      <li data-testid="feed-item" data-mine="1" data-status={idea.status} className="flex flex-col items-end gap-2">
         <PaperCard
+          seed={idea.key}
           edge={rejected ? undefined : "gold"}
-          className={cn(
-            "flex max-w-[88%] items-end gap-2 rounded-[16px] rounded-br-[4px] px-3.5 py-2.5 text-small leading-snug break-words",
-            rejected && "outline-2 -outline-offset-2 outline-danger-on-paper",
-            pending && "opacity-80",
-          )}
+          className={cn("flex max-w-[88%] items-end gap-2", NOTE, fresh && "placed", rejected && "border-danger", pending && "border-dashed")}
         >
           <span className="min-w-0 flex-1">{idea.text}</span>
           {idea.status === "sent" ? (
             <>
-              <Check aria-hidden="true" className="mb-0.5 size-3.5 shrink-0 text-ink-muted" strokeWidth={3} />
+              <PenCheck size={20} seed={idea.key} className="mb-0.5" />
               <span className="sr-only">{PLAY_COPY.play.storm.sent}</span>
             </>
           ) : null}
         </PaperCard>
         {pending ? (
-          <span className="flex items-center gap-1.5 pr-1 text-fine text-muted-on-stage">
+          <span className="flex items-center gap-1.5 pr-1 text-fine text-ink-notes">
             <LoaderCircle aria-hidden="true" className="size-3.5 animate-spin motion-reduce:animate-none" />
             {PLAY_COPY.play.storm.sending}
           </span>
         ) : null}
         {rejected ? (
-          <span className="flex max-w-[88%] flex-col items-end gap-0.5 pr-1 text-right">
-            <span className="flex items-start gap-1.5 text-small leading-snug font-semibold text-danger">
+          <span className="flex max-w-[88%] flex-col items-end gap-1 pr-1 text-right">
+            <span className="flex items-start gap-1.5 text-body leading-snug text-danger">
               <TriangleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
               {friendlyError(idea.rejectCode ?? "BAD_REQUEST")}
             </span>
-            <button
-              type="button"
-              onClick={() => onEdit(idea.text)}
-              className="press -mr-2 inline-flex min-h-11 items-center gap-1.5 rounded-pill px-3 text-small font-semibold text-on-stage [--press-overlay:rgb(255_255_255/0.1)]"
-            >
+            <Button variant="secondary" size="sm" onClick={() => onEdit(idea.text)}>
               <RotateCcw aria-hidden="true" className="size-4" />
               {PLAY_COPY.play.storm.tryAgain}
-            </button>
+            </Button>
           </span>
         ) : null}
       </li>
     );
   }
   return (
-    <li data-testid="feed-item" data-status={idea.status} className={cn("flex items-end gap-2", fresh && styles.ideaIn)}>
-      <Avatar name={idea.name} size={28} className="mb-0.5" />
-      <div className="min-w-0 max-w-[88%]">
-        <p className="mb-0.5 flex items-center gap-1.5 pl-1 text-fine leading-5 text-muted-on-stage">
+    <li data-testid="feed-item" data-status={idea.status} className="flex items-end gap-2">
+      <Avatar name={idea.name} size={32} className="mb-1" />
+      <div className="min-w-0 max-w-[86%]">
+        <p className="mb-1 flex items-center gap-1.5 pl-1 text-fine leading-5 text-ink-notes">
           <span className="truncate">{idea.name}</span>
           {idea.isBot ? <BotBadge /> : null}
         </p>
-        <PaperCard className="rounded-[16px] rounded-bl-[4px] px-3.5 py-2.5 text-small leading-snug break-words">{idea.text}</PaperCard>
+        <PaperCard seed={idea.key} className={cn(NOTE, "shadow-slip", fresh && "placed")}>
+          {idea.text}
+        </PaperCard>
       </div>
     </li>
   );
@@ -137,10 +129,10 @@ export const IdeaFeed = memo(function IdeaFeed({ feed, onEdit, dim, closed, idea
   const { storm } = PLAY_COPY.play;
   // An empty feed says what is true: nothing yet, ideas on their way (late join), or the storm is over.
   const empty = closed
-    ? { title: storm.closedTitle, body: storm.closedBody }
+    ? { title: storm.closedTitle, body: storm.closedBody, arrow: false }
     : ideasInRound > 0
-      ? { title: storm.rollingTitle, body: storm.rollingBody }
-      : { title: storm.emptyTitle, body: storm.emptyBody };
+      ? { title: storm.rollingTitle, body: storm.rollingBody, arrow: false }
+      : { title: storm.emptyTitle, body: storm.emptyBody, arrow: true };
   const scroller = useRef<HTMLDivElement>(null);
   const stick = useRef(true);
   const [mountedAt] = useState(() => Date.now());
@@ -188,18 +180,19 @@ export const IdeaFeed = memo(function IdeaFeed({ feed, onEdit, dim, closed, idea
         tabIndex={0}
         role="region"
         aria-label="Ideas from the room"
-        className={cn("h-full overflow-y-auto overscroll-contain rounded-card px-0.5 pt-1 pb-[var(--dock-pad,8px)] transition-opacity duration-300 motion-reduce:transition-none", dim && "opacity-60")}
+        // Wider than the column by 12 px each side: a tilted note and its marker shadow reach past the text edge.
+        className={cn("-mx-3 h-full overflow-y-auto overscroll-contain px-3 pt-2 pb-[var(--dock-pad,8px)] transition-opacity duration-300 motion-reduce:transition-none", dim && "opacity-60")}
       >
         {shown.length === 0 ? (
           <div className="grid h-full min-h-[160px] place-items-center pb-6 text-center">
-            <div className="flex max-w-[26ch] flex-col items-center gap-2">
-              <MessageSquareText aria-hidden="true" className="size-8 text-muted-on-stage" />
-              <p className="font-display text-lead leading-tight font-bold">{empty.title}</p>
-              <p className="text-small text-muted-on-stage">{empty.body}</p>
+            <div className="flex max-w-[28ch] flex-col items-center gap-2 rounded-card border-2 border-dashed border-ink-faint px-5 py-5">
+              <p className="font-display text-lead leading-tight">{empty.title}</p>
+              <p className="text-body text-ink-notes">{empty.body}</p>
+              {empty.arrow ? <FatArrow direction="down" size={34} seed="storm-empty" delayMs={500} className="mt-1" /> : null}
             </div>
           </div>
         ) : (
-          <ul className="flex min-h-full flex-col justify-end gap-2.5">
+          <ul className="flex min-h-full flex-col justify-end gap-4">
             {shown.map((idea) => (
               <FeedItem key={idea.key} idea={idea} fresh={idea.at > mountedAt} onEdit={onEdit} />
             ))}
@@ -207,18 +200,21 @@ export const IdeaFeed = memo(function IdeaFeed({ feed, onEdit, dim, closed, idea
         )}
       </div>
       {unseen > 0 ? (
-        <button
-          type="button"
-          onClick={() => {
-            stick.current = true;
-            setUnseen(0);
-            toBottom(true);
-          }}
-          className="press absolute bottom-12 left-1/2 inline-flex min-h-11 -translate-x-1/2 items-center gap-1.5 rounded-pill bg-paper px-4 text-small font-semibold text-ink shadow-contact"
-        >
-          <ArrowDown aria-hidden="true" className="size-4" />
-          {PLAY_COPY.play.storm.newIdeas}
-        </button>
+        <div className="pointer-events-none absolute inset-x-0 bottom-12 flex justify-center">
+          <Button
+            variant="secondary"
+            size="sm"
+            className="pointer-events-auto"
+            onClick={() => {
+              stick.current = true;
+              setUnseen(0);
+              toBottom(true);
+            }}
+          >
+            <ArrowDown aria-hidden="true" className="size-4" />
+            {PLAY_COPY.play.storm.newIdeas}
+          </Button>
+        </div>
       ) : null}
     </div>
   );

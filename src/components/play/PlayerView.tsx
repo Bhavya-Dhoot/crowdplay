@@ -1,6 +1,6 @@
 "use client";
-// PlayerView: the whole player experience for one room (UX §3.3, design-v2). /play/[code] renders it full page;
-// Judge Mode (/try) embeds the very same component.
+// PlayerView: the whole player experience for one room (UX §3.3, design-v3 "Live Sketchnote"). /play/[code] renders it
+// full page; Judge Mode (/try) embeds the very same component.
 //
 //   <PlayerView code="ABCDE" coach={(step) => step && <Mark>{...}</Mark>} onEvent={(e) => ...} />
 //
@@ -11,12 +11,12 @@
 //            pushes the content up instead of covering it, and it steps aside while the keyboard is open.
 //   onEvent  { type: "idea", text } after an idea was accepted, { type: "vote", optionId } after a vote
 //            landed, { type: "receipt", receipt } when a BALLOT/CANON receipt arrives.
-//   backdrop the stage light for this round (default true); pass false when the page renders its own <StageBackdrop>.
+//   backdrop the page's grain layer (default true); pass false when the page renders its own <StageBackdrop>.
 //   className  size it from the outside; it fills 100% of its parent's height and never scrolls itself.
-// Layout: header (56 px) / body (fills; only the feed or the card list scrolls) / dock (a glass bar with the composer
-// and the cheers, floating above the safe area; it overlaps the body's last 36 px, so every body scrolls behind the
-// glass: each one pads its bottom with var(--dock-pad), which this component sets to 44 px when a dock is showing).
-// Toasts sit at the top while this component is mounted, so none ever covers the composer or the vote cards.
+// Layout: header (56 px) / body (fills; only the feed or the card list scrolls) / dock (a paper bar with an ink outline
+// holding the composer and the cheers, floating above the safe area; it overlaps the body's last 36 px, so every body
+// scrolls behind the bar: each one pads its bottom with var(--dock-pad), which this component sets to 44 px when a dock
+// is showing). Toasts sit at the top while this component is mounted, so none ever covers the composer or the vote boxes.
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Ban, Ticket, Search, WifiOff } from "lucide-react";
@@ -25,12 +25,10 @@ import { ButtonLink } from "@/components/ui/Button";
 import { cn } from "@/components/ui/cn";
 import { FullScreenMessage } from "@/components/ui/FullScreenMessage";
 import { LiveRegion } from "@/components/ui/LiveRegion";
-import { AnimatePresence, m, MotionScope } from "@/components/ui/motion";
-import { EASE, haptic, TRANSITION } from "@/components/ui/motionTokens";
+import { haptic } from "@/components/ui/motionTokens";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { StageBackdrop } from "@/components/ui/StageBackdrop";
 import { useToast, useToastPlacement } from "@/components/ui/Toast";
-import { useReducedMotion } from "@/lib/client/useReducedMotion";
 import { useRoom } from "@/lib/client/useRoom";
 import { COPY, friendlyError, PHASE_LABEL } from "@/lib/copy";
 import type { ReceiptPayload } from "@/lib/realtime/types";
@@ -48,15 +46,16 @@ import { PLAY_COPY } from "./playCopy";
 import { RevealView } from "./RevealView";
 import { LobbyView, PausedOverlay, PlayerSkeleton, PromptView } from "./StageViews";
 import { VoteView } from "./VoteView";
+import styles from "./play.module.css";
 
 export type { CoachStep } from "./logic";
 
-export type PlayerEvent =
+type PlayerEvent =
   | { type: "idea"; text: string }
   | { type: "vote"; optionId: string }
   | { type: "receipt"; receipt: ReceiptPayload };
 
-export type PlayerViewProps = {
+type PlayerViewProps = {
   code: string;
   coach?: (step: CoachStep | null) => ReactNode;
   onEvent?: (event: PlayerEvent) => void;
@@ -66,7 +65,7 @@ export type PlayerViewProps = {
 
 const subscribeNone = () => () => {};
 
-/** How far the dock's glass bar reaches up over the body (px). The feed scrolls behind it; other bodies pad for it. */
+/** How far the dock's paper bar reaches up over the body (px). The feed scrolls behind it; other bodies pad for it. */
 const DOCK_OVERLAP = 36;
 const BALLOT_TOAST_MS = 3500;
 const BALLOT_TOAST_CHARS = 60;
@@ -95,7 +94,6 @@ export function PlayerView({ code: rawCode, coach, onEvent, backdrop = true, cla
   const router = useRouter();
   const toast = useToast();
   useToastPlacement("top");
-  const reduced = useReducedMotion();
   const keyboardOpen = useVisualViewport()?.keyboard ?? false;
   const lang = useSyncExternalStore(subscribeNone, getStoredLang, () => "en");
 
@@ -127,7 +125,7 @@ export function PlayerView({ code: rawCode, coach, onEvent, backdrop = true, cla
     canonRef.current = null;
     setCanon(null);
     // The moment already buzzed; the toast it collapses into stays quiet and sits low, away from the winner card.
-    toast.show({ kind: "receipt", title: `🏆 ${COPY.reveal.canon}`, body: c.text, placement: "bottom" });
+    toast.show({ kind: "receipt", title: COPY.reveal.canon, body: c.text, placement: "bottom" });
   }, [toast]);
 
   const { onReceipt, onNotice } = r;
@@ -144,12 +142,12 @@ export function PlayerView({ code: rawCode, coach, onEvent, backdrop = true, cla
             setCanon({ text: rc.ideaText });
             setAnnounce(`${PLAY_COPY.play.reveal.canonBig}. ${rc.ideaText}`);
           } else {
-            toast.receipt({ title: `🏆 ${COPY.reveal.canon}`, body: rc.ideaText, placement: "bottom" });
+            toast.receipt({ title: COPY.reveal.canon, body: rc.ideaText, placement: "bottom" });
           }
         } else {
           haptic("tap");
           setBallot({ round: rc.roundNo, text: rc.ideaText });
-          // Two lines at most, so on a 360 px phone it fits the lane above the vote cards.
+          // Two lines at most, so on a 360 px phone it fits the lane above the vote boxes.
           const body = rc.ideaText.length > BALLOT_TOAST_CHARS ? `${rc.ideaText.slice(0, BALLOT_TOAST_CHARS - 1).trimEnd()}…` : rc.ideaText;
           toast.show({ kind: "receipt", title: PLAY_COPY.play.reveal.ballotTitle, body, durationMs: BALLOT_TOAST_MS });
         }
@@ -203,7 +201,7 @@ export function PlayerView({ code: rawCode, coach, onEvent, backdrop = true, cla
   const onVote = useCallback(
     async (optionId: string) => {
       if (myVote === optionId) return;
-      // The first vote clears the gold "on the ballot" toast; it has done its job.
+      // The first vote clears the "on the ballot" toast; it has done its job.
       if (!myVote) toast.clear();
       const res = await vote(optionId);
       if (res.ok) {
@@ -315,7 +313,7 @@ export function PlayerView({ code: rawCode, coach, onEvent, backdrop = true, cla
             onVote={(id) => void onVote(id)}
           />
         ) : (
-          <div role="status" className="flex h-full flex-col gap-3 pt-9 pb-[var(--dock-pad,8px)]">
+          <div role="status" className="flex h-full flex-col gap-4 pt-9 pb-[var(--dock-pad,8px)]">
             <span className="sr-only">{PLAY_COPY.play.loading}</span>
             <Skeleton className="flex-1 rounded-card" />
             <Skeleton className="flex-1 rounded-card" />
@@ -323,7 +321,7 @@ export function PlayerView({ code: rawCode, coach, onEvent, backdrop = true, cla
           </div>
         );
       case "reveal":
-        return <RevealView state={state} narration={tr.narration} label={tr.label} mineIds={mineIds} votedId={myVote} reduced={reduced} />;
+        return <RevealView state={state} narration={tr.narration} label={tr.label} mineIds={mineIds} votedId={myVote} />;
       case "finale":
         return <FinaleView state={state} meName={me?.displayName ?? null} ideasSentHere={ideasSent} />;
     }
@@ -344,78 +342,72 @@ export function PlayerView({ code: rawCode, coach, onEvent, backdrop = true, cla
   }
 
   return (
-    <MotionScope>
-      <div
-        data-testid="phase"
-        data-phase={phase ?? "LOADING"}
-        data-round={roundNo || undefined}
-        className={cn("relative mx-auto flex h-full min-h-0 w-full max-w-[480px] flex-col overflow-hidden md:border-x md:border-stage-line/60", className)}
-      >
-        {backdrop ? <StageBackdrop roundNo={roundNo || null} /> : null}
-        {state && !r.unreachable ? <ConnectionPill status={r.connection} /> : null}
-        <LiveRegion message={announce} />
+    <div
+      data-testid="phase"
+      data-phase={phase ?? "LOADING"}
+      data-round={roundNo || undefined}
+      className={cn("relative mx-auto flex h-full min-h-0 w-full max-w-[480px] flex-col overflow-hidden md:border-x-2 md:border-dashed md:border-ink-faint/50", className)}
+    >
+      {backdrop ? <StageBackdrop /> : null}
+      {state && !r.unreachable ? <ConnectionPill status={r.connection} /> : null}
+      <LiveRegion message={announce} />
 
-        {!state || !phase || !tr ? (
-          <PlayerSkeleton />
-        ) : (
-          <>
-            <h1 ref={headingRef} tabIndex={-1} className="sr-only focus:outline-none">
-              {state.title}. {PHASE_LABEL[phase]}
-            </h1>
+      {!state || !phase || !tr ? (
+        <PlayerSkeleton />
+      ) : (
+        <>
+          <h1 ref={headingRef} tabIndex={-1} className="sr-only focus:outline-none">
+            {state.title}. {PHASE_LABEL[phase]}
+          </h1>
 
-            <PlayHeader state={state} offsetMs={r.offsetMs} translate={tr.available ? { showOriginal, onToggle: toggleOriginal } : null} />
+          <PlayHeader state={state} offsetMs={r.offsetMs} translate={tr.available ? { showOriginal, onToggle: toggleOriginal } : null} />
 
-            <div className="relative flex min-h-0 flex-1 flex-col px-4" style={{ ["--dock-pad" as string]: hasDock ? "44px" : "8px" }}>
-              <div className="relative min-h-0 flex-1">
-                <AnimatePresence mode="wait" initial={false}>
-                  <m.div
-                    key={bodyKey(phase)}
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0, transition: TRANSITION.medium }}
-                    exit={{ opacity: 0, y: -6, transition: { duration: 0.175, ease: EASE.exit } }}
-                    className="h-full min-h-0"
-                  >
-                    {body()}
-                  </m.div>
-                </AnimatePresence>
-                {cheersOn ? <CheerFloat cheers={r.cheers} /> : null}
+          <div className="relative flex min-h-0 flex-1 flex-col px-4" style={{ ["--dock-pad" as string]: hasDock ? "44px" : "8px" }}>
+            <div className="relative min-h-0 flex-1">
+              <div key={bodyKey(phase)} className={cn("h-full min-h-0", styles.settle)}>
+                {body()}
               </div>
-              {coachNode ? <div className="relative z-10 shrink-0 pt-2 empty:hidden">{coachNode}</div> : null}
+              {cheersOn ? <CheerFloat cheers={r.cheers} /> : null}
             </div>
+            {coachNode ? <div className="relative z-10 shrink-0 pt-2 empty:hidden">{coachNode}</div> : null}
+          </div>
 
-            {hasDock ? (
-              <div className="relative z-10 shrink-0 px-3 pb-[max(8px,var(--safe-bottom))]" style={{ marginTop: -DOCK_OVERLAP }}>
-                <div className="glass rounded-sheet p-2">
-                  {dk !== "none" ? (
-                    <m.div key={dk} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={TRANSITION.fast} style={{ minHeight: dockHeight(phase) }}>
-                      {dockSlot()}
-                    </m.div>
-                  ) : null}
-                  {showCheers ? <CheerBar onCheer={sendCheer} disabled={r.connection !== "connected"} /> : null}
-                </div>
+          {hasDock ? (
+            <div className="relative z-10 shrink-0 px-3 pb-[max(8px,var(--safe-bottom))]" style={{ marginTop: -DOCK_OVERLAP }}>
+              <div className="slip rounded-sheet p-2">
+                {dk !== "none" ? (
+                  <div key={dk} className={styles.fade} style={{ minHeight: dockHeight(phase) }}>
+                    {dockSlot()}
+                  </div>
+                ) : null}
+                {showCheers ? (
+                  <div className={cn(dk !== "none" && "mt-1 border-t-2 border-dashed border-ink-faint/60 pt-1")}>
+                    <CheerBar onCheer={sendCheer} disabled={r.connection !== "connected"} />
+                  </div>
+                ) : null}
               </div>
-            ) : null}
+            </div>
+          ) : null}
 
-            <AnimatePresence>{state.paused ? <PausedOverlay key="paused" /> : null}</AnimatePresence>
-          </>
-        )}
+          {state.paused ? <PausedOverlay /> : null}
+        </>
+      )}
 
-        <AnimatePresence>{canon ? <CanonMoment key="canon" ideaText={canon.text} reduced={reduced} onDone={finishCanon} /> : null}</AnimatePresence>
+      {canon ? <CanonMoment ideaText={canon.text} onDone={finishCanon} /> : null}
 
-        {r.unreachable ? (
-          <FullScreenMessage
-            icon={<WifiOff {...iconProps} />}
-            title={COPY.states.unreachable.title}
-            body={COPY.states.unreachable.body}
-            onRetry={r.refresh}
-            actions={
-              <Link href="/" className="inline-flex min-h-11 items-center text-small text-muted-on-stage underline-offset-4 hover:underline">
-                {PLAY_COPY.play.notFound.action}
-              </Link>
-            }
-          />
-        ) : null}
-      </div>
-    </MotionScope>
+      {r.unreachable ? (
+        <FullScreenMessage
+          icon={<WifiOff {...iconProps} />}
+          title={COPY.states.unreachable.title}
+          body={COPY.states.unreachable.body}
+          onRetry={r.refresh}
+          actions={
+            <Link href="/" className="inline-flex min-h-11 items-center text-body text-ink-notes underline-offset-4 hover:underline">
+              {PLAY_COPY.play.notFound.action}
+            </Link>
+          }
+        />
+      ) : null}
+    </div>
   );
 }
