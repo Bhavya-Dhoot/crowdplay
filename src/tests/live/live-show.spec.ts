@@ -49,7 +49,7 @@ test("live: one full round over Nexconn with two phones and the big screen", asy
         preset: "heist",
         premise: "A crew of misfits robs the moon bank at midnight, and everything goes wrong at once.",
         roundsTotal: 3,
-        stormMs: 25_000,
+        stormMs: 40_000,
         voteMs: 15_000,
         autoAdvance: true,
         strictFilter: true,
@@ -57,7 +57,7 @@ test("live: one full round over Nexconn with two phones and the big screen", asy
     })
   ).json();
   expect(created.ok, JSON.stringify(created)).toBe(true);
-  const { code, hostKey } = created as { code: string; hostKey: string };
+  const { code, hostKey, showId } = created as { code: string; hostKey: string; showId: string };
   const act = (action: string) => host.post(`/api/rooms/${code}/host`, { headers: { "x-host-key": hostKey }, data: { action } });
 
   const screen = await (await browser.newContext({ viewport: { width: 1280, height: 720 } })).newPage();
@@ -76,7 +76,12 @@ test("live: one full round over Nexconn with two phones and the big screen", asy
   const ideas = [
     { from: ada, to: bo, text: "The vault door opens onto a glittering ballroom" },
     { from: bo, to: ada, text: "A security guard starts singing opera at full volume" },
+    { from: ada, to: bo, text: "The getaway driver is secretly a talking parrot" },
+    { from: bo, to: ada, text: "Every alarm in the bank starts playing jazz" },
+    { from: ada, to: bo, text: "A tunnel collapses and floods the vault with marbles" },
+    { from: bo, to: ada, text: "The bank manager turns out to be the crew's grandmother" },
   ];
+  const storm = (await (await host.get(`/api/rooms/${code}/state`)).json()).state as { phaseEndsAt: number };
   const latency: { toPhone: number | null; toScreen: number | null }[] = [];
   for (const i of ideas) {
     await i.from.getByTestId("idea-input").fill(i.text);
@@ -88,9 +93,8 @@ test("live: one full round over Nexconn with two phones and the big screen", asy
   }
 
   // DISTILL runs the live AI chain; VOTE must follow on its own.
-  const stormEndedAt = Date.now();
   await waitPhase(ada, "VOTE", 60_000);
-  const optionsVisibleMs = Date.now() - stormEndedAt;
+  const optionsVisibleMs = Date.now() - storm.phaseEndsAt; // server and browsers share this machine's clock
   for (const slot of ["A", "B", "C"]) await expect(ada.getByTestId(`option-${slot}`)).toBeVisible();
   const ballotToast = (await msUntilVisible(ada, "on the ballot", Date.now(), 8_000)) !== null || (await msUntilVisible(bo, "on the ballot", Date.now(), 2_000)) !== null;
   await ada.getByTestId("option-A").click();
@@ -107,6 +111,13 @@ test("live: one full round over Nexconn with two phones and the big screen", asy
 
   expect((await act("endShow")).ok()).toBe(true);
   await waitPhase(ada, "FINALE", 30_000);
+  // The finale recap is written in the background; give it the narrator's time budget.
+  type StoryBody = { show?: { storyTitle: string | null; recap: string | null; tagline: string | null } };
+  let story: StoryBody = {};
+  for (let i = 0; i < 30 && !story.show?.recap; i++) {
+    story = (await (await request.get(`/api/story/${showId}`)).json()) as StoryBody;
+    if (!story.show?.recap) await ada.waitForTimeout(500);
+  }
 
   const results = {
     at: new Date().toISOString(),
@@ -119,6 +130,7 @@ test("live: one full round over Nexconn with two phones and the big screen", asy
     narrationVisibleAfterRevealMs: narrationVisibleMs,
     ballotToastSeenOnAPhone: ballotToast,
     receiptsOnMe: { ada: meA.receipts?.length ?? 0, bo: meB.receipts?.length ?? 0 },
+    finale: { storyTitle: story.show?.storyTitle ?? null, recapChars: story.show?.recap?.length ?? 0, tagline: story.show?.tagline ?? null },
     consoleProblems: problems,
   };
   console.log("LIVE_RESULTS " + JSON.stringify(results));

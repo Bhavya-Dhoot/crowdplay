@@ -70,7 +70,7 @@ Setup before recording (see pre-flight): a show created on the deployed app, in 
 
 - **Big screen:** "The crowd has spoken… almost." then three options appear: A and B from the crowd, C as the pink ⚡ Wildcard.
 - **Voice-over:** "In seconds, AI turns the storm into three choices. Two from the crowd. One wildcard, always from a small voice."
-- Say "in about `<N>` seconds" only if the host console's **Distill time** counter for this round is in the shot (it shows milliseconds). No live number has been measured yet; do not reuse the mock load-test figures here.
+- Say "in about `<N>` seconds" only if the host console's **Distill time** counter for this round is in the shot (it shows milliseconds). Automated live runs measured about 3 s from the end of the storm to options on the phones; say the number from your own show's counter, and do not reuse the mock load-test figures.
 
 ### 1:30 to 1:50: VOTE
 

@@ -24,7 +24,7 @@ vi.mock("@/lib/ingest/filter", () => {
 import { resetConfig } from "@/lib/config";
 import { fallbackFinale, generateFinale } from "@/lib/ai/finale";
 import { appendSummary, narrateOutcome, templateNarration } from "@/lib/ai/narrate";
-import { fallbackPrompt, generatePrompt, SCENES } from "@/lib/ai/prompts";
+import { fallbackPrompt, fitText, generatePrompt, SCENES } from "@/lib/ai/prompts";
 import { safeLabel, safeText } from "@/lib/ai/safety";
 import type { NarrateInput, PromptInput, StoryContext } from "@/lib/ai/types";
 import type { PresetId } from "@/lib/realtime/types";
@@ -223,6 +223,29 @@ describe("scene prompts", () => {
     expect(r.provider).toBe("anthropic");
     expect(r.title).toBe("The Cake Has Opinions");
     expect(r.narratorOptions).toHaveLength(3);
+  });
+
+  it("live: an over-long scene is trimmed at a sentence boundary instead of falling back", async () => {
+    live();
+    const first = "The vault door swings open onto a ballroom where a thousand masked guests freeze mid-waltz and stare at the crew.";
+    h.anthropicCreate.mockResolvedValue(
+      toolUse({
+        title: "A Ballroom Where the Vault Should Be, Somehow",
+        text: `${first} Somewhere a violin squeaks to a stop, the chandelier sways, and the night manager reaches for a very large bell. What does the crew do?`,
+        narratorOptions: ["The crew joins the waltz to blend in", "The crew bolts for the service exit", "The crew demands the guests hand over their masks"],
+      }),
+    );
+    const r = await generatePrompt(pin("heist", 2));
+    expect(r.provider).toBe("anthropic");
+    expect(r.text).toBe(first);
+    expect(r.title.length).toBeLessThanOrEqual(40);
+    expect(r.title.endsWith("…")).toBe(true);
+  });
+
+  it("fitText keeps short text, prefers sentences, else whole words", () => {
+    expect(fitText("Short one.", 220)).toBe("Short one.");
+    expect(fitText("One sentence here. Another sentence that runs long", 30)).toBe("One sentence here.");
+    expect(fitText("no sentence breaks in this rather long line", 20)).toBe("no sentence breaks…");
   });
 
   it("live: an unsafe title falls back to the preset scene", async () => {

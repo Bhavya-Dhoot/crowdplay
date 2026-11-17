@@ -1,0 +1,57 @@
+{
+  "at": "2026-11-17T11:23:16.843Z",
+  "dryRun": false,
+  "server": {
+    "ok": true,
+    "realtimeMode": "nexconn",
+    "llmMode": "live",
+    "db": "pglite",
+    "version": "0.1.0"
+  },
+  "roomCode": "TSKHJ",
+  "ideaLatencyMs": [
+    {
+      "toPhone": 997,
+      "toScreen": 1037
+    },
+    {
+      "toPhone": 928,
+      "toScreen": 925
+    },
+    {
+      "toPhone": 939,
+      "toScreen": 938
+    },
+    {
+      "toPhone": 939,
+      "toScreen": 940
+    },
+    {
+      "toPhone": 945,
+      "toScreen": 946
+    },
+    {
+      "toPhone": 931,
+      "toScreen": 932
+    }
+  ],
+  "stormEndToOptionsMs": 3059,
+  "distill": {
+    "ms": 1892,
+    "provider": "openai",
+    "fallbackUsed": false
+  },
+  "narrationVisibleAfterRevealMs": 2412,
+  "ballotToastSeenOnAPhone": true,
+  "receiptsOnMe": {
+    "ada": 3,
+    "bo": 1
+  },
+  "finale": {
+    "storyTitle": "Midnight in the Moon Ballroom",
+    "recapChars": 890,
+    "tagline": "A moonlit heist turns into the fanciest disaster ever."
+  },
+  "round2PromptTitle": null,
+  "consoleProblems": []
+}

@@ -91,7 +91,7 @@ Nexconn is the only real-time transport in production. The app refuses to start 
 
 **Why Open Channels, metadata and priority controls fit.** A show needs one room with an unbounded audience and no per-user history to manage: Open Channels are built for that. Channel metadata is shared state that clients can read and subscribe to (per the SDK types), which suits "everyone sees the same phase and countdown" and live tallies; late joiners also get the current state over HTTP. Priority controls matter because ideas are the bulk traffic and must never crowd out the state that keeps the room in sync: ideas are marked low priority, while state and moderation types and the narrator sender are on the priority lists. Direct messages carry the personal receipts.
 
-**Not yet confirmed live.** No credentials were available while building, so every Nexconn call was written from the installed SDK types and docs and tested against stubs. Questions such as whether custom `CP:*` types reach Web clients, metadata replay on join, and whether the receipt reaches a client that never opened that channel stay open until the first live show; each has a fallback built in (HTTP polling, a text-envelope mode, in-app receipts).
+**Confirmed live (automated browsers).** Every Nexconn call was written from the installed SDK types and docs, then run against a live app (Singapore data center): the smoke test passed 11/11, and in three full rounds with two headless phones and the big screen, custom `CP:*` messages reached the other clients, phase changes arrived over Nexconn while HTTP polling was off, and the narrator's direct-message receipt reached a phone that never opened that channel. The webhook path waits for a deployed URL; each risk still has a fallback built in (HTTP polling, a text-envelope mode, in-app receipts).
 
 ## 6. Architecture
 
@@ -133,11 +133,11 @@ A hard cap of 10 s forces the heuristic path, and the next round's scene is gene
 
 | Step | Budget | Measured |
 |---|---|---|
-| Flush the last embedding batch | 0.8 s | live: pending |
-| Cluster and build candidates | 0.2 s | live: pending |
-| Distiller LLM | 3.5 s typical, 5 s cap | live: pending |
-| Validate, save, publish | 0.5 s | live: pending |
-| **Total** | **about 5 s typical, 8 s p95, 10 s hard cap** | **mock / synthetic only:** options saved a median 927 ms and p95 1,161 ms after the storm closed (300 simulated senders x 5 ideas over a 30 s storm, 5 rounds, 7,500 ideas, none dropped). Live: pending |
+| Flush the last embedding batch | 0.8 s | not measured separately |
+| Cluster and build candidates | 0.2 s | not measured separately |
+| Distiller LLM | 3.5 s typical, 5 s cap | **live:** 1.89 s and 1.97 s (OpenAI `gpt-5.4-mini`, whole distill step) |
+| Validate, save, publish | 0.5 s | not measured separately |
+| **Total** | **about 5 s typical, 8 s p95, 10 s hard cap** | **live (2 rounds, small rooms):** STORM deadline → options on the phones 2.8 s and 3.1 s. **Mock / synthetic:** options saved a median 927 ms and p95 1,161 ms after the storm closed (300 simulated senders x 5 ideas over a 30 s storm, 5 rounds, 7,500 ideas, none dropped). |
 
 ## 7. Safety
 
@@ -166,7 +166,7 @@ How the numbers will be collected: run public sessions of about ten minutes (six
 
 ## 10. Honest limits
 
-- **Not run live.** No live Nexconn session and no live LLM run has happened on this build, so delivery behaviour and latency over the real services are unmeasured (section 5, section 6). The only measured numbers are the mock-mode load simulation.
+- **Live, but small.** The live runs used the real Nexconn API and OpenAI with three automated browsers (two phones, one screen) from India to the Singapore data center. Idea delivery was 0.93–1.04 s (one 3.0 s outlier in 14 samples), so the 1 s target holds at the median, not at p95. Crowds, mobile networks and the message webhook (it needs the deployed URL) are not tested yet; the 300-sender load test is mock-only.
 - **Capacity.** Nexconn's free plan allows 50 concurrent open channels. The 500 concurrent connections we designed for (rooms stop admitting at 450 by default) assume Chat Growth Credit; the public pages we could read state only 2,000 MAU and a connection allowance of 5% of the MAU tier, so 500 is not confirmed. The load test used 300 simulated senders, not 300 connections.
 - **The webhook body is unsigned,** so a captured header set authenticates any body for as long as the timestamp is accepted. We limit the timestamp to 5 minutes, parse strictly, deduplicate, and re-validate every idea as if it came over HTTP. Other clients can forge channel metadata, so browsers use it as a hint and trust only the narrator's messages and the HTTP state.
 - **LLM latency is the main risk to the 8 s target;** the fallbacks keep rounds finishing but would show heuristic-quality options.

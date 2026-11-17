@@ -1,9 +1,9 @@
 # Verification evidence
 
-Everything below was produced on the build machine on **2026-11-17** (Windows 11, Node 22.17.1, i9-11950H) with
-**no external credentials**: no `.env`, no Nexconn / Anthropic / OpenAI keys. All runtime evidence is therefore in
-mock modes (`REALTIME_MODE=mock`, `LLM_MODE=mock`). Nothing here was run against live Nexconn or a live LLM; those
-checks are listed under "Human steps" at the end with exact commands.
+Everything below was produced on the build machine on **2026-11-17** (Windows 11, Node 22.17.1, i9-11950H).
+Sections 1–4 and 6 ran in mock modes with no external credentials (`REALTIME_MODE=mock`, `LLM_MODE=mock`), as
+`pnpm verify` requires. Section 5 ran **live** later the same day against Nexconn (Singapore data center) and OpenAI,
+after the Nexconn and OpenAI keys were added to `.env` (no Anthropic key).
 
 ## 1. `pnpm verify` on a clean checkout (GOAL condition 1)
 
@@ -158,20 +158,57 @@ ideas over 30 s, 5 rounds. Ideas are synthetic.
 - Distill ms (STORM end → options saved) per round: 1161, 839, 927, 802, 957 → **p50 927 ms, p95 1161 ms** (budget 8000 ms): PASS.
 - Mock mode has no LLM/embedding latency; the live budget (≈5 s typical) is untested without keys.
 
-## 5. Nexconn (GOAL condition 3)
+## 5. Nexconn — live (GOAL condition 3)
 
-No credentials exist on the build machine, so nothing was called live. Real output of the smoke script here:
+`pnpm smoke:nexconn` against the real API (the full table is appended to `docs/NEXCONN_FINDINGS.md`), real output:
 
 ```
-$ pnpm smoke:nexconn
-needs creds: missing NEXCONN_APP_KEY, NEXCONN_APP_SECRET, NEXCONN_PRIMARY_API_DOMAIN, NEXCONN_SECONDARY_API_DOMAIN
-Set them in .env or .env.local (see env.example) and run `pnpm smoke:nexconn` again.
- ELIFECYCLE  Command failed with exit code 2.
+PASS  U1        issueAccessToken for a plain user id                                     token of 104 chars
+PASS  U1        user ids the app really uses: u_<id> and cp_narrator (underscore)        both accepted
+PASS  U9        ensureChannel: create + longest keep-alive + priority sender             destroyType 0, ttlMinutes 10080
+PASS  U2/U3/U4  publishState: metadata batch set + CP:State message, metadata read back  7 keys read back; CP:State accepted
+INFO  U3        metadata key charset: is a '.' key (cp.phase) accepted?                  'cp.dot' -> code 1002 (rejected: keep underscores)
+PASS  U4        publishTally + sendRoomMessage (bot idea, cheer, notice, moderation)     all accepted by the server
+PASS  U6        configurePriorities: CP:State/CP:Moderation priority, CP:Idea/CP:Cheer low priority   registered and read back
+PASS  U6        narrator is on the channel's priority sender list                        cp_narrator listed
+PASS  U7        sendReceipt: direct message from the narrator, system message as fallback   direct code 0, system code 0
+PASS  U8        countParticipants (participant list total)                               total 0 (an empty channel)
+PASS  U8        mute / unmute / ban / unban a test user, read back from the lists        all four actions accepted
+INFO  U10       profanity list                                                           50 words on the provider list; quota full (1019)
+INFO  U5        webhook URL reachability                                                 APP_URL is local: set the deployed https URL in the Console
+PASS  U9        destroyChannel removes the test channel                                  getOpenChannel now answers 23410
+11 passed, 0 load-bearing failed, 0 other failed, 0 warnings
 ```
 
-`docs/NEXCONN_FINDINGS.md` answers U1–U10 from the installed SDK type definitions and docs, marks each one that still
-needs a live call, and lists the exact commands. Adapter behaviour is covered offline by `unit/nexconn-server.test.ts`
-(43), `unit/nexconn-client.test.ts` (21) and `unit/nexconn-codec.test.ts` (26) with a faked SDK.
+Realtime contract against Nexconn (`REALTIME_CONTRACT=nexconn`): `Tests 19 passed | 7 skipped (26)`. The 13 mock tests
+and the 6 Nexconn server-side tests pass; the 7 listener tests need the Web SDK in a browser and are covered by the
+live show below.
+
+**Live show** (`E2E_LIVE=1`, `src/tests/live/live-show.spec.ts`): production build with `REALTIME_MODE=nexconn` and
+`LLM_MODE=live`; two headless phones + the big screen play one full round; `1 passed` in each of three runs. Run 3
+(OpenAI `gpt-5.4-mini`), real output:
+
+```
+LIVE_RESULTS {"server":{"realtimeMode":"nexconn","llmMode":"live"},"ideaLatencyMs":[{"toPhone":997,"toScreen":1037},
+{"toPhone":928,"toScreen":925},{"toPhone":939,"toScreen":938},{"toPhone":939,"toScreen":940},{"toPhone":945,"toScreen":946},
+{"toPhone":931,"toScreen":932}],"stormEndToOptionsMs":3059,"distill":{"ms":1892,"provider":"openai","fallbackUsed":false},
+"narrationVisibleAfterRevealMs":2412,"ballotToastSeenOnAPhone":true,"receiptsOnMe":{"ada":3,"bo":1},
+"finale":{"storyTitle":"Midnight in the Moon Ballroom","recapChars":890,"tagline":"A moonlit heist turns into the fanciest disaster ever."},
+"consoleProblems":[]}
+  ok 1 [chromium] › live-show.spec.ts › live: one full round over Nexconn with two phones and the big screen
+```
+
+All three runs are tabulated in `docs/NEXCONN_FINDINGS.md` ("Live show results"); raw JSON is in `docs/live-results/`.
+Idea delivery over Nexconn was 0.93–1.04 s in 13 of 14 samples (one 3.0 s outlier), so the ≤1 s target holds at the
+median, not at p95. STORM deadline → options on the phones: 2.8–3.1 s with live AI (target ≤8 s p95).
+
+What the live runs changed in the code:
+- SDK log level WARN → ERROR (routine connect lines were console warnings).
+- The first available AI provider gets the primary's 5 s cap (OpenAI alone has no Anthropic in front of it).
+- Over-long model scene prompts are trimmed at a sentence boundary instead of being discarded.
+
+`OPENAI_FAST_MODEL=gpt-5.4-mini` was chosen by timing the real distill + narration chain (`scripts/ai-bench.ts`):
+1.2–1.4 s / 1.8–3.0 s, against `gpt-4o-mini`, which hit the timeouts and fell back.
 
 ## 6. Docker image
 
@@ -194,10 +231,11 @@ exit code 1
 
 Not tested: the image with a real Postgres (`DATABASE_URL`) or on Railway/Fly.
 
-## 7. Human steps left (cannot be done without credentials / people)
+## 7. Human steps left (need a deploy or people)
 
-1. Create `.env` with the Nexconn App Key/Secret, API domains, area, `SESSION_SECRET`, `ADMIN_TOKEN` (and Anthropic/OpenAI keys for live AI), following the console checklist in `docs/NEXCONN_FINDINGS.md` §4.
-2. `pnpm live:check` — runs the smoke test (appends live answers to `docs/NEXCONN_FINDINGS.md`), the Nexconn contract test, a live build and an automated two-phone live show.
-3. One show with real people on real phones (`pnpm build && pnpm start`, or the deployed URL); record the result here.
-5. Deploy (README → Railway / Fly), set the webhook URL `https://<host>/api/nexconn/webhook` in the console.
-6. Run real sessions; capture `/impact` afterwards (the `impact-*.png` screenshots in `docs/screens/` are test data).
+Done on 2026-11-17: `.env` with the Nexconn and OpenAI keys; `pnpm live:check` steps 1–4 (section 5).
+
+1. Deploy (README → Railway / Fly) with the same `.env` values as service variables (`APP_URL` = the https URL, `DATABASE_URL` = Postgres), then set the webhook URL `https://<host>/api/nexconn/webhook` (event `message:send`) in the Console and re-run `pnpm smoke:nexconn` to see the U5 webhook check.
+2. One show with real people on real phones on the deployed URL; record it here.
+3. Run real sessions; capture `/impact` afterwards (the `impact-*.png` screenshots in `docs/screens/` are test data).
+4. Optional: add `ANTHROPIC_API_KEY` to make Claude the primary model (OpenAI then becomes the fallback).

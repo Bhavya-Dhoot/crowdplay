@@ -1,0 +1,51 @@
+{
+  "at": "2026-11-17T11:18:57.450Z",
+  "dryRun": false,
+  "server": {
+    "ok": true,
+    "realtimeMode": "nexconn",
+    "llmMode": "live",
+    "db": "pglite",
+    "version": "0.1.0"
+  },
+  "roomCode": "PSJWP",
+  "ideaLatencyMs": [
+    {
+      "toPhone": 1024,
+      "toScreen": 1087
+    },
+    {
+      "toPhone": 948,
+      "toScreen": 944
+    },
+    {
+      "toPhone": 2988,
+      "toScreen": 2990
+    },
+    {
+      "toPhone": 988,
+      "toScreen": 988
+    },
+    {
+      "toPhone": 926,
+      "toScreen": 926
+    },
+    {
+      "toPhone": 949,
+      "toScreen": 949
+    }
+  ],
+  "stormEndToOptionsMs": 2779,
+  "distill": {
+    "ms": 1973,
+    "provider": "openai",
+    "fallbackUsed": false
+  },
+  "narrationVisibleAfterRevealMs": 2386,
+  "ballotToastSeenOnAPhone": true,
+  "receiptsOnMe": {
+    "ada": 2,
+    "bo": 2
+  },
+  "consoleProblems": []
+}

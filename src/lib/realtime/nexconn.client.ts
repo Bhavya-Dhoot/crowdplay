@@ -135,7 +135,7 @@ export function createNexconnClient(): RealtimeClient {
       chat = sdk;
       const areaCode = resolveAreaCode(creds.area, sdk.AreaCode);
       if (creds.area && areaCode === undefined) console.warn(`[crowdplay] unknown Nexconn area "${creds.area}", using the SDK default`);
-      sdk.NCEngine.initialize({ appKey: creds.appKey, areaCode, logLevel: sdk.LogLevel.WARN });
+      sdk.NCEngine.initialize({ appKey: creds.appKey, areaCode, logLevel: sdk.LogLevel.ERROR }); // WARN prints routine connect-status lines as console warnings
       sdk.NCEngine.registerCustomMessages([...CP_MESSAGE_REGISTRATIONS]);
       sdk.NCEngine.addConnectionStatusHandler(
         ids.connection,

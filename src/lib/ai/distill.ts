@@ -457,7 +457,9 @@ export async function distillRound(input: DistillInput): Promise<DistillResult> 
   let attempted = 0;
   for (const step of STEPS) {
     if (!providers.includes(step.provider)) continue;
-    const timeoutMs = Math.min(step.capMs, deadline - Date.now() - 250);
+    // Whichever provider runs first is the primary and gets the primary's cap (OpenAI alone when no Anthropic key).
+    const cap = attempted === 0 ? STEPS[0].capMs : step.capMs;
+    const timeoutMs = Math.min(cap, deadline - Date.now() - 250);
     if (timeoutMs < 600) break;
     attempted++;
     try {

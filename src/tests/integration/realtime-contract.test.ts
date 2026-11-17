@@ -154,6 +154,9 @@ const targets: { name: string; enabled: boolean; make: () => Promise<Harness> }[
 
 for (const target of targets) {
   describe.skipIf(!target.enabled)(`RealtimeServer contract: ${target.name}`, () => {
+    // The Nexconn Web SDK only runs in a browser, so its listener half cannot run under Node: those deliveries are
+    // checked with real browsers by the live show (`pnpm live:check`, src/tests/live/live-show.spec.ts).
+    const itListen = target.name === "nexconn" && typeof window === "undefined" ? it.skip : it;
     let h: Harness;
     beforeAll(async () => {
       h = await target.make();
@@ -184,7 +187,7 @@ for (const target of targets) {
       await h.server.configurePriorities();
     });
 
-    it("publishState reaches every subscriber of the channel and nobody else", async () => {
+    itListen("publishState reaches every subscriber of the channel and nobody else", async () => {
       const ch = newChannel();
       const other = newChannel();
       await h.server.ensureChannel(ch, "A");
@@ -199,7 +202,7 @@ for (const target of targets) {
       await Promise.all([a, b, outsider].map((l) => l.detach()));
     });
 
-    it("publishTally delivers {t:'tally', v, roundNo, tally, total}", async () => {
+    itListen("publishTally delivers {t:'tally', v, roundNo, tally, total}", async () => {
       const ch = newChannel();
       await h.server.ensureChannel(ch, "Tally");
       const l = await h.attach(ch, newUser("t"));
@@ -209,7 +212,7 @@ for (const target of targets) {
       await l.detach();
     });
 
-    it("sendRoomMessage delivers ideas with the sender's id, in the order they were sent", async () => {
+    itListen("sendRoomMessage delivers ideas with the sender's id, in the order they were sent", async () => {
       const ch = newChannel();
       await h.server.ensureChannel(ch, "Ideas");
       const l = await h.attach(ch, newUser("i"));
@@ -221,7 +224,7 @@ for (const target of targets) {
       await l.detach();
     });
 
-    it("sendRoomMessage delivers cheers, notices and moderation messages as their own events", async () => {
+    itListen("sendRoomMessage delivers cheers, notices and moderation messages as their own events", async () => {
       const ch = newChannel();
       await h.server.ensureChannel(ch, "Misc");
       const l = await h.attach(ch, newUser("m"));
@@ -238,7 +241,7 @@ for (const target of targets) {
       await l.detach();
     });
 
-    it("sendReceipt reaches the addressed user and only them, and reports delivery", async () => {
+    itListen("sendReceipt reaches the addressed user and only them, and reports delivery", async () => {
       const ch = newChannel();
       await h.server.ensureChannel(ch, "Receipts");
       const me = newUser("me");
@@ -256,7 +259,7 @@ for (const target of targets) {
       expect(await h.server.sendReceipt(newUser("offline"), receipt)).toBe(false);
     });
 
-    it("countParticipants reports distinct connected users (or null when the provider cannot say)", async () => {
+    itListen("countParticipants reports distinct connected users (or null when the provider cannot say)", async () => {
       const ch = newChannel();
       await h.server.ensureChannel(ch, "Count");
       expect(await h.server.countParticipants(ch)).toSatisfy((c: number | null) => c === null || c === 0 || !h.caps.exactParticipants);
@@ -285,7 +288,7 @@ for (const target of targets) {
       expect(await h.server.verifyWebhook(garbage, "nope")).toBeNull();
     });
 
-    it("destroyChannel stops delivery to that channel", async () => {
+    itListen("destroyChannel stops delivery to that channel", async () => {
       const ch = newChannel();
       await h.server.ensureChannel(ch, "Doomed");
       const l = await h.attach(ch, newUser("d"));

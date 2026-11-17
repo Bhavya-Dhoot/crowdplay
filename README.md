@@ -56,7 +56,7 @@ The same table is on `/how-it-works`. Only `src/lib/realtime/nexconn.server.ts` 
 | Server learns about messages | Message webhook (`message:send`), signature-checked and deduplicated |
 | Reconnect banner | Connection status handler |
 
-None of this has been run against a live Nexconn app yet: there were no credentials on the build machine. The mapping comes from the installed SDK type definitions and docs.nexconn.ai, and the exact status of every open question is in [docs/NEXCONN_FINDINGS.md](docs/NEXCONN_FINDINGS.md) (U1 to U10). See [Limitations](#limitations).
+This mapping was built from the installed SDK type definitions and docs.nexconn.ai. On 2026-11-17 it was run against a live Nexconn app (Singapore data center): smoke test 11/11, plus three full rounds with headless browsers in which custom `CP:*` messages, state updates and narrator receipts reached the clients. The status of every open question is in [docs/NEXCONN_FINDINGS.md](docs/NEXCONN_FINDINGS.md) (U1 to U10). See [Limitations](#limitations).
 
 ## Architecture
 
@@ -376,8 +376,8 @@ If `llmMode` says `mock`, the AI keys are missing. Then, from a machine with the
 
 State of verification:
 
-- **No live Nexconn session and no live LLM run has happened on this build.** There were no credentials on the build machine. Everything that touches Nexconn was written from the installed SDK type definitions and the docs, and tested against stubs and the mock transport. `docs/NEXCONN_FINDINGS.md` marks each U1 to U10 answer as `confirmed-from-types`, `from-docs` or `needs creds`. Custom `CP:*` message delivery to Web clients, metadata replay on join, webhook delivery of non-persisted messages and direct-message receipts reaching a client that never opened that channel are all still unconfirmed.
-- **No live latency numbers.** The only measurement is the mock-mode load simulation above (synthetic ideas, no LLM, no Nexconn). The 8 s p95 distill target and the 1 s idea-to-screen target are design goals until a live show measures them.
+- **Live Nexconn + live AI: verified on 2026-11-17 with automated browsers, not yet with people.** `pnpm live:check` passed against the real Nexconn API (Singapore data center) and OpenAI `gpt-5.4-mini`: the smoke test (11/11), the server half of the realtime contract, and three full rounds played by two headless phones and the big screen. Custom `CP:*` messages, state updates and narrator receipts all reached the browsers. Results: `docs/VERIFICATION.md` §5 and `docs/NEXCONN_FINDINGS.md`. Still untested: the message webhook (needs the deployed https URL), more than 3 concurrent clients, real phones on mobile networks, and Claude (no Anthropic key was used).
+- **Live latency (3 clients, India → Singapore):** idea to another phone and to the big screen 0.93–1.04 s (13 of 14 samples; one 3.0 s outlier), so the 1 s target holds at the median, not at p95. STORM deadline → options on the phones 2.8–3.1 s with live AI (target 8 s p95). The load simulation above is still mock-only.
 - **No real usage yet.** No public sessions are recorded; `/impact` reads the database and says so.
 - The optional features (TTS, multilingual) have flag-off tests; flag-on needs live keys and has not been run live. In mock mode translation returns nothing, so the multilingual flag does nothing visible without live keys.
 

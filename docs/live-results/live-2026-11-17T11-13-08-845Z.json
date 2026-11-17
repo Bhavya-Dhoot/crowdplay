@@ -1,0 +1,48 @@
+{
+  "at": "2026-11-17T11:13:08.845Z",
+  "dryRun": false,
+  "server": {
+    "ok": true,
+    "realtimeMode": "nexconn",
+    "llmMode": "mock",
+    "db": "pglite",
+    "version": "0.1.0"
+  },
+  "roomCode": "NHARH",
+  "ideaLatencyMs": [
+    {
+      "toPhone": 930,
+      "toScreen": 966
+    },
+    {
+      "toPhone": 940,
+      "toScreen": 939
+    }
+  ],
+  "stormEndToOptionsMs": 19748,
+  "distill": {
+    "ms": 419,
+    "provider": "heuristic",
+    "fallbackUsed": false
+  },
+  "narrationVisibleAfterRevealMs": 25,
+  "ballotToastSeenOnAPhone": true,
+  "receiptsOnMe": {
+    "ada": 2,
+    "bo": 1
+  },
+  "consoleProblems": [
+    "screen: 2026-11-17T11:12:19.130Z[IMLib][WARN]: L-imsdk_ver-O | {\"commitId\":\"b83bc888ca931796c98260ce0b360e65750a43b5\",\"version\":\"26.2.1\",\"isNexconn\":true} | undefined",
+    "screen: 2026-11-17T11:12:19.137Z[IMLib][WARN]: L-connect-S | status: 1 | undefined",
+    "screen: 2026-11-17T11:12:19.138Z[IMLib][WARN]: A-connect-S | status: 1, code: undefined | undefined",
+    "Ada Live: 2026-11-17T11:12:20.027Z[IMLib][WARN]: L-imsdk_ver-O | {\"commitId\":\"b83bc888ca931796c98260ce0b360e65750a43b5\",\"version\":\"26.2.1\",\"isNexconn\":true} | undefined",
+    "Ada Live: 2026-11-17T11:12:20.032Z[IMLib][WARN]: L-connect-S | status: 1 | undefined",
+    "Ada Live: 2026-11-17T11:12:20.033Z[IMLib][WARN]: A-connect-S | status: 1, code: undefined | undefined",
+    "Bo Live: 2026-11-17T11:12:20.763Z[IMLib][WARN]: L-imsdk_ver-O | {\"commitId\":\"b83bc888ca931796c98260ce0b360e65750a43b5\",\"version\":\"26.2.1\",\"isNexconn\":true} | undefined",
+    "Bo Live: 2026-11-17T11:12:20.767Z[IMLib][WARN]: L-connect-S | status: 1 | undefined",
+    "Bo Live: 2026-11-17T11:12:20.768Z[IMLib][WARN]: A-connect-S | status: 1, code: undefined | undefined",
+    "screen: 2026-11-17T11:12:23.737Z[IMLib][WARN]: A-connect-S | status: 0, code: undefined | undefined",
+    "Bo Live: 2026-11-17T11:12:23.757Z[IMLib][WARN]: A-connect-S | status: 0, code: undefined | undefined",
+    "Ada Live: 2026-11-17T11:12:23.771Z[IMLib][WARN]: A-connect-S | status: 0, code: undefined | undefined"
+  ]
+}

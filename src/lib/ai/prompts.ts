@@ -350,9 +350,11 @@ export const SCENES: Record<PresetId, Scene[]> = {
   ],
 };
 
+// Models overshoot the length limits now and then (seen live with gpt-5.4-mini); accept a longer draft and trim it
+// with fitText instead of throwing a good scene away.
 const PromptSchema = z.object({
-  title: z.string().min(3).max(40),
-  text: z.string().min(20).max(220),
+  title: z.string().min(3).max(80),
+  text: z.string().min(20).max(400),
   narratorOptions: z.array(z.string().min(8).max(70)).length(3),
 });
 
@@ -361,6 +363,18 @@ Return: title (max 40 chars), text (max 220 chars, 1-2 vivid sentences ending at
 and three "narratorOptions" (max 70 chars each, clearly different) used only if the crowd is silent.
 Keep it open-ended so hundreds of different ideas fit. Family-friendly. Continue naturally from the story so far
 and do not repeat earlier scenes.`;
+
+/** Shorten to maxLen: whole sentences when they fit, else whole words + "…". */
+export function fitText(text: string, maxLen: number): string {
+  const t = text.replace(/\s+/g, " ").trim();
+  if (t.length <= maxLen) return t;
+  const head = t.slice(0, maxLen);
+  const sentenceEnd = Math.max(head.lastIndexOf(". "), head.lastIndexOf("! "), head.lastIndexOf("? "));
+  if (sentenceEnd >= maxLen * 0.4) return head.slice(0, sentenceEnd + 1);
+  if (/[.!?]$/.test(head)) return head;
+  const space = head.lastIndexOf(" ", maxLen - 1);
+  return (space > 0 ? head.slice(0, space) : head.slice(0, maxLen - 1)).replace(/[,;:\s]+$/, "") + "…";
+}
 
 function pickScene(preset: PresetId, roundNo: number): Scene {
   const list = SCENES[preset] ?? SCENES.custom;
@@ -414,8 +428,8 @@ export async function generatePrompt(input: PromptInput): Promise<PromptResult> 
         check: (d) => (distinct(d.narratorOptions) ? null : "narratorOptions must be clearly different from each other"),
       },
     );
-    const title = safeText(r.data.title, 40);
-    const text = safeText(r.data.text, 220);
+    const title = safeText(fitText(r.data.title, 40), 40);
+    const text = safeText(fitText(r.data.text, 220), 220);
     const options = r.data.narratorOptions.map((o) => safeLabel(o));
     if (!title || !text || options.some((o) => o === null)) {
       return { ...fallbackPrompt(input), ms: Date.now() - t0 };
