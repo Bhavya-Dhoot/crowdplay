@@ -17,6 +17,7 @@
   /* Paper and ink. The page is --paper; a card is paper laid on top (--paper-raised), so it hides the dots. */
   --paper: #fbfaf6;
   --paper-raised: #fffefa;
+  --paper-tint: #f1eee4; /* a sunk paper panel (PaperCard tone="paper-2"): the recap note, the narrator's box */
   --dots: #d9d4c9;
   --ink: #1e1e22; /* lines, words, primary text */
   --ink-notes: #5b5852; /* secondary text */
@@ -78,35 +79,4 @@
   --f-display: var(--font-kalam), "Segoe Print", "Bradley Hand", "Comic Sans MS", cursive;
   --f-body: var(--font-patrick), "Segoe Print", "Bradley Hand", "Comic Sans MS", cursive;
   --f-script: var(--f-body);
-}
-
-/* ------------------------------------------------------------------ */
-/* v2 aliases: removed in the dead-code sweep.                          */
-/* Pages that have not been restyled yet keep using the v2 names; each  */
-/* maps to a v3 value so they render as readable ink on paper. Move to  */
-/* the v3 names above, then delete this block (and its twin in the      */
-/* @theme and utilities blocks of globals.css).                         */
-/* ------------------------------------------------------------------ */
-:root {
-  --stage-0: var(--paper);
-  --stage-1: var(--paper-raised);
-  --stage-2: #efece3;
-  --stage-line: var(--ink-faint);
-  --ink-on-stage: var(--ink);
-  --muted-on-stage: var(--ink-notes);
-  --ink-muted: var(--ink-notes);
-  --paper-2: #f1eee4;
-  --paper-edge: var(--ink-faint);
-  --gold: var(--hl-solid);
-  /* Option gels become three greys (ink on each is 4.9 to 9.3). The letter was always the real signal. */
-  --gel-a: #a9a7a2;
-  --gel-b: #c4c2bd;
-  --gel-c: #8e8c87;
-  --ok: var(--ink-notes);
-  --warn: var(--hl-solid);
-  --danger-on-paper: var(--danger);
-  --light: var(--ink);
-  --ease-out: var(--ease-arrive);
-  --contact-shadow: 3px 4px 0 var(--marker-2);
-  --paper-highlight: 0 0 0 0 transparent;
 }

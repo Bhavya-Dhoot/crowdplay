@@ -24,25 +24,6 @@
   --color-hl-deep: var(--hl-deep);
   --color-danger: var(--danger);
 
-  /* v2 aliases: removed in the dead-code sweep */
-  --color-stage-0: var(--stage-0);
-  --color-stage-1: var(--stage-1);
-  --color-stage-2: var(--stage-2);
-  --color-stage-line: var(--stage-line);
-  --color-on-stage: var(--ink-on-stage);
-  --color-muted-on-stage: var(--muted-on-stage);
-  --color-paper-2: var(--paper-2);
-  --color-paper-edge: var(--paper-edge);
-  --color-ink-muted: var(--ink-muted);
-  --color-light: var(--light);
-  --color-gel-a: var(--gel-a);
-  --color-gel-b: var(--gel-b);
-  --color-gel-c: var(--gel-c);
-  --color-gold: var(--gold);
-  --color-ok: var(--ok);
-  --color-warn: var(--warn);
-  --color-danger-on-paper: var(--danger-on-paper);
-  --shadow-contact: var(--contact-shadow);
 
   --radius-inner: var(--r-inner);
   --radius-element: var(--r-element);
@@ -340,7 +321,7 @@
     border-radius: var(--r-card-alt);
   }
   .paper-2 {
-    background-color: var(--paper-2);
+    background-color: var(--paper-tint);
   }
   /* Option letter tab hanging over the top edge (decorative: the letter is always also written in the card). */
   .paper-gel-a::before,
@@ -410,9 +391,8 @@
   }
 
   /* A floating layer (toast, banner, composer bar, host top bar): a paper slip with an ink outline and marker shadow.
-     Never blurred. .glass is the v2 name (v2 aliases: removed in the dead-code sweep). */
-  .slip,
-  .glass {
+     Never blurred. */
+  .slip {
     color: var(--ink);
     background: var(--paper-raised);
     border: var(--line-2);
@@ -990,28 +970,5 @@
   }
   .sheet[data-closing="true"] {
     animation-name: fade-out;
-  }
-}
-
-/* ------------------------------------------------------------------ */
-/* v2 aliases: removed in the dead-code sweep. Utilities whose v2      */
-/* colour cannot be reused as-is on paper: yellow and grey FILLS were  */
-/* also used as TEXT colours on the dark stage.                        */
-/* ------------------------------------------------------------------ */
-@layer utilities {
-  .text-gold,
-  .text-warn {
-    color: var(--ink);
-  }
-  .bg-danger {
-    background-color: #f3d3cc;
-  }
-  /* A yellow focus ring or focus border would vanish on paper: ink instead. */
-  .has-\[\:focus-visible\]\:outline-gold:has(:focus-visible),
-  .peer-focus-visible\:outline-gold:is(:where(.peer):focus-visible ~ *) {
-    outline-color: var(--ink);
-  }
-  .focus\:border-gold:focus {
-    border-color: var(--ink);
   }
 }
