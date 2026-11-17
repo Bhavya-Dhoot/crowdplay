@@ -31,7 +31,7 @@ const body = Patrick_Hand({
 
 function siteUrl(): URL {
   try {
-    return new URL(process.env.APP_URL ?? "http://localhost:3000");
+    return new URL(process.env.APP_URL ?? process.env.RENDER_EXTERNAL_URL ?? "http://localhost:3000");
   } catch {
     return new URL("http://localhost:3000");
   }

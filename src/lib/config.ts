@@ -36,7 +36,8 @@ const EnvSchema = z.object({
   OPENAI_TTS_MODEL: optional,
   OPENAI_TTS_VOICE: optional,
 
-  APP_URL: z.string().default("http://localhost:3000"),
+  // Render sets RENDER_EXTERNAL_URL (https://<service>.onrender.com) on every web service, so a Render deploy needs no APP_URL.
+  APP_URL: z.string().default(process.env.RENDER_EXTERNAL_URL ?? "http://localhost:3000"),
   SESSION_SECRET: optional,
   ADMIN_TOKEN: optional,
   DATABASE_URL: optional,

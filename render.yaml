@@ -1,0 +1,58 @@
+# Render Blueprint: one Docker web service + Render Postgres, both in Singapore (next to Nexconn's SG data centre).
+# Deploy: Render dashboard -> New -> Blueprint -> pick this repo. Render asks once for every `sync: false` value.
+# Migrations run on boot; GET /api/health is the health check. APP_URL defaults to RENDER_EXTERNAL_URL.
+# Plans: `free` web services sleep after 15 min idle (about a minute to wake) and free Postgres expires after 30 days.
+# For judging, switch the web plan to `0.5c-512mb` and the database plan to `0.1c-256mb` (paid, no sleep, no expiry).
+services:
+  - type: web
+    name: crowdplay
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: crowdplay-db
+          property: connectionString
+      - key: REALTIME_MODE
+        value: nexconn
+      - key: LLM_MODE
+        value: live
+      - key: INGEST_MODE
+        value: dual
+      - key: NEXCONN_PRIMARY_API_DOMAIN
+        value: https://api.sg-light-api.com
+      - key: NEXCONN_SECONDARY_API_DOMAIN
+        value: https://api-b.sg-light-api.com
+      # Read at build time (Dockerfile ARG) and inlined into the browser bundle; the App Key is public by design.
+      - key: NEXT_PUBLIC_NEXCONN_AREA
+        value: SG
+      - key: NEXT_PUBLIC_REPO_URL
+        value: https://github.com/Bhavya-Dhoot/crowdplay
+      - key: OPENAI_FAST_MODEL
+        value: gpt-5.4-mini
+      - key: OPENAI_REASONING_EFFORT
+        value: none
+      - key: OPENAI_TTS_MODEL
+        value: gpt-4o-mini-tts
+      - key: OPENAI_TTS_VOICE
+        value: alloy
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: ADMIN_TOKEN
+        generateValue: true
+      # Asked once when the Blueprint is created. NEXT_PUBLIC_NEXCONN_APP_KEY takes the same value as NEXCONN_APP_KEY.
+      - key: NEXCONN_APP_KEY
+        sync: false
+      - key: NEXT_PUBLIC_NEXCONN_APP_KEY
+        sync: false
+      - key: NEXCONN_APP_SECRET
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+databases:
+  - name: crowdplay-db
+    plan: free
+    region: singapore
