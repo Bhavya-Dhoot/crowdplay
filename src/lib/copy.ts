@@ -130,6 +130,9 @@ export function randomName(rng: () => number = Math.random): string {
 
 // ---------- Screens ----------
 
+/** How long Judge Mode takes, start to finale (measured end to end, see docs): the one number every page quotes. */
+export const DEMO_MINUTES = 2;
+
 export const COPY = {
   brand: "CrowdPlay",
   landing: {
@@ -137,7 +140,7 @@ export const COPY = {
     sub: "Everyone types. AI turns the chaos into three choices. The room decides. You get the credit.",
     join: { heading: "Join a show", hint: "Got a code from the host? Type it here.", button: "Join", codeLabel: "Show code" },
     host: { label: "Host a show", hint: "Pick a premise, set the timing and share the code." },
-    try: { label: "Play a 60-second demo", hint: "A demo room with simulated players. No host, no setup." },
+    try: { label: `Play a ${DEMO_MINUTES}-minute demo`, hint: "Three rounds against simulated players. No host, no setup." },
     stepsHeading: "How a round works",
     // The looping example round on the landing page. Decoration, labelled "Example round": nothing here is real data.
     example: {
@@ -176,5 +179,9 @@ export const COPY = {
   },
   composer: { placeholder: "Type an idea…", getReady: "Get ready…", reconnecting: "Reconnecting…", send: "Send idea" },
   reveal: { canon: "Your idea became canon", tooQuiet: "Too quiet! The narrator improvises.", narratorPick: "Narrator's pick" },
-  try: { banner: "Demo room — 30 🤖 simulated players. Live shows use real people." },
+  try: {
+    banner: "Demo room — 30 🤖 simulated players. Live shows use real people.",
+    /** The same promise in one line for a phone-width banner. */
+    bannerShort: "Demo room · 30 🤖 simulated players",
+  },
 } as const;

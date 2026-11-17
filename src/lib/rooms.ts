@@ -14,6 +14,7 @@ import type {
 } from "./api/contracts";
 import { hashHostKey } from "./auth/hostKey";
 import type { SessionUser } from "./auth/session";
+import { DEMO } from "./bots/demo";
 import { defaultTimings, env, scaled } from "./config";
 import { getDb, schema, type Db } from "./db/client";
 import { advance, advanceIfDue, engineNow, loadEngineState } from "./engine/advance";
@@ -118,8 +119,9 @@ export async function createRoom(
           roundsTotal: input.roundsTotal,
           stormMs: scaled(input.stormMs),
           voteMs: scaled(input.voteMs),
-          promptMs: timings.promptMs,
-          revealMs: timings.revealMs,
+          // Judge Mode is paced for one person (bots/demo.ts); hosted shows keep the configured timings.
+          promptMs: opts.isDemo ? scaled(DEMO.promptMs) : timings.promptMs,
+          revealMs: opts.isDemo ? scaled(DEMO.revealMs) : timings.revealMs,
           autoAdvance: input.autoAdvance,
         })
         .returning();

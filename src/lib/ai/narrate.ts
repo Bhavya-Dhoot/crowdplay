@@ -6,7 +6,10 @@
 import { z } from "zod";
 import { fenceIdea, safeText, UNTRUSTED_NOTE, wordCount } from "./safety";
 import { callChain, llmLive } from "./providers";
+import { narrationContextOf, templateNarration } from "../bots/fallbacks";
 import type { NarrateInput, NarrateResult, StoryContext } from "./types";
+
+export { templateNarration };
 
 const NarrationSchema = z.object({
   narration: z.string().min(1).max(700),
@@ -33,11 +36,6 @@ function truncate(s: string, max: number): string {
   return stripEnd(sp > max * 0.6 ? cut.slice(0, sp) : cut);
 }
 
-/** The exact fallback line from AI_PROMPTS §3. */
-export function templateNarration(winnerLabel: string): string {
-  return `${stripEnd(winnerLabel.trim())}. And just like that, everything changes — the story turns a corner no one saw coming.`;
-}
-
 /** Running summary with the new beat appended, kept to the newest 1,200 chars. */
 export function appendSummary(summary: string, beat: string): string {
   const joined = `${summary.trim()} ${stripEnd(beat)}.`.trim();
@@ -53,7 +51,7 @@ function template(input: NarrateInput, provider: "template" | "mock", fallbackUs
     provider,
     fallbackUsed,
     ms,
-    narration: templateNarration(input.winnerLabel),
+    narration: templateNarration(input.winnerLabel, narrationContextOf(input)),
     beat,
     summary: appendSummary(input.story.summary, beat),
   };

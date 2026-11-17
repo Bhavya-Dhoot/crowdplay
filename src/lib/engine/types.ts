@@ -52,7 +52,11 @@ export type Trigger =
   | { type: "HOST_SET_AUTO"; on: boolean }
   | { type: "HOST_SET_VOICE"; on: boolean }
   | { type: "DISTILL_DONE"; roundNo: number }
-  | { type: "DISTILL_FAILED"; roundNo: number };
+  | { type: "DISTILL_FAILED"; roundNo: number }
+  /** Demo rooms only: the judge voted, so VOTE closes `graceMs` from now (it only ever shortens the window). */
+  | { type: "DEMO_JUDGE_VOTED"; graceMs: number }
+  /** Demo rooms only: the narration of `roundNo` is on screen, so REVEAL holds `holdMs` from now (up or down). */
+  | { type: "DEMO_NARRATION_READY"; roundNo: number; holdMs: number };
 
 export type Effect =
   /** ensure: make sure round `roundNo` has a prompt row now (fallback text if none). pregen: generate it ahead (LLM). */

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { narrateWithTimeout } from "@/lib/engine/effects";
+import { templateNarration } from "@/lib/bots/fallbacks";
 import type { NarrateInput, NarrateResult } from "@/lib/ai/types";
 
 const mocks = vi.hoisted(() => ({ narrate: vi.fn() }));
@@ -29,7 +30,9 @@ describe("narrateWithTimeout (5 s race, then the template)", () => {
     const t0 = Date.now();
     const r = await narrateWithTimeout(input, 60);
     expect(Date.now() - t0).toBeGreaterThanOrEqual(50);
-    expect(r.narration).toBe("Rob the vault. And just like that, everything changes — the story turns a corner no one saw coming.");
+    expect(r.narration).toBe(templateNarration("Rob the vault", { roundNo: 1, roundsTotal: 3, scene: "t", final: false }));
+    expect(r.narration).toContain("“Rob the vault”");
+    expect(r.narration).not.toMatch(/^Rob the vault./); // the label is part of the story, not a repeat of the card above it
     expect(r).toMatchObject({ beat: "Rob the vault", provider: "template", fallbackUsed: true });
     expect(r.summary).toBe("Earlier things happened. Rob the vault");
   });

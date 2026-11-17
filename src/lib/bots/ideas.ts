@@ -14,8 +14,8 @@ Write exactly the requested number of distinct ideas, each at most 100 character
 - about 45% converge on TWO obvious directions (roughly half each), phrased differently every time;
 - about 35% are varied and different from each other;
 - about 20% are odd or funny.
-Sound like real people typing fast on a phone: casual, lowercase is fine, a few typos, no emojis, no names,
-no numbering. Family-friendly. Never repeat an idea.`;
+Sound like real people typing fast on a phone: casual, lowercase is fine, no emojis, no names, no numbering.
+Spell every word correctly (an idea may become a ballot option). Family-friendly. Never repeat an idea.`;
 
 export async function generateBotIdeas(input: BotIdeasInput): Promise<string[]> {
   const count = Math.max(0, Math.floor(input.count));

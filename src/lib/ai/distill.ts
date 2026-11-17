@@ -14,7 +14,7 @@ import {
   type ClusterItem,
 } from "./cluster";
 import { getVectors } from "./embed";
-import { heuristicOptions, SIMILAR, WILD_MAX_SHARE, type Candidate, type PickedOption } from "./heuristics";
+import { cleanIdeaLabel, heuristicOptions, SIMILAR, WILD_MAX_SHARE, type Candidate, type PickedOption } from "./heuristics";
 import { mockDistillOut, mockDistillThink } from "./mock";
 import { availableProviders, callJSON, type LlmProvider } from "./providers";
 import { fenceIdea, ideaVerdict, safeLabel, UNTRUSTED_NOTE } from "./safety";
@@ -139,6 +139,8 @@ type Prepared = {
   crowd: Candidate[];
   wild: Candidate[];
   preferred: number | null;
+  /** Judge Mode: the judge's own ideas inside the preferred cluster, and the ballot label made from the best of them. */
+  boost: { ideaIds: string[]; label: string | null } | null;
   ctx: ValidateCtx;
   degraded: boolean;
   /** For the timing log: how long the vectors took and how many ideas had to be embedded on the spot. */
@@ -251,6 +253,20 @@ async function prepare(input: DistillInput, rng: () => number): Promise<Prepared
     }
   }
 
+  // The boosted card must read as the judge's own idea: the longest label their ideas in that cluster can make
+  // (the cluster's nearest-to-centroid line may be a bot's), and credit only the judge's ideas for it.
+  let boost: Prepared["boost"] = null;
+  if (preferred !== null && input.boostUserId) {
+    const userOf = new Map(usable.map((u) => [u.id, u.userId]));
+    const mine = clusters.find((c) => c.id === preferred)!.ideaIds.filter((id) => userOf.get(id) === input.boostUserId);
+    let label: string | null = null;
+    for (const id of mine) {
+      const l = cleanIdeaLabel(textOf.get(id) ?? "");
+      if (l && (label === null || l.length > label.length)) label = l;
+    }
+    boost = { ideaIds: mine, label };
+  }
+
   const sizes = new Map(clusters.map((c) => [c.id, c.size]));
   const minSize = clusters.length ? Math.min(...sizes.values()) : 0;
   const wildCapable = (c: Cluster) => c.share <= WILD_MAX_SHARE || c.size === minSize;
@@ -278,6 +294,7 @@ async function prepare(input: DistillInput, rng: () => number): Promise<Prepared
     crowd: crowdClusters.map((c) => cand.get(c.id)!),
     wild: wildClusters.map((c) => cand.get(c.id)!),
     preferred,
+    boost,
     ctx: { sizes, crowdIds: crowdIdSet, totalIdeas: clusters.reduce((n, c) => n + c.size, 0), excludeLabels: input.excludeLabels ?? [] },
     degraded: vecs.degraded,
     vectorsMs,
@@ -361,7 +378,13 @@ function ideaIdsOf(p: Prepared, clusterIds: number[]): string[] {
 function toOption(p: Prepared, o: PickedOption | ValidOption): DistilledOption {
   const kind = o.kind;
   const opt: DistilledOption = { kind, label: o.label, sourceIdeaIds: kind === "narrator" ? [] : ideaIdsOf(p, o.clusterIds) };
-  if (kind === "wildcard" && p.preferred !== null && o.clusterIds.includes(p.preferred)) opt.boosted = true;
+  if (kind === "wildcard" && p.preferred !== null && o.clusterIds.includes(p.preferred)) {
+    opt.boosted = true;
+    if (p.boost && p.boost.ideaIds.length > 0) {
+      opt.sourceIdeaIds = p.boost.ideaIds;
+      if (p.boost.label) opt.label = p.boost.label;
+    }
+  }
   return opt;
 }
 

@@ -7,6 +7,7 @@ import { getDb, schema } from "@/lib/db/client";
 import { advance } from "@/lib/engine/advance";
 import { AppError, handle, json } from "@/lib/errors";
 import { checkText } from "@/lib/ingest/filter";
+import { DEMO } from "@/lib/bots/demo";
 import { ensureBots } from "@/lib/bots/runner";
 import { PRESETS } from "@/lib/presets";
 import { createRoom, joinRoom } from "@/lib/rooms";
@@ -14,11 +15,11 @@ import { createRoom, joinRoom } from "@/lib/rooms";
 export const dynamic = "force-dynamic";
 
 const DEMO_ROUNDS = 3;
-const DEMO_STORM_MS = 20_000;
-const DEMO_VOTE_MS = 12_000;
+const DEMO_STORM_MS = DEMO.stormMs;
+const DEMO_VOTE_MS = DEMO.voteMs;
 
 // Simple in-process token buckets: a few demos at once per person, a looser cap per network (a demo room
-// is cheap for us but it runs bots and timers for about three minutes).
+// is cheap for us but it runs bots and timers for about two minutes).
 type Bucket = { tokens: number; at: number };
 const USER_LIMIT = { capacity: 5, refillMs: 20_000 };
 const IP_LIMIT = { capacity: 20, refillMs: 6_000 };

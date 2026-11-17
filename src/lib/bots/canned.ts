@@ -1,5 +1,6 @@
 // Canned demo ideas (mock mode and the live-mode fallback). Hand-written cores per preset, expanded
-// deterministically into casual chat lines with a few typos. Four buckets mirror the bot mix from
+// deterministically into casual chat lines (lowercase, "lol", shouting; no typos: a bot line can become a ballot
+// label or the winner card, and a misspelling there reads as our mistake). Four buckets mirror the bot mix from
 // AI_PROMPTS §6: two obvious directions (a, b), varied ideas, and odd/funny ones.
 import type { PresetId } from "../realtime/types";
 
@@ -431,7 +432,8 @@ const CORES: Record<PresetId, Cores> = {
   },
 };
 
-const PRE = ["lets ", "we should ", "i say we ", "what if we ", "ok so we ", "maybe we ", "just ", "i vote we "];
+// Every opener is one the label cleaner strips whole (heuristics LEAD), so no stray "we" is left on a ballot label.
+const PRE = ["lets ", "we should ", "i say lets ", "what if we ", "ok so lets ", "maybe we should ", "just ", "i think we should "];
 const SUF = [" lol", " imo", "!!", " haha", " obviously", "...", " tbh", "!"];
 
 function hash(s: string): number {
@@ -443,24 +445,9 @@ function hash(s: string): number {
   return h >>> 0;
 }
 
-/** Swap two neighbouring letters inside one long-enough word, like a fast thumb-typed message. */
-function typo(s: string, h: number): string {
-  const words = s.split(" ");
-  const idx = words.flatMap((w, i) => (/^[a-z]{5,}$/.test(w) ? [i] : []));
-  if (idx.length === 0) return s;
-  const i = idx[h % idx.length];
-  const w = words[i];
-  const p = 1 + ((h >>> 8) % (w.length - 3));
-  words[i] = w.slice(0, p) + w[p + 1] + w[p] + w.slice(p + 2);
-  return words.join(" ");
-}
-
 function finish(line: string): string {
   const h = hash(line);
-  let out = line;
-  if (h % 9 === 0) out = typo(out, h >>> 4);
-  if (h % 4 === 1) out = out[0].toUpperCase() + out.slice(1);
-  return out;
+  return h % 4 === 1 ? line[0].toUpperCase() + line.slice(1) : line;
 }
 
 /** Four casual phrasings per core. Imperative cores take "lets ..." wrappers; statements take "what if ...?". */

@@ -76,19 +76,30 @@ const narrateIn = (over: Partial<NarrateInput> = {}): NarrateInput => ({
 const words = (n: number) => Array.from({ length: n }, (_, i) => `word${i}`).join(" ");
 
 describe("narration", () => {
-  it("mock mode uses the exact template from AI_PROMPTS §3", async () => {
+  it("mock mode narrates with the story templates (scene, round and idea), not one fixed line", async () => {
     const r = await narrateOutcome(narrateIn());
     expect(r.provider).toBe("mock");
-    expect(r.narration).toBe(
-      "The crew dances through the lasers one by one. And just like that, everything changes — the story turns a corner no one saw coming.",
-    );
+    expect(r.narration).toBe(templateNarration("The crew dances through the lasers one by one", { roundNo: 2, roundsTotal: 3, scene: "The Laser Maze", final: false }));
+    expect(r.narration).toContain("“The crew dances through the lasers one by one”");
+    expect(r.narration).not.toMatch(/everything changes/);
     expect(r.beat).toBe("The crew dances through the lasers one by one");
     expect(r.beat.length).toBeLessThanOrEqual(90);
     expect(r.summary).toBe("The crew reached the vault. The crew dances through the lasers one by one.");
   });
 
   it("template does not double the closing punctuation", () => {
-    expect(templateNarration("The vault opens!")).toMatch(/^The vault opens\. And just like that/);
+    expect(templateNarration("The vault opens!")).toContain("“The vault opens”");
+    expect(templateNarration("The vault opens!")).not.toMatch(/[!.]”/);
+  });
+
+  it("template wordings vary by round and label, are deterministic, and the last round closes the story", () => {
+    const ctx = (roundNo: number, final = false) => ({ roundNo, roundsTotal: 3, scene: "The Vault Door Hums", final });
+    const rounds = [1, 2, 3].map((n) => templateNarration("Sneak in through the air vents", ctx(n, n === 3)));
+    expect(new Set(rounds).size).toBe(3);
+    expect(rounds[0]).toBe(templateNarration("Sneak in through the air vents", ctx(1)));
+    expect(rounds[2]).toMatch(/last word|One more call|all comes down/);
+    for (const r of rounds) expect(r.length).toBeLessThanOrEqual(330);
+    expect(templateNarration("Pigeons form a union", ctx(1))).not.toBe(templateNarration("Sneak in through the air vents", ctx(1)));
   });
 
   it("keeps the running summary at or under 1,200 chars, newest first-class", () => {
@@ -130,7 +141,9 @@ describe("narration", () => {
     expect(r.provider).toBe("template");
     expect(r.fallbackUsed).toBe(true);
     expect(r.narration).not.toContain("badword");
-    expect(r.narration).toBe(templateNarration("The crew dances through the lasers one by one"));
+    expect(r.narration).toBe(
+      templateNarration("The crew dances through the lasers one by one", { roundNo: 2, roundsTotal: 3, scene: "The Laser Maze", final: false }),
+    );
   });
 
   it("live: unsafe beat or summary are replaced individually", async () => {
@@ -165,7 +178,7 @@ describe("narration", () => {
     expect(Date.now() - t0).toBeLessThan(1000);
     expect(r.provider).toBe("template");
     expect(r.fallbackUsed).toBe(true);
-    expect(r.narration).toContain("everything changes");
+    expect(r.narration).toContain("“The crew dances through the lasers one by one”");
   });
 });
 
@@ -289,11 +302,24 @@ describe("scene prompts", () => {
 describe("finale", () => {
   const fin = { premise: "A heist.", title: "The Great Aurelia Caper", beats: ["The crew entered.", "Lasers were danced.", "The diamond was a cube"], winningLabels: ["a", "b", "c"] };
 
-  it("fallback joins the beats and keeps the host's title", () => {
+  it("fallback tells the beats as a story, in order, and keeps the host's title", () => {
     const f = fallbackFinale(fin);
-    expect(f.recap).toBe("The crew entered. Lasers were danced. The diamond was a cube.");
+    expect(f.recap).toMatch(/^It started with “The crew entered”\./);
+    expect(f.recap.indexOf("The crew entered")).toBeLessThan(f.recap.indexOf("Lasers were danced"));
+    expect(f.recap.indexOf("Lasers were danced")).toBeLessThan(f.recap.indexOf("The diamond was a cube"));
+    expect(f.recap).toContain("written by the room");
     expect(f.storyTitle).toBe("The Great Aurelia Caper");
     expect(f.tagline.length).toBeLessThanOrEqual(80);
+  });
+
+  it("fallback names a story nobody titled from the premise, never from the winning labels", () => {
+    const premise = "Your crew has one night to lift the Midnight Diamond from the rooftop vault of the Grand Aurelia Hotel.";
+    const f = fallbackFinale({ ...fin, premise, title: "Demo show", winningLabels: ["Sneak in through the vents", "Pull the fire alarm"] });
+    expect(f.storyTitle).toContain("Midnight Diamond");
+    expect(f.storyTitle.length).toBeLessThanOrEqual(50);
+    expect(f.storyTitle).not.toMatch(/vents|alarm/i);
+    expect(fallbackFinale({ ...fin, premise: "", title: "" }).storyTitle).toMatch(/Story Written Together|Written by the Room|Crowd Took Over/);
+    expect(fallbackFinale({ ...fin, beats: [] }).recap).toBe("A heist.");
   });
 
   it("mock mode returns the fallback without flagging it", async () => {

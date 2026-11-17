@@ -1,6 +1,6 @@
 // Landing page (design-v2 "Per-surface direction"). A server component: the only client code on this route is the
 // looping example round (RoundMiniature), the code form and the toast provider, so it stays light for Lighthouse.
-// Order on a phone: hero line, the gold "Play a 60-second demo" button, the live example round, join with a code,
+// Order on a phone: hero line, the gold "Play a 2-minute demo" button, the live example round, join with a code,
 // host a show. On a wide screen the example round sits beside the hero and the join panel under it.
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
@@ -53,7 +53,7 @@ export default function Landing() {
             </h1>
             <p className="script mt-5 max-w-[34ch] text-lead text-on-stage md:text-h3">{landing.sub}</p>
             <div className="mt-6 flex flex-col gap-2 sm:max-w-xs">
-              <ButtonLink href="/try" size="lg" block>
+              <ButtonLink href="/try?go=1" size="lg" block>
                 {landing.try.label}
               </ButtonLink>
               <p className="text-fine text-muted-on-stage">{landing.try.hint}</p>

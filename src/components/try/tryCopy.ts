@@ -1,27 +1,31 @@
 // Words for Judge Mode (/try). Short, playful, second person (UX_SPEC §1). Shared with the coach marks and end card.
+// One name for the minority slot everywhere here: "wildcard" (the card the phone and the screen both call that).
 import type { CoachStep } from "@/components/play/PlayerView";
+import { DEMO_MINUTES } from "@/lib/copy";
+
+export type TryCoachStep = CoachStep | "voted";
 
 export const TRY_COPY = {
-  pill: "Judge mode",
+  pill: "Demo",
   title: "Play a whole show. Alone.",
-  lead: "Three quick rounds against 30 simulated players. No host, nothing to set up. About three minutes.",
+  lead: `Three quick rounds against 30 simulated players. No host, nothing to set up. About ${DEMO_MINUTES} minutes.`,
   nameLabel: "Your name in the demo",
   nameShort: "Pick a name with at least two letters.",
   reroll: "Pick another random name",
   start: "Start the demo",
   starting: "Setting the stage…",
+  stageTitle: "Setting the stage…",
+  stageBody: "Opening a room and seating 30 simulated players.",
   honest: "The other 30 players are bots and wear a 🤖 everywhere. Real shows run with real people.",
-  steps: [
-    { title: "Type an idea", body: "Anything goes. Short and silly works." },
-    { title: "Watch it compete", body: "AI boils 60 ideas down to three choices." },
-    { title: "Vote", body: "Maybe yours wins." },
-  ],
   leave: "Leave the demo",
+  name: { playingAs: "Playing as", change: "Change name", save: "Save", cancel: "Cancel", saving: "Saving…" },
   screen: { label: "The big screen", note: "What a room would see on the projector.", show: "Show the big screen", hide: "Hide the big screen" },
   phone: "Your phone",
   boost: {
+    chip: "⚡ boosted in demo",
     title: "⚡ boosted in demo",
-    body: "Demo only: your idea gets a boosted shot at the wildcard slot so you can watch it reach the ballot. Live shows have no boost.",
+    body: "Demo only: your idea takes the wildcard slot, and the bots give it a nudge so you can watch a win. Live shows have no boost.",
+    toggle: "What does boosted mean?",
   },
   end: {
     title: "That was 3 rounds.",
@@ -29,14 +33,16 @@ export const TRY_COPY = {
     host: "Host a show",
     how: "How it works",
     impact: "Impact",
+    story: "Read the full story",
   },
   coach: {
     count: (n: number) => `${n} of 3`,
     dismissLabel: (title: string) => `Dismiss tip: ${title}`,
     steps: {
-      type: { n: 1, title: "Type any idea", body: "Anything goes. Silly works." },
+      type: { n: 1, title: "Type any idea", body: "A short sentence works best." },
       watch: { n: 2, title: "Watch it compete", body: "Your idea joins 60 more. AI picks the best three." },
-      vote: { n: 3, title: "Vote — maybe yours wins", body: "Tap an option. A ⚡ wildcard may be yours." },
-    } satisfies Record<CoachStep, { n: number; title: string; body: string }>,
+      vote: { n: 3, title: "Vote", body: "Tap an option. The ⚡ wildcard may be your idea." },
+      voted: { n: 0, title: "Vote in", body: "Watch the bars move." },
+    } satisfies Record<TryCoachStep, { n: number; title: string; body: string }>,
   },
 } as const;

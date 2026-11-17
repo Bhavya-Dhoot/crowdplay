@@ -428,3 +428,53 @@ describe("machine: a manual 3-round show", () => {
     expect(s.version).toBe(7 + 1 + 3 * 5 + 1);
   });
 });
+
+describe("machine: Judge Mode triggers (demo rooms only)", () => {
+  it("DEMO_JUDGE_VOTED closes VOTE shortly after the judge's vote, publishing the new deadline", () => {
+    const s = mk("VOTE", { isDemo: true });
+    const r = next(s, NOW + 4000, { type: "DEMO_JUDGE_VOTED", graceMs: 1500 });
+    expect(r.changed).toBe(true);
+    expect(r.state.phase).toBe("VOTE");
+    expect(r.state.phaseEndsAt).toBe(NOW + 4000 + 1500);
+    expect(r.state.phaseStartedAt).toBe(s.phaseStartedAt);
+    expect(r.state.version).toBe(s.version + 1);
+    expect(types(r.effects)).toEqual(["PUBLISH"]);
+    // The shortened deadline is an ordinary deadline: the next tick after it reveals.
+    expect(next(r.state, NOW + 5500, { type: "TICK" }).state.phase).toBe("REVEAL");
+  });
+
+  it("DEMO_JUDGE_VOTED only ever shortens: a vote near the deadline, a second vote or a paused vote change nothing", () => {
+    const demo = mk("VOTE", { isDemo: true });
+    expect(next(demo, NOW + 11_000, { type: "DEMO_JUDGE_VOTED", graceMs: 1500 }).changed).toBe(false);
+    const once = next(demo, NOW + 2000, { type: "DEMO_JUDGE_VOTED", graceMs: 1500 }).state;
+    expect(next(once, NOW + 2200, { type: "DEMO_JUDGE_VOTED", graceMs: 1500 }).changed).toBe(false);
+    const paused = next(demo, NOW + 1000, { type: "HOST_PAUSE" }).state;
+    expect(next(paused, NOW + 2000, { type: "DEMO_JUDGE_VOTED", graceMs: 1500 }).changed).toBe(false);
+  });
+
+  it("DEMO_JUDGE_VOTED does nothing in a hosted room or outside VOTE", () => {
+    expect(next(mk("VOTE"), NOW + 2000, { type: "DEMO_JUDGE_VOTED", graceMs: 1500 }).changed).toBe(false);
+    for (const phase of ["PROMPT", "STORM", "DISTILL", "REVEAL"] as const) {
+      expect(next(mk(phase, { isDemo: true }), NOW + 100, { type: "DEMO_JUDGE_VOTED", graceMs: 1500 }).changed).toBe(false);
+    }
+  });
+
+  it("DEMO_NARRATION_READY re-times REVEAL from the moment the narration is visible (up or down)", () => {
+    const s = mk("REVEAL", { isDemo: true });
+    const sooner = next(s, NOW + 1500, { type: "DEMO_NARRATION_READY", roundNo: 1, holdMs: 8000 });
+    expect(sooner.state.phaseEndsAt).toBe(NOW + 1500 + 8000);
+    expect(types(sooner.effects)).toEqual(["PUBLISH"]);
+    const later = next(s, NOW + 9000, { type: "DEMO_NARRATION_READY", roundNo: 1, holdMs: 8000 });
+    expect(later.state.phaseEndsAt).toBe(NOW + 9000 + 8000);
+  });
+
+  it("DEMO_NARRATION_READY ignores other rounds, hosted rooms, manual shows and a paused reveal", () => {
+    const demo = mk("REVEAL", { isDemo: true });
+    expect(next(demo, NOW + 1000, { type: "DEMO_NARRATION_READY", roundNo: 2, holdMs: 8000 }).changed).toBe(false);
+    expect(next(mk("REVEAL"), NOW + 1000, { type: "DEMO_NARRATION_READY", roundNo: 1, holdMs: 8000 }).changed).toBe(false);
+    expect(next(mk("REVEAL", { isDemo: true, autoAdvance: false, phaseEndsAt: null }), NOW + 1000, { type: "DEMO_NARRATION_READY", roundNo: 1, holdMs: 8000 }).changed).toBe(false);
+    const paused = next(demo, NOW + 1000, { type: "HOST_PAUSE" }).state;
+    expect(next(paused, NOW + 2000, { type: "DEMO_NARRATION_READY", roundNo: 1, holdMs: 8000 }).changed).toBe(false);
+    expect(next(mk("VOTE", { isDemo: true }), NOW + 1000, { type: "DEMO_NARRATION_READY", roundNo: 1, holdMs: 8000 }).changed).toBe(false);
+  });
+});

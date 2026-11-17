@@ -91,17 +91,16 @@ describe("canned bot ideas", () => {
     expect(p.odd.length).toBeGreaterThanOrEqual(40);
   });
 
-  it("reads like casual chat: mostly lowercase, some typos, some shouting", () => {
+  it("reads like casual chat: mostly lowercase, some shouting, no misspellings", () => {
     const all = cannedIdeas("heist");
     expect(all.filter((t) => /^[a-z]/.test(t)).length / all.length).toBeGreaterThan(0.5);
     expect(all.some((t) => /!!|\.\.\./.test(t))).toBe(true);
-    // Typos: words that appear exactly once in the whole pool and are not in the hand-written cores.
-    const core = new Set(cannedIdeas("heist").flatMap((t) => t.toLowerCase().match(/[a-z]{5,}/g) ?? []));
-    const counts = new Map<string, number>();
-    for (const t of cannedIdeas("heist")) for (const w of t.toLowerCase().match(/[a-z]{5,}/g) ?? []) counts.set(w, (counts.get(w) ?? 0) + 1);
-    const rare = [...counts.entries()].filter(([, n]) => n === 1).length;
-    expect(core.size).toBeGreaterThan(100);
-    expect(rare).toBeGreaterThanOrEqual(5);
+    // A bot line can become a ballot label or the winner card, so none is misspelled on purpose: the swapped-letter
+    // typos of earlier builds ("abvoe", "guadrs") are gone, and the openers are ones the label cleaner strips whole.
+    const words = new Set(cannedIdeas("heist").flatMap((t) => t.toLowerCase().match(/[a-z]{5,}/g) ?? []));
+    expect(words.size).toBeGreaterThan(100);
+    for (const typo of ["abvoe", "guadrs", "vnets", "diamnod"]) expect(words.has(typo)).toBe(false);
+    expect(cannedIdeas("heist").some((t) => /^(we|i) /.test(t) && !/^(we|i) (should|say|think|vote)/.test(t))).toBe(false);
   });
 
   it("samples with the bot mix, deterministically, without repeats", () => {

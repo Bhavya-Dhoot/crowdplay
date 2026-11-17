@@ -6,12 +6,12 @@
 // and nothing throws into the engine. A bot idea goes through the same ingest path as a human's, so the filter,
 // the round cap and the phase check still apply; a vote goes through castVote, so live options, the deadline and
 // the participant rules are the vote route's.
-import { and, eq, inArray } from "drizzle-orm";
+import { and, count, eq, inArray } from "drizzle-orm";
 import type { BotIdeasInput } from "../ai/types";
-import { features } from "../config";
+import { features, scaled } from "../config";
 import { CHEER_EMOJI } from "../copy";
 import { getDb, schema } from "../db/client";
-import { engineNow, loadEngineState } from "../engine/advance";
+import { advance, engineNow, loadEngineState } from "../engine/advance";
 import type { EngineState } from "../engine/types";
 import { liveOptions, withTimeout } from "../engine/publish";
 import { AppError } from "../errors";
@@ -21,6 +21,7 @@ import { getRealtimeServer } from "../realtime/index";
 import type { OptionSlot, PresetId } from "../realtime/types";
 import { castVote, type RoomRow } from "../rooms";
 import { sampleCanned } from "./canned";
+import { DEMO, leanFor } from "./demo";
 import { generateBotIdeas } from "./ideas";
 import { BOT_PERSONAS, type BotPersona } from "./personas";
 
@@ -136,7 +137,19 @@ export function eventWindow(now: number, phaseStartedAt: number, endsAt: number 
 
 type Timer = ReturnType<typeof setTimeout>;
 type Kind = "ideas" | "votes";
-type Run = { key: string; roomId: string; roundNo: number; kind: Kind; timers: Set<Timer>; stopped: boolean };
+/** A bot vote that has not fired yet: its timer and the step to run, so the judge's vote can pull it forward. */
+type PendingVote = { timer: Timer; wanted: OptionSlot; go: () => Promise<void> };
+type Run = {
+  key: string;
+  roomId: string;
+  roundNo: number;
+  kind: Kind;
+  timers: Set<Timer>;
+  stopped: boolean;
+  pending: Map<string, PendingVote>;
+  /** The slot the bots were asked to favour this round (Judge Mode), if any. */
+  favour: OptionSlot | null;
+};
 type BotState = { runs: Map<string, Run>; registered: Set<string> };
 
 const g = globalThis as unknown as { __cpBots?: BotState };
@@ -148,6 +161,7 @@ function finish(run: Run): void {
   run.stopped = true;
   for (const t of run.timers) clearTimeout(t);
   run.timers.clear();
+  run.pending.clear();
 }
 
 /** Register a run unless one exists for this (room, round, kind): the second call of a double start is a no-op. */
@@ -164,7 +178,7 @@ function open(roomId: string, roundNo: number, kind: Kind): Run | null {
   if (runs.size >= MAX_RUNS_KEPT) {
     for (const [k, r] of runs) if (r.timers.size === 0) runs.delete(k); // finished runs are only idempotency markers
   }
-  const run: Run = { key, roomId, roundNo, kind, timers: new Set(), stopped: false };
+  const run: Run = { key, roomId, roundNo, kind, timers: new Set(), stopped: false, pending: new Map(), favour: null };
   runs.set(key, run);
   return run;
 }
@@ -175,7 +189,7 @@ function drop(run: Run): void {
   if (state().runs.get(run.key) === run) state().runs.delete(run.key);
 }
 
-function after(run: Run, ms: number, fn: () => Promise<void>): void {
+function after(run: Run, ms: number, fn: () => Promise<void>): Timer {
   const t: Timer = setTimeout(
     () => {
       run.timers.delete(t);
@@ -186,6 +200,7 @@ function after(run: Run, ms: number, fn: () => Promise<void>): void {
   );
   t.unref?.();
   run.timers.add(t);
+  return t;
 }
 
 /** Cancel every scheduled idea, cheer and vote of a room. Safe to call at any time, any number of times. */
@@ -376,7 +391,53 @@ async function deliverVote(run: Run, room: RoomRow, roundId: string, bot: BotPer
   }
 }
 
-/** VOTE opened in a demo room: every bot casts one weighted-random vote at a random moment of the window. */
+/** One slot per bot: who each of `n` bots votes for. */
+export type VoteLean = { slot: OptionSlot; share: number; exact: boolean };
+
+/**
+ * The slot each of `n` bots votes for. Without a lean it is one weighted draw per bot (BOT_VOTE_WEIGHTS). With one,
+ * `lean.slot` is favoured: a soft lean reweights the draw, an exact lean gives that slot a fixed head count
+ * (more than half the bots) so it beats every other option whatever the draw, and spreads the rest by the usual weights.
+ */
+export function planVotes(slots: readonly OptionSlot[], n: number, rng: () => number, lean: VoteLean | null = null): OptionSlot[] {
+  const base = (s: OptionSlot) => BOT_VOTE_WEIGHTS[s] ?? 0.2;
+  const favoured = lean && slots.includes(lean.slot) ? lean : null;
+  if (!favoured) return Array.from({ length: n }, () => slots[pickWeighted(slots.map(base), rng())]);
+
+  const others = slots.filter((s) => s !== favoured.slot);
+  const draw = (): OptionSlot => (others.length === 0 ? favoured.slot : others[pickWeighted(others.map(base), rng())]);
+  if (!favoured.exact) {
+    const rest = others.reduce((sum, s) => sum + base(s), 0) || 1;
+    const weights = slots.map((s) => (s === favoured.slot ? favoured.share : ((1 - favoured.share) * base(s)) / rest));
+    return Array.from({ length: n }, () => slots[pickWeighted(weights, rng())]);
+  }
+  const heads = Math.min(n, Math.ceil(favoured.share * n));
+  const idx = Array.from({ length: n }, (_, i) => i);
+  for (let i = idx.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [idx[i], idx[j]] = [idx[j], idx[i]];
+  }
+  const backing = new Set(idx.slice(0, heads));
+  return Array.from({ length: n }, (_, i) => (backing.has(i) ? favoured.slot : draw()));
+}
+
+/**
+ * Judge Mode: the boosted option (the judge's own idea) is favoured while the judge has no canon yet in this show:
+ * a nudge in the middle rounds, a sure win in the last. Never touches the judge's own vote.
+ */
+async function leanOf(db: Awaited<ReturnType<typeof getDb>>, ctx: Ctx, live: { slot: string | null; boosted: boolean }[]): Promise<VoteLean | null> {
+  const target = live.find((o) => o.boosted && o.slot);
+  const judgeId = ctx.room.demoUserId;
+  if (!target || !judgeId) return null;
+  const [row] = await db
+    .select({ n: count() })
+    .from(schema.receipts)
+    .where(and(eq(schema.receipts.showId, ctx.eng.showId), eq(schema.receipts.userId, judgeId), eq(schema.receipts.type, "CANON")));
+  const l = leanFor(ctx.eng.roundNo, ctx.eng.roundsTotal, Number(row?.n ?? 0));
+  return l ? { slot: target.slot as OptionSlot, ...l } : null;
+}
+
+/** VOTE opened in a demo room: every bot casts one vote at a random moment of the window (the judge's vote pulls the rest forward). */
 export async function startBotVotes(roomId: string, roundNo: number): Promise<void> {
   const run = open(roomId, roundNo, "votes");
   if (!run) return;
@@ -400,17 +461,65 @@ export async function startBotVotes(roomId: string, roundNo: number): Promise<vo
 
     const rng = rngFor(`${roomId}:${roundNo}:votes`);
     const slots = live.map((o) => o.slot as OptionSlot);
-    const weights = slots.map((s) => BOT_VOTE_WEIGHTS[s] ?? 0.2);
+    const lean = await leanOf(db, ctx, live);
+    run.favour = lean?.slot ?? null;
     const order = assignBots(BOT_PERSONAS.length, rng);
     const offsets = planOffsets(order.length, rng);
+    const wants = planVotes(slots, order.length, rng, lean);
     order.forEach((bot, i) => {
-      const wanted = slots[pickWeighted(weights, rng())];
+      const wanted = wants[i];
       const at = win.from + offsets[i] * (win.to - win.from);
-      after(run, at - now, () => deliverVote(run, ctx.room, round.id, bot, wanted, rng));
+      const go = async () => {
+        run.pending.delete(bot.id);
+        await deliverVote(run, ctx.room, round.id, bot, wanted, rng);
+      };
+      run.pending.set(bot.id, { timer: after(run, at - now, go), wanted, go });
     });
-    log.info({ roomCode: ctx.room.code, roundNo, phase: "VOTE", votes: order.length }, "bot votes scheduled");
+    log.info({ roomCode: ctx.room.code, roundNo, phase: "VOTE", votes: order.length, lean: lean ? `${lean.slot}:${lean.exact ? "sure" : "soft"}` : null }, "bot votes scheduled");
   } catch (err) {
     log.error({ err, roomId, roundNo }, "bot votes failed to start");
     drop(run);
   }
+}
+
+const RUSH_LEAD_MS = 80;
+const RUSH_TAIL_MS = 450;
+
+/**
+ * The judge voted and the vote is about to close: the bots that have not voted yet vote now, spread over what is left
+ * of the window, the ones backing the favoured option first (so a late vote can only cost the others).
+ * Returns how many votes were pulled forward.
+ */
+export function rushBotVotes(roomId: string, roundNo: number, now: number, endsAt: number): number {
+  const run = state().runs.get(keyOf(roomId, roundNo, "votes"));
+  if (!run || run.stopped || run.pending.size === 0) return 0;
+  const from = now + RUSH_LEAD_MS;
+  const to = Math.max(from + 50, endsAt - RUSH_TAIL_MS);
+  const rng = rngFor(`${roomId}:${roundNo}:rush`);
+  const entries = [...run.pending.entries()]
+    .map(([botId, v]) => ({ botId, v, k: (v.wanted === run.favour ? 0 : 1) + rng() * 0.5 }))
+    .sort((a, b) => a.k - b.k);
+  entries.forEach(({ botId, v }, i) => {
+    clearTimeout(v.timer);
+    run.timers.delete(v.timer);
+    const at = from + ((to - from) * (i + 0.5)) / entries.length;
+    run.pending.set(botId, { ...v, timer: after(run, at - now, v.go) });
+  });
+  return entries.length;
+}
+
+/**
+ * Called by the vote route after the judge of a demo room voted: VOTE closes shortly after (no dead air while the
+ * only human waits for 30 bots), and the bots still to vote do so inside that window.
+ */
+export async function judgeVoted(room: RoomRow): Promise<void> {
+  if (!room.isDemo) return;
+  const eng = await loadEngineState(room.id);
+  if (!eng || eng.phase !== "VOTE" || eng.phaseEndsAt === null || eng.pausedRemainingMs !== null) return;
+  const now = engineNow();
+  const graceMs = scaled(DEMO.voteGraceMs);
+  // The bots are scheduled against the shortened deadline straight away; the engine commits it in parallel.
+  const closing = advance(room.id, { type: "DEMO_JUDGE_VOTED", graceMs });
+  rushBotVotes(room.id, eng.roundNo, now, Math.min(eng.phaseEndsAt, now + graceMs));
+  await closing;
 }

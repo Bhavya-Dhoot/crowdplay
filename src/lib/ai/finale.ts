@@ -3,7 +3,10 @@
 import { z } from "zod";
 import { callChain, llmLive } from "./providers";
 import { safeText, UNTRUSTED_NOTE, wordCount } from "./safety";
+import { fallbackFinale } from "../bots/fallbacks";
 import type { FinaleInput, FinaleResult } from "./types";
+
+export { fallbackFinale };
 
 const FinaleSchema = z.object({
   storyTitle: z.string().min(3).max(50),
@@ -17,16 +20,6 @@ const SYSTEM = `You close a live, crowd-written story. Given the premise and eve
 - tagline: one line, max 80 characters.
 Do not mention votes, AI or the game, and do not name participants. Family-friendly.
 ${UNTRUSTED_NOTE}`;
-
-const TAGLINE = "Written live by everyone in the room.";
-
-/** Finale built from the beats alone: the title the host chose, the beats in order, a fixed tagline. */
-export function fallbackFinale(input: FinaleInput): Omit<FinaleResult, "provider" | "fallbackUsed" | "ms"> {
-  const beats = input.beats.map((b) => b.trim().replace(/[\s.!?…]+$/u, "")).filter(Boolean);
-  const recap = beats.length > 0 ? `${beats.join(". ")}.` : input.premise.trim() || "The story ends here.";
-  const title = input.title.trim().slice(0, 50) || "A Story Written Together";
-  return { storyTitle: title, recap: recap.slice(0, 1400), tagline: TAGLINE };
-}
 
 export async function generateFinale(input: FinaleInput): Promise<FinaleResult> {
   const plain = fallbackFinale(input);

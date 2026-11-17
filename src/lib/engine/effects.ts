@@ -15,8 +15,10 @@ import type {
   NarrateResult,
   StoryContext,
 } from "../ai/types";
+import { revealHoldMs } from "../bots/demo";
+import { narrationContextOf, templateNarration } from "../bots/fallbacks";
 import { startBots, startBotVotes } from "../bots/runner";
-import { features } from "../config";
+import { features, scaled } from "../config";
 import { getDb, schema, type Db } from "../db/client";
 import { newId } from "../ids";
 import { log } from "../log";
@@ -539,7 +541,7 @@ function clip(s: string, max: number): string {
 export async function narrateWithTimeout(input: NarrateInput, timeoutMs: number = NARRATION_TIMEOUT_MS): Promise<NarrateResult> {
   const started = Date.now();
   const template = (): NarrateResult => ({
-    narration: `${input.winnerLabel}. And just like that, everything changes — the story turns a corner no one saw coming.`,
+    narration: templateNarration(input.winnerLabel, narrationContextOf(input)),
     beat: input.winnerLabel,
     summary: clip(`${input.story.summary} ${input.winnerLabel}`.trim(), 1200),
     provider: "template",
@@ -591,7 +593,11 @@ async function genNarration(db: Db, ctx: EffectContext, roundNo: number): Promis
   // This effect starts before the REVEAL publish so the model call overlaps it; the narration's own publish
   // must not overtake it (a stale REVEAL landing second would roll the Open Channel metadata back).
   await publishing().get(ctx.roomId);
-  await publishFresh(ctx.roomId);
+  // Judge Mode: REVEAL is held for reading time from the moment the narration is visible; that transition publishes.
+  const retimed = ctx.state.isDemo
+    ? await advance(ctx.roomId, { type: "DEMO_NARRATION_READY", roundNo, holdMs: scaled(revealHoldMs(result.narration)) })
+    : null;
+  if (!retimed?.changed) await publishFresh(ctx.roomId);
 
   const live = await loadEngineState(ctx.roomId, db);
   if (live?.payload.voice && features().tts) {

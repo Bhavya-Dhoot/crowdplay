@@ -109,6 +109,19 @@ function distillGrace(s: EngineState, now: number): MachineResult {
   return commit(s, now, { phaseEndsAt: now + DISTILL_GRACE_MS }, [{ type: "RUN_DISTILL", roundNo: s.roundNo, mode: "heuristic" }]);
 }
 
+/** Demo rooms: close VOTE `graceMs` after the judge voted. Never lengthens the window and never touches a paused one. */
+function judgeVoted(s: EngineState, now: number, graceMs: number): MachineResult {
+  const target = now + Math.max(0, graceMs);
+  if (!s.isDemo || s.phaseEndsAt === null || target >= s.phaseEndsAt) return unchanged(s);
+  return commit(s, now, { phaseEndsAt: target });
+}
+
+/** Demo rooms: hold REVEAL `holdMs` from the moment the narration is visible (only while an auto-advance countdown runs). */
+function narrationReady(s: EngineState, now: number, roundNo: number, holdMs: number): MachineResult {
+  if (!s.isDemo || !s.autoAdvance || s.roundNo !== roundNo || s.phaseEndsAt === null) return unchanged(s);
+  return commit(s, now, { phaseEndsAt: now + Math.max(0, holdMs) });
+}
+
 function endShow(s: EngineState, now: number): MachineResult {
   if (s.phase === "FINALE" || s.phase === "LOBBY") {
     return commit(s, now, { phase: "ENDED", phaseEndsAt: null, pausedRemainingMs: null });
@@ -207,6 +220,8 @@ export function next(state: EngineState, now: number, trigger: Trigger): Machine
           return extend(state, now, trigger.ms);
         case "HOST_PAUSE":
           return pause(state, now);
+        case "DEMO_JUDGE_VOTED":
+          return judgeVoted(state, now, trigger.graceMs);
         default:
           return unchanged(state);
       }
@@ -214,6 +229,7 @@ export function next(state: EngineState, now: number, trigger: Trigger): Machine
     case "REVEAL":
       if ((trigger.type === "TICK" && due) || trigger.type === "HOST_NEXT") return afterReveal(state, now);
       if (trigger.type === "HOST_PAUSE") return pause(state, now);
+      if (trigger.type === "DEMO_NARRATION_READY") return narrationReady(state, now, trigger.roundNo, trigger.holdMs);
       return unchanged(state);
 
     default:
