@@ -1,6 +1,96 @@
-/* Plain (global) CSS for the loop diagram. next.config.ts sends every *.css file through the Tailwind loader,
-   which turns off CSS Modules scoping, so these classes carry a "dp-" prefix instead of relying on a module.
-   Colours come from the shared tokens (src/styles/tokens.css). */
+/* Plain (global) CSS for the depth pages (/story, /how-it-works). next.config.ts sends every *.css file through the
+   Tailwind loader, which turns off CSS Modules scoping, so these classes carry a "dp-" prefix instead of relying on a
+   module. Colours come from the v2 tokens (src/styles/tokens.css). Only transform and opacity ever animate. */
+
+/* ------------------------------------------------------------------ */
+/* Story: the printed playbill                                         */
+/* ------------------------------------------------------------------ */
+
+/* The sheet is a .paper card (contact shadow, paper colour). The keyline inside it is the printed border of a playbill:
+   concentric with the sheet (16 px outer radius minus the 10 px gap = 6 px). */
+.dp-sheet::after {
+  content: "";
+  position: absolute;
+  inset: 10px;
+  border: 1px solid var(--paper-edge);
+  border-radius: var(--r-inner);
+  pointer-events: none;
+}
+
+/* A thin double rule with a diamond in the middle: separates the title page from the body. */
+.dp-orn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--ink-muted);
+}
+.dp-orn::before,
+.dp-orn::after {
+  content: "";
+  flex: 1 1 0;
+  max-width: 9rem;
+  height: 5px;
+  border-top: 1px solid var(--paper-edge);
+  border-bottom: 1px solid var(--paper-edge);
+}
+.dp-orn > span {
+  width: 8px;
+  height: 8px;
+  rotate: 45deg;
+  background: var(--ink);
+}
+
+/* First letter of the recap: the one flourish of the page. */
+.dp-dropcap::first-letter {
+  float: left;
+  font-family: var(--f-display);
+  font-weight: 800;
+  font-size: 3.6em;
+  line-height: 0.82;
+  padding: 0.06em 0.1em 0 0;
+  color: var(--ink);
+}
+
+/* Winning line of a scene: a left rule in the option's gel colour (the letter disc carries the meaning). */
+.dp-line {
+  border-left: 3px solid var(--gel, var(--paper-edge));
+  padding-left: 16px;
+}
+.dp-line[data-gel="a"] {
+  --gel: var(--gel-a);
+}
+.dp-line[data-gel="b"] {
+  --gel: var(--gel-b);
+}
+.dp-line[data-gel="c"] {
+  --gel: var(--gel-c);
+}
+
+/* A robot badge sitting on paper (BotBadge is dark-stage by default). */
+.dp-credit [role="img"] {
+  background: var(--paper-2);
+  border-color: var(--paper-edge);
+  color: var(--ink);
+}
+
+/* Cast list: name, dotted leader, count. */
+.dp-cast-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.dp-leader {
+  flex: 1 1 auto;
+  min-width: 1.5rem;
+  align-self: flex-end;
+  margin-bottom: 0.35em;
+  border-bottom: 2px dotted var(--paper-edge);
+}
+
+/* ------------------------------------------------------------------ */
+/* How it works: the loop diagram                                      */
+/* ------------------------------------------------------------------ */
 
 .dp-loop {
   display: grid;
@@ -28,21 +118,35 @@
   top: 56px;
   bottom: 0;
   width: 2px;
-  background: var(--line);
+  background: var(--stage-line);
 }
 
+/* Each step is a paper disc on the stage. */
 .dp-node {
+  position: relative;
   grid-row: span 2;
   display: grid;
   place-items: center;
   width: 56px;
   height: 56px;
   border-radius: 999px;
-  border: 2px solid var(--line);
-  background: var(--surface);
-  color: var(--accent);
-  animation: dp-chase 12s linear infinite backwards;
-  animation-delay: calc(var(--i) * 2s);
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: var(--paper-highlight), var(--contact-shadow);
+}
+/* A ring in the stage light walks Prompt -> Storm -> Distill -> Vote -> Reveal -> Finale: it shows the direction of
+   the loop. Only the ring's opacity animates. The negative delay starts each disc part-way through the 12 s cycle,
+   so the walk is already in order on the first frame. */
+.dp-node::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: inherit;
+  border: 2px solid var(--light);
+  opacity: 0;
+  pointer-events: none;
+  animation: dp-chase 12s linear infinite;
+  animation-delay: calc(var(--i) * 2s - 12s);
 }
 
 .dp-text {
@@ -52,19 +156,14 @@
   min-width: 0;
 }
 
-/* A highlight walks Prompt -> Storm -> Distill -> Vote -> Reveal -> Finale: it shows the direction of the loop. */
 @keyframes dp-chase {
   0%,
   13% {
-    border-color: var(--accent);
-    background: var(--surface-2);
-    box-shadow: 0 0 0 5px rgb(255 210 63 / 0.16);
+    opacity: 1;
   }
   17%,
   100% {
-    border-color: var(--line);
-    background: var(--surface);
-    box-shadow: 0 0 0 0 rgb(255 210 63 / 0);
+    opacity: 0;
   }
 }
 
@@ -110,10 +209,10 @@
     /* spans the first five of six columns */
     width: calc(5 / 6 * 100%);
     padding: 10px 16px 0;
-    border: 2px solid var(--line);
+    border: 2px solid var(--stage-line);
     border-top: 0;
     border-radius: 0 0 var(--r-card) var(--r-card);
-    color: var(--muted);
+    color: var(--muted-on-stage);
     font-size: 14px;
     position: relative;
   }
@@ -124,13 +223,17 @@
     left: calc(10% - 7px);
     top: -9px;
     border: 7px solid transparent;
-    border-bottom: 9px solid var(--line);
+    border-bottom: 9px solid var(--stage-line);
     border-top: 0;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .dp-node {
+  /* Still picture: no ring walks; the first step keeps its ring so the starting point stays marked. */
+  .dp-node::after {
     animation: none;
+  }
+  .dp-step:first-child .dp-node::after {
+    opacity: 1;
   }
 }

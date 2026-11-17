@@ -1,6 +1,8 @@
-// Share card for /story/[showId]: 1200x630, story title + tagline + round count + the CROWDPLAY wordmark.
-// Never throws: a missing show, a database hiccup or an empty recap still returns a valid card.
-// Satori ships one regular-weight font, so headline weight is built with a text stroke; no emoji (Satori would fetch them).
+// Share card for /story/[showId]: 1200x630, the playbill from the story page in miniature: a paper sheet on the stage
+// with the story title, tagline, scene count and a CANON stamp. Never throws: a missing show, a database hiccup or an
+// empty recap still returns a valid card.
+// Satori ships one regular-weight font, so headline weight is built with a text stroke; no emoji and no network fonts
+// (Satori would fetch them), so the letters and the stamp are drawn with plain boxes and text.
 import { ImageResponse } from "next/og";
 import { storyBlurb, storyHeading } from "@/components/depth/storyState";
 import { log } from "@/lib/log";
@@ -11,11 +13,23 @@ export const alt = "A story written live by the crowd on CrowdPlay";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-const COLORS = { bg: "#0B0B12", surface: "#15151F", line: "#2A2A3A", text: "#F5F5FA", muted: "#9A9AB0", accent: "#FFD23F", a: "#5B8CFF", b: "#3DDC97", c: "#FF4D8D" };
+// The v2 tokens (src/styles/tokens.css) as literals: Satori has no CSS variables.
+const C = {
+  stage: "#0F0D16",
+  paper: "#F6F0E4",
+  paperEdge: "#D9CDB6",
+  ink: "#1C1828",
+  inkMuted: "#5E566F",
+  gold: "#FFC83D",
+  amber: "#FFB547",
+  a: "#4C7DFF",
+  b: "#22C58B",
+  c: "#FF3D7F",
+};
 
 type Card = { title: string; tagline: string; rounds: number; demo: boolean };
 
-const FALLBACK: Card = { title: "CrowdPlay", tagline: "The audience writes the show.", rounds: 0, demo: false };
+const FALLBACK: Card = { title: "CrowdPlay", tagline: "Everyone types, AI finds three choices, the room decides.", rounds: 0, demo: false };
 
 const clip = (s: string, max: number): string => (s.length > max ? `${s.slice(0, max - 1).trimEnd()}…` : s);
 
@@ -25,7 +39,7 @@ async function cardFor(showId: string): Promise<Card> {
     if (!story) return FALLBACK;
     return {
       title: clip(storyHeading(story.show), 90),
-      tagline: clip(story.show.tagline?.trim() || storyBlurb(story.show), 130),
+      tagline: clip(story.show.tagline?.trim() || storyBlurb(story.show), 120),
       rounds: story.rounds.length,
       demo: story.show.isDemo,
     };
@@ -35,12 +49,12 @@ async function cardFor(showId: string): Promise<Card> {
   }
 }
 
-/** Bigger type for short titles, smaller for long ones, so three lines always fit. */
-const titleSize = (title: string): number => (title.length <= 22 ? 112 : title.length <= 40 ? 92 : title.length <= 64 ? 76 : 62);
+/** Bigger type for short titles, smaller for long ones, so three lines always fit on the sheet. */
+const titleSize = (title: string): number => (title.length <= 18 ? 108 : title.length <= 30 ? 90 : title.length <= 46 ? 74 : title.length <= 70 ? 62 : 52);
 
 const bold = (px: number, color: string) => ({ WebkitTextStroke: `${px}px ${color}` });
 
-function Dot({ letter, color }: { letter: string; color: string }) {
+function Disc({ letter, color, light }: { letter: string; color: string; light?: boolean }) {
   return (
     <div
       style={{
@@ -50,10 +64,11 @@ function Dot({ letter, color }: { letter: string; color: string }) {
         width: 52,
         height: 52,
         borderRadius: 26,
+        marginRight: 10,
         background: color,
-        color: COLORS.bg,
+        color: light ? "#FFFFFF" : C.ink,
         fontSize: 28,
-        ...bold(1.5, COLORS.bg),
+        ...bold(1.4, light ? "#FFFFFF" : C.ink),
       }}
     >
       {letter}
@@ -65,7 +80,7 @@ export default async function Image({ params }: { params?: Promise<{ showId: str
   const showId = params ? (await params).showId : "";
   const card = await cardFor(showId);
   const tSize = titleSize(card.title);
-  const roundsText = card.rounds > 0 ? `${card.rounds} ${card.rounds === 1 ? "round" : "rounds"} written by the crowd` : "Written by the crowd";
+  const scenes = card.rounds > 0 ? `${card.rounds} ${card.rounds === 1 ? "scene" : "scenes"}, written live by the crowd` : "Written live by the crowd";
 
   return new ImageResponse(
     (
@@ -74,78 +89,116 @@ export default async function Image({ params }: { params?: Promise<{ showId: str
           width: "100%",
           height: "100%",
           display: "flex",
-          flexDirection: "column",
-          justifyContent: "space-between",
-          padding: 64,
-          background: COLORS.bg,
-          backgroundImage:
-            "radial-gradient(circle at 88% 0%, rgba(255,210,63,0.24), rgba(255,210,63,0) 52%), radial-gradient(circle at 0% 100%, rgba(255,77,141,0.16), rgba(255,77,141,0) 48%)",
-          color: COLORS.text,
+          alignItems: "center",
+          justifyContent: "center",
+          background: C.stage,
+          backgroundImage: "radial-gradient(ellipse at 50% -8%, rgba(255,181,71,0.30), rgba(255,181,71,0) 62%)",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ display: "flex", alignItems: "center" }}>
-            <div style={{ display: "flex", position: "relative", width: 56, height: 56, marginRight: 20 }}>
-              <div style={{ position: "absolute", left: 0, top: 4, width: 30, height: 30, borderRadius: 15, background: COLORS.a }} />
-              <div style={{ position: "absolute", left: 26, top: 4, width: 30, height: 30, borderRadius: 15, background: COLORS.b }} />
-              <div style={{ position: "absolute", left: 13, top: 26, width: 30, height: 30, borderRadius: 15, background: COLORS.c }} />
-            </div>
-            <div style={{ display: "flex", fontSize: 38, letterSpacing: 8, ...bold(1.4, COLORS.text) }}>CROWDPLAY</div>
-          </div>
-          {card.demo ? (
-            <div
-              style={{
-                display: "flex",
-                padding: "10px 22px",
-                borderRadius: 999,
-                border: `2px solid ${COLORS.c}`,
-                color: COLORS.c,
-                fontSize: 26,
-              }}
-            >
-              Demo show, simulated players
-            </div>
-          ) : null}
-        </div>
-
-        <div style={{ display: "flex", flexDirection: "column" }}>
+        {/* the sheet: a paper page lifted off the stage, a hair off square */}
+        <div
+          style={{
+            display: "flex",
+            position: "relative",
+            width: 1096,
+            height: 566,
+            background: C.paper,
+            borderRadius: 20,
+            boxShadow: `0 2px 0 ${C.paperEdge}, 0 30px 44px -20px rgba(0,0,0,0.75)`,
+            transform: "rotate(-1deg)",
+          }}
+        >
+          {/* the printed keyline */}
           <div
             style={{
               display: "flex",
-              fontSize: tSize,
-              lineHeight: 1.02,
-              letterSpacing: -3,
-              color: COLORS.text,
-              ...bold(tSize > 90 ? 3.2 : 2.4, COLORS.text),
+              position: "absolute",
+              left: 14,
+              top: 14,
+              right: 14,
+              bottom: 14,
+              border: `2px solid ${C.paperEdge}`,
+              borderRadius: 10,
             }}
-          >
-            {card.title}
-          </div>
-          <div style={{ display: "flex", marginTop: 26, fontSize: 38, lineHeight: 1.25, color: COLORS.muted, maxWidth: 1000 }}>{card.tagline}</div>
-        </div>
+          />
+          <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", alignItems: "center", width: "100%", height: "100%", padding: "46px 64px 42px" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", position: "relative", width: "100%" }}>
+              <div style={{ display: "flex", fontSize: 28, color: C.inkMuted }}>{card.title === FALLBACK.title ? "The audience writes the show" : "CrowdPlay presents"}</div>
+              {card.demo ? (
+                <div
+                  style={{
+                    display: "flex",
+                    position: "absolute",
+                    right: 0,
+                    top: -6,
+                    padding: "8px 18px",
+                    borderRadius: 8,
+                    background: C.c,
+                    color: C.ink,
+                    fontSize: 24,
+                    letterSpacing: 4,
+                    transform: "rotate(-4deg)",
+                    ...bold(0.8, C.ink),
+                  }}
+                >
+                  DEMO SHOW
+                </div>
+              ) : null}
+            </div>
 
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div
-            style={{
-              display: "flex",
-              padding: "14px 28px",
-              borderRadius: 999,
-              border: `2px solid ${COLORS.accent}`,
-              color: COLORS.accent,
-              fontSize: 30,
-            }}
-          >
-            {roundsText}
-          </div>
-          <div style={{ display: "flex" }}>
-            <div style={{ display: "flex", marginRight: 12 }}>
-              <Dot letter="A" color={COLORS.a} />
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", maxWidth: 960 }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  textAlign: "center",
+                  fontSize: tSize,
+                  lineHeight: 1.02,
+                  letterSpacing: -3,
+                  color: C.ink,
+                  ...bold(tSize > 90 ? 3.2 : 2.4, C.ink),
+                }}
+              >
+                {card.title}
+              </div>
+              <div style={{ display: "flex", justifyContent: "center", textAlign: "center", marginTop: 20, fontSize: 32, lineHeight: 1.3, color: C.inkMuted, maxWidth: 900 }}>
+                {card.tagline}
+              </div>
             </div>
-            <div style={{ display: "flex", marginRight: 12 }}>
-              <Dot letter="B" color={COLORS.b} />
-            </div>
-            <div style={{ display: "flex" }}>
-              <Dot letter="C" color={COLORS.c} />
+
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
+              <div style={{ display: "flex", width: 210 }}>
+                <Disc letter="A" color={C.a} light />
+                <Disc letter="B" color={C.b} />
+                <Disc letter="C" color={C.c} light />
+              </div>
+              <div style={{ display: "flex", fontSize: 26, color: C.inkMuted }}>{scenes}</div>
+              <div style={{ display: "flex", width: 210, justifyContent: "flex-end" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    padding: "5px",
+                    borderRadius: 8,
+                    background: C.gold,
+                    transform: "rotate(-4deg)",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      padding: "8px 20px",
+                      borderRadius: 5,
+                      border: `2px solid ${C.ink}`,
+                      color: C.ink,
+                      fontSize: 30,
+                      letterSpacing: 7,
+                      ...bold(1, C.ink),
+                    }}
+                  >
+                    CANON
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

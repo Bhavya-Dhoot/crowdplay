@@ -6,7 +6,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { formatCount, formatDate } from "@/components/depth/format";
 import { SiteHeader } from "@/components/depth/SiteHeader";
-import { ButtonLink } from "@/components/ui/Button";
+import { ButtonLink, buttonClass } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Footer } from "@/components/ui/Footer";
 import { Pill } from "@/components/ui/Pill";
@@ -39,9 +39,9 @@ function Blocked({ title, children }: { title: string; children: ReactNode }) {
     <Shell>
       <div className="pt-8 md:pt-16">
         <Card tone="raised" className="max-w-xl space-y-3 p-6 md:p-8">
-          <Lock aria-hidden="true" className="size-8 text-accent" />
+          <Lock aria-hidden="true" className="size-8 text-light" />
           <h1 className="font-display text-3xl leading-tight">{title}</h1>
-          <div className="space-y-3 text-muted">{children}</div>
+          <div className="space-y-3 text-muted-on-stage [&_code]:rounded-inner [&_code]:bg-stage-1 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:text-on-stage">{children}</div>
           <ButtonLink href="/" variant="secondary">
             Back to the start
           </ButtonLink>
@@ -99,15 +99,12 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
       <header className="flex flex-wrap items-end justify-between gap-4 pt-6 md:pt-12">
         <div>
           <h1 className="font-display text-4xl leading-tight font-extrabold tracking-tight md:text-5xl">Admin</h1>
-          <p className="mt-2 max-w-[56ch] text-muted">
+          <p className="mt-2 max-w-[56ch] text-muted-on-stage">
             {formatCount(sessions.length)} {sessions.length === 1 ? "show" : "shows"} on record, {formatCount(real)} real and{" "}
             {formatCount(sessions.length - real)} demo. Demo rooms are listed here but never counted on the Impact page.
           </p>
         </div>
-        <a
-          href={csvHref}
-          className="inline-flex min-h-12 items-center justify-center gap-2 rounded-pill bg-accent px-6 font-semibold text-ink transition-[filter] hover:brightness-110 motion-reduce:transition-none"
-        >
+        <a href={csvHref} className={buttonClass({ variant: "primary" })}>
           <Download aria-hidden="true" className="size-5" />
           Download CSV
         </a>
@@ -118,12 +115,12 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           Sessions
         </h2>
         {sessions.length === 0 ? (
-          <p className="mt-3 text-muted">No shows yet. They appear here as soon as someone creates one.</p>
+          <p className="mt-3 text-muted-on-stage">No shows yet. They appear here as soon as someone creates one.</p>
         ) : (
-          <div className="mt-4 overflow-x-auto rounded-card border border-line bg-surface">
+          <div className="mt-4 overflow-x-auto rounded-card border border-stage-line bg-stage-1">
             <table className="w-full min-w-[56rem] border-collapse text-left text-sm">
               <caption className="sr-only">Every show, newest first</caption>
-              <thead className="bg-surface-2 text-muted">
+              <thead className="bg-stage-2 text-muted-on-stage">
                 <tr>
                   <th scope="col" className="px-3 py-3 font-semibold">Show</th>
                   <th scope="col" className="px-3 py-3 font-semibold">Kind</th>
@@ -137,21 +134,21 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                   <th scope="col" className="px-3 py-3 font-semibold">Created</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-line">
+              <tbody className="divide-y divide-stage-line">
                 {sessions.map((s) => (
                   <tr key={s.showId}>
                     <th scope="row" className="max-w-[18rem] px-3 py-3 font-semibold">
-                      <Link href={`/story/${encodeURIComponent(s.showId)}`} className="break-words underline decoration-line underline-offset-4 hover:decoration-accent">
+                      <Link href={`/story/${encodeURIComponent(s.showId)}`} className="break-words underline decoration-stage-line underline-offset-4 hover:decoration-gold">
                         {s.title}
                       </Link>
-                      <span className="block font-mono text-xs font-normal text-muted">{s.roomCode}</span>
+                      <span className="block font-mono text-xs font-normal text-muted-on-stage">{s.roomCode}</span>
                     </th>
                     <td className="px-3 py-3">
                       <Pill tone={s.kind === "demo" ? "wild" : "ok"} size="sm">
                         {s.kind === "demo" ? "Demo" : "Live"}
                       </Pill>
                     </td>
-                    <td className="px-3 py-3 text-muted">{s.status}</td>
+                    <td className="px-3 py-3 text-muted-on-stage">{s.status}</td>
                     <td className="px-3 py-3 text-right tabular-nums">
                       {s.roundsRevealed}/{s.roundsTotal}
                     </td>
@@ -162,14 +159,14 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                     <td className="px-3 py-3 text-right tabular-nums">
                       {s.botPlayers > 0 ? `${s.botPlayers} 🤖 / ${s.botIdeas}` : "0"}
                     </td>
-                    <td className="px-3 py-3 text-muted">{formatDate(Date.parse(s.createdAt))}</td>
+                    <td className="px-3 py-3 text-muted-on-stage">{formatDate(Date.parse(s.createdAt))}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         )}
-        <p className="mt-3 max-w-[70ch] text-sm text-muted">
+        <p className="mt-3 max-w-[70ch] text-sm text-muted-on-stage">
           People, ideas, votes and canon makers count real players only. Bots show simulated players and their ideas. Rounds is decided rounds out of the planned
           total.
         </p>
@@ -179,8 +176,8 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         <h2 id="flags-h" className="font-display text-2xl">
           Feature flags and modes
         </h2>
-        <p className="mt-1 text-muted">Read only. They are set with environment variables on the server.</p>
-        <dl className="mt-4 divide-y divide-line rounded-card border border-line bg-surface">
+        <p className="mt-1 text-muted-on-stage">Read only. They are set with environment variables on the server.</p>
+        <dl className="mt-4 divide-y divide-stage-line rounded-card border border-stage-line bg-stage-1">
           {settings.map((s) => (
             <div key={s.label} className="flex min-h-12 items-center justify-between gap-4 px-4 py-2">
               <dt className="text-sm md:text-base">{s.label}</dt>

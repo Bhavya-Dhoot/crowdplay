@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { GET as storyGet } from "@/app/api/story/[showId]/route";
 import OgImage, { contentType, size } from "@/app/story/[showId]/opengraph-image";
+import { loadWinnerSlots } from "@/components/depth/winnerSlots";
 import type { StoryRes } from "@/lib/api/contracts";
 import { schema, useTestDb, type Db } from "@/lib/db/client";
 import { loadStory } from "@/lib/metrics";
@@ -129,6 +130,20 @@ describe("GET /api/story/[showId]", () => {
     expect(body.show.recap).toBeNull();
     expect(body.show.tagline).toBeNull();
     expect(body.rounds[0].credit).toEqual([{ name: "Pixel Pancake", bot: true }]);
+  });
+});
+
+describe("winner letters for the story page", () => {
+  it("maps each revealed round to the slot its winning option held", async () => {
+    const slots = await loadWinnerSlots(live.showId);
+    expect([...slots.entries()]).toEqual([
+      [1, "A"],
+      [2, "A"],
+    ]);
+  });
+
+  it("is empty for a show with no winners and for an id that does not exist", async () => {
+    expect((await loadWinnerSlots("sh_doesnotexist")).size).toBe(0);
   });
 });
 

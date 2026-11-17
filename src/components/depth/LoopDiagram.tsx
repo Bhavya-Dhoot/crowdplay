@@ -1,6 +1,6 @@
 // The show loop as a diagram: Prompt -> Storm -> Distill -> Vote -> Reveal -> (repeat) -> Finale.
-// A real ordered list, so it reads as a sequence to a screen reader. One CSS highlight walks the steps
-// to show the direction; reduced motion gets the still picture.
+// A real ordered list, so it reads as a sequence to a screen reader. Each step is a paper disc on the stage; one ring
+// in the stage light walks the steps to show the direction (opacity only); reduced motion gets the still picture.
 import { Clapperboard, CloudLightning, Flag, Sparkles, Trophy, Vote } from "lucide-react";
 import type { CSSProperties } from "react";
 import "./depth.css";
@@ -24,13 +24,13 @@ export function LoopDiagram() {
               <Icon className="size-6" />
             </span>
             <span className="dp-text">
-              <span className="font-display text-xl leading-tight font-extrabold">{name}</span>
-              <span className="text-sm text-muted">{time}</span>
-              <span className="text-sm leading-snug">{caption}</span>
-              <span className="mt-2 text-sm leading-relaxed text-muted md:hidden">{detail}</span>
+              <span className="font-display text-lead leading-tight font-extrabold text-on-stage">{name}</span>
+              <span className="text-small text-muted-on-stage tabular-nums">{time}</span>
+              <span className="text-small leading-snug text-on-stage">{caption}</span>
+              <span className="mt-2 text-small leading-relaxed text-muted-on-stage md:hidden">{detail}</span>
             </span>
             {i === 4 ? (
-              <span className="col-start-2 mt-3 inline-flex w-fit items-center rounded-pill border border-line bg-surface px-3 py-1 text-xs text-muted md:hidden">
+              <span className="col-start-2 mt-3 inline-flex w-fit items-center rounded-pill border border-stage-line bg-stage-1 px-3 py-1 text-fine text-muted-on-stage md:hidden">
                 Repeats for every round, then the finale
               </span>
             ) : null}
@@ -40,7 +40,7 @@ export function LoopDiagram() {
       <div className="dp-repeat" aria-hidden="true">
         Prompt to Reveal repeats once per round (3 to 10 rounds)
       </div>
-      <figcaption className="mt-6 max-w-[62ch] text-sm text-muted">
+      <figcaption className="mt-6 max-w-[62ch] text-small text-muted-on-stage">
         Default timings. The host can pick 20, 30 or 45 seconds for the storm and 10, 12 or 20 for the vote.
       </figcaption>
     </figure>

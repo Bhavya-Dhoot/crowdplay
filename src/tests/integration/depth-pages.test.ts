@@ -1,5 +1,6 @@
 // The depth pages rendered to HTML on the server, against a real (in-memory) database: what a visitor would
 // see, without a browser. Covers the honest empty state, the demo/bot labelling and the admin gate.
+import { eq } from "drizzle-orm";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -8,9 +9,10 @@ import HowItWorks from "@/app/how-it-works/page";
 import ImpactPage from "@/app/impact/page";
 import StoryPage from "@/app/story/[showId]/page";
 import { resetConfig } from "@/lib/config";
-import { useTestDb, type Db } from "@/lib/db/client";
+import { COPY } from "@/lib/copy";
+import { schema, useTestDb, type Db } from "@/lib/db/client";
 import { resetMetricsCache } from "@/lib/metrics";
-import { playedRound, show, user, vote } from "./depth-fixtures";
+import { playedRound, receipt, show, user, vote } from "./depth-fixtures";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: () => {} }),
@@ -50,6 +52,14 @@ describe("/impact", () => {
     expect(out).not.toContain("Ideas written");
     expect(out).not.toContain("Median distill time");
     expect(out).toContain('href="/host"');
+  });
+
+  it("offers the next step from the empty state: host a show, or play the demo (which does not count)", async () => {
+    const out = await impact();
+    expect(out).toContain("Host a show, add yours");
+    expect(out).toContain('href="/try"');
+    expect(out).toContain(COPY.landing.try.label);
+    expect(out).toContain("never show up here");
   });
 
   it("shows big numbers and a session table once a real show exists", async () => {
@@ -103,6 +113,14 @@ describe("/how-it-works", () => {
     expect(out).toContain("Mock transport");
     expect(out).toContain("only in demo rooms");
     expect(out).toContain("Not load-tested live");
+  });
+
+  it("states the live-verified Nexconn results exactly as docs/VERIFICATION.md records them", () => {
+    expect(out).toContain("13 of 14 samples");
+    expect(out).toContain("0.93 to 1.04 seconds");
+    expect(out).toContain("2.8 to 3.1 seconds");
+    expect(out).toContain("300-sender load test runs on the mock transport");
+    expect(out).toContain("the server&#x27;s own filter is the one that decides");
   });
 });
 
@@ -158,6 +176,32 @@ describe("/story/[showId]", () => {
     expect(out).toContain("Share story");
     expect(out).toContain("Host your own");
     expect(out).not.toContain("Demo show.");
+  });
+
+  it("lays the story out as a script: scenes with the winning line and its letter, a byline and a cast list", async () => {
+    const lee = await user(db, "Lee");
+    const fx = await show(db, { title: "Script Night", status: "ended", storyRecap: "A recap." });
+    const p = await playedRound(db, fx, 1, { winnerUsers: [lee], narration: "The lights came up." });
+    await receipt(db, { userId: lee, showId: fx.showId, roundId: p.roundId, optionId: p.winnerId, ideaId: p.ideaIds[0] });
+    const out = await story(fx.showId);
+    expect(out).toContain("Scene 1");
+    expect(out).toContain("Winning line");
+    expect(out).toContain('data-gel="a"'); // the fixture's winner sat in slot A
+    expect(out).toContain("Winner 1");
+    expect(out).toContain("Written by");
+    expect(out).toContain("@Lee");
+    expect(out).toContain(">Cast<");
+    expect(out).toContain("1 win");
+  });
+
+  it("shows no letter, and no error, for a winner whose slot is unknown", async () => {
+    const ann = await user(db, "Ann");
+    const fx = await show(db, { title: "Backup Night", status: "ended", storyRecap: "A recap." });
+    const p = await playedRound(db, fx, 1, { winnerUsers: [ann] });
+    await db.update(schema.options).set({ slot: null }).where(eq(schema.options.id, p.winnerId));
+    const out = await story(fx.showId);
+    expect(out).toContain("Winner 1");
+    expect(out).not.toContain("data-gel=");
   });
 
   it("labels a demo show and puts the robot badge after every bot name", async () => {
