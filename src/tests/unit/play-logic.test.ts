@@ -5,6 +5,7 @@ import {
   coachStep,
   composerLock,
   dockHeight,
+  dockKey,
   groupByShow,
   insertChip,
   isLiveCanon,
@@ -19,8 +20,7 @@ import {
   supportLine,
   topCanonMakers,
   translateView,
-  typedLength,
-  typingDuration,
+  resultChips,
   votePercent,
   voteShare,
 } from "@/components/play/logic";
@@ -52,7 +52,19 @@ describe("bodyKey / dockHeight", () => {
     const phases: Phase[] = ["LOBBY", "PROMPT", "STORM", "DISTILL", "VOTE", "REVEAL", "FINALE", "ENDED"];
     for (const p of phases) {
       expect(bodyKey(p)).toBeTruthy();
-      expect(dockHeight(p)).toBeGreaterThanOrEqual(52);
+      expect(dockKey(p)).toBeTruthy();
+      expect(dockHeight(p)).toBeGreaterThanOrEqual(0);
+    }
+  });
+  it("only the composer, distill and finale phases have a dock slot; the rest leave the bar to the cheers", () => {
+    expect(dockKey("PROMPT")).toBe("composer");
+    expect(dockKey("STORM")).toBe("composer");
+    expect(dockKey("DISTILL")).toBe("distill");
+    expect(dockKey("FINALE")).toBe("finale");
+    expect(dockKey("ENDED")).toBe("finale");
+    for (const p of ["LOBBY", "VOTE", "REVEAL"] as Phase[]) {
+      expect(dockKey(p)).toBe("none");
+      expect(dockHeight(p)).toBe(0);
     }
   });
   it("gives the composer phases the same dock height so they never shift", () => {
@@ -148,21 +160,29 @@ describe("option copy", () => {
   });
 });
 
-describe("typewriter", () => {
-  it("reveals proportionally and finishes on time", () => {
-    expect(typedLength(100, 0, 2000)).toBe(0);
-    expect(typedLength(100, 1000, 2000)).toBe(50);
-    expect(typedLength(100, 2000, 2000)).toBe(100);
-    expect(typedLength(100, 9999, 2000)).toBe(100);
+describe("resultChips (the personal line under the winner)", () => {
+  const tally = { w: 12, x: 5, y: 3 };
+  const base = { winnerId: "w", votedId: null as string | null, mineIds: [] as string[], tally, total: 20 };
+  it("says nothing when nothing applies or there is no winner yet", () => {
+    expect(resultChips(base)).toEqual([]);
+    expect(resultChips({ ...base, winnerId: undefined, votedId: "w" })).toEqual([]);
   });
-  it("handles empty text and zero duration", () => {
-    expect(typedLength(0, 500, 2000)).toBe(0);
-    expect(typedLength(40, 10, 0)).toBe(40);
+  it("says 'You called it' when my vote won", () => {
+    expect(resultChips({ ...base, votedId: "w" })).toEqual([{ kind: "called", text: "You called it" }]);
   });
-  it("caps how long typing takes", () => {
-    expect(typingDuration(10)).toBe(600);
-    expect(typingDuration(100)).toBe(2800);
-    expect(typingDuration(5000)).toBe(6000);
+  it("says 'Your idea got N%' when my idea was on the ballot and lost, using my best option", () => {
+    expect(resultChips({ ...base, mineIds: ["x"] })).toEqual([{ kind: "mine", text: "Your idea got 25%" }]);
+    expect(resultChips({ ...base, mineIds: ["y", "x"] })).toEqual([{ kind: "mine", text: "Your idea got 25%" }]);
+  });
+  it("combines my vote winning with my idea losing", () => {
+    expect(resultChips({ ...base, votedId: "w", mineIds: ["y"] }).map((c) => c.kind)).toEqual(["called", "mine"]);
+  });
+  it("celebrates my idea winning, once", () => {
+    expect(resultChips({ ...base, mineIds: ["w"] })).toEqual([{ kind: "canon", text: "Your idea is canon" }]);
+    expect(resultChips({ ...base, mineIds: ["w", "x"], votedId: "x" }).map((c) => c.kind)).toEqual(["canon"]);
+  });
+  it("does not divide by zero with no votes", () => {
+    expect(resultChips({ winnerId: "w", votedId: null, mineIds: ["x"], tally: undefined, total: 0 })).toEqual([{ kind: "mine", text: "Your idea got 0%" }]);
   });
 });
 

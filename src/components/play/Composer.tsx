@@ -1,67 +1,113 @@
 "use client";
-// The composer (UX §3.3): starter chips, a 140-character input, a send button with the 2 s cooldown
-// ring. `lockedHint` non-null = disabled with that text as the placeholder ("Get ready…", "Reconnecting…").
-// The slot has one fixed height so STORM <-> PROMPT <-> DISTILL never shift the feed above it.
-import { ArrowUp } from "lucide-react";
-import { useEffect, useId, useRef, useState, type KeyboardEvent, type RefObject } from "react";
+// The composer (UX §3.3): starter chips, a 140-character box and a gold Send button with the 2 s cooldown ring.
+// It lives inside the dock's glass bar and owns its draft, so typing re-renders only this component (perf audit #8):
+// the feed above never sees a keystroke. `lockedHint` non-null = disabled with that text as the placeholder.
+//   ref.edit(text)   puts a refused idea back in the box (the feed's "Edit and resend") and focuses it
+// A refused idea (audit #21): the input row shakes, the phone buzzes, the text comes back to the box (if it is still
+// empty) and a 15 px message with an icon replaces the chip row for a few seconds.
+import { ArrowUp, TriangleAlert } from "lucide-react";
+import { memo, useCallback, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState, type KeyboardEvent, type Ref } from "react";
 import { cn } from "@/components/ui/cn";
 import { Ring } from "@/components/ui/Countdown";
+import { haptic } from "@/components/ui/motionTokens";
 import { useCountdown } from "@/lib/client/useCountdown";
 import { IDEA_COOLDOWN_MS, IDEA_MAX_CHARS, type SendResult } from "@/lib/client/useRoom";
 import { COPY } from "@/lib/copy";
 import { charsLeft, insertChip } from "./logic";
 import styles from "./play.module.css";
 
+export type ComposerHandle = { edit: (text: string) => void };
+
 type Props = {
-  draft: string;
-  onDraft: (v: string) => void;
+  roundNo: number;
   lockedHint: string | null;
   chips: string[];
   cooldownUntil: number;
-  /** inFeed: a failed idea already sits in the feed as a rejected bubble that carries the message and an Edit button. */
-  onSend: (text: string) => Promise<SendResult & { inFeed?: boolean }>;
-  inputRef: RefObject<HTMLTextAreaElement | null>;
+  onSend: (text: string) => Promise<SendResult>;
+  ref?: Ref<ComposerHandle>;
 };
 
-export function Composer({ draft, onDraft, lockedHint, chips, cooldownUntil, onSend, inputRef }: Props) {
+const MAX_BOX_PX = 96;
+const fine = () => window.matchMedia("(pointer: fine)").matches;
+
+export const Composer = memo(function Composer({ roundNo, lockedHint, chips, cooldownUntil, onSend, ref }: Props) {
   const locked = lockedHint !== null;
   const counterId = useId();
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const rowRef = useRef<HTMLDivElement>(null);
+  const [box, setBox] = useState({ round: roundNo, text: "" });
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const errorTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // The draft belongs to its round: a new round starts with an empty box.
+  const draft = box.round === roundNo ? box.text : "";
+  const draftRef = useRef(draft);
+  useEffect(() => {
+    draftRef.current = draft;
+  });
+  const setDraft = useCallback((text: string) => setBox({ round: roundNo, text }), [roundNo]);
 
   const cd = useCountdown({ endsAt: cooldownUntil || null, startedAt: cooldownUntil ? cooldownUntil - IDEA_COOLDOWN_MS : null });
   const cooling = !locked && cd.remainingMs !== null && cd.remainingMs > 0;
   const left = charsLeft(draft, IDEA_MAX_CHARS);
   const canSend = !locked && !cooling && !sending && draft.trim().length > 0;
 
+  useImperativeHandle(
+    ref,
+    () => ({
+      edit: (text: string) => {
+        setDraft(text);
+        inputRef.current?.focus({ preventScroll: true });
+      },
+    }),
+    [setDraft],
+  );
+
   useEffect(() => () => void (errorTimer.current && clearTimeout(errorTimer.current)), []);
 
   // Desktop only: pop the cursor into the box when typing opens. On phones a surprise keyboard would cover the feed.
   useEffect(() => {
     if (locked) return;
-    if (window.matchMedia("(pointer: fine)").matches) inputRef.current?.focus({ preventScroll: true });
-  }, [locked, inputRef]);
+    if (fine()) inputRef.current?.focus({ preventScroll: true });
+  }, [locked]);
 
-  function flash(message: string) {
+  // The box grows with the text, up to three lines.
+  useLayoutEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "0px";
+    el.style.height = `${Math.min(el.scrollHeight, MAX_BOX_PX)}px`;
+  }, [draft]);
+
+  function reject(message: string) {
+    haptic("reject");
     setError(message);
     if (errorTimer.current) clearTimeout(errorTimer.current);
-    errorTimer.current = setTimeout(() => setError(null), 4500);
+    errorTimer.current = setTimeout(() => setError(null), 5000);
+    const row = rowRef.current;
+    if (row) {
+      row.classList.remove(styles.shake);
+      void row.offsetWidth; // restart the animation when it is refused twice in a row
+      row.classList.add(styles.shake);
+    }
   }
 
   async function send() {
     const text = draft;
     if (!canSend) return;
+    haptic("tap");
     setError(null);
     setSending(true);
-    onDraft("");
+    setDraft("");
     // The send button is about to go quiet for the cooldown; keep a mouse or keyboard user typing in the box.
-    if (window.matchMedia("(pointer: fine)").matches) inputRef.current?.focus({ preventScroll: true });
+    if (fine()) inputRef.current?.focus({ preventScroll: true });
     const res = await onSend(text);
     setSending(false);
-    if (!res.ok && !res.inFeed) {
-      onDraft(text);
-      flash(res.message);
+    if (!res.ok) {
+      // Keep the words for editing, unless they already started the next idea.
+      if (draftRef.current === "") setDraft(text);
+      reject(res.message);
     }
   }
 
@@ -73,83 +119,89 @@ export function Composer({ draft, onDraft, lockedHint, chips, cooldownUntil, onS
   }
 
   return (
-    <div className="flex h-[132px] flex-col gap-2">
-      <div className={cn("-mx-4 flex h-11 shrink-0 items-center gap-2 overflow-x-auto px-4", styles.noBar)} aria-label="Idea starters" role="group">
-        {chips.map((c) => (
-          <button
-            key={c}
-            type="button"
-            data-testid="starter-chip"
-            disabled={locked}
-            onClick={() => {
-              onDraft(insertChip(draft, c, IDEA_MAX_CHARS));
-              inputRef.current?.focus({ preventScroll: true });
-            }}
-            className={cn(
-              "inline-flex h-11 shrink-0 items-center rounded-pill border border-line bg-surface px-4 text-sm font-medium whitespace-nowrap text-text",
-              "transition-[transform,border-color,opacity] duration-150 hover:border-accent active:scale-[0.97] disabled:opacity-40 disabled:hover:border-line motion-reduce:transition-none motion-reduce:active:scale-100",
-            )}
-          >
-            {c}
-          </button>
-        ))}
-      </div>
-
-      <div
-        className={cn(
-          "relative flex min-h-0 flex-1 items-stretch rounded-card border bg-surface-2 transition-colors motion-reduce:transition-none",
-          locked ? "border-line opacity-80" : "border-line focus-within:border-accent",
-        )}
-      >
-        <textarea
-          ref={inputRef}
-          data-testid="idea-input"
-          rows={2}
-          maxLength={IDEA_MAX_CHARS}
-          value={draft}
-          disabled={locked}
-          onChange={(e) => {
-            onDraft(e.target.value);
-            if (error) setError(null);
-          }}
-          onKeyDown={onKeyDown}
-          placeholder={locked ? lockedHint : COPY.composer.placeholder}
-          aria-label="Your idea"
-          aria-describedby={counterId}
-          enterKeyHint="send"
-          autoComplete="off"
-          autoCapitalize="sentences"
-          className="min-w-0 flex-1 resize-none bg-transparent py-2.5 pr-2 pl-4 text-base leading-[22px] text-text placeholder:text-muted focus:outline-none disabled:cursor-not-allowed"
-        />
-        <div className="flex w-[68px] shrink-0 items-center justify-center">
-          <div className="relative grid size-14 place-items-center">
-            {cooling ? <Ring fraction={cd.fraction} size={56} stroke={4} className="absolute inset-0" /> : null}
+    <div className="flex min-h-[100px] flex-col gap-1">
+      {error ? (
+        <p role="alert" className="flex h-11 items-center gap-2 px-2 text-small leading-snug font-semibold text-danger">
+          <TriangleAlert aria-hidden="true" className="size-5 shrink-0" />
+          <span className="min-w-0">{error}</span>
+        </p>
+      ) : (
+        <div className={cn("-mx-2 flex h-11 shrink-0 items-center gap-2 overflow-x-auto px-2", styles.noBar)} aria-label="Idea starters" role="group">
+          {chips.map((c) => (
             <button
+              key={c}
               type="button"
-              data-testid="idea-send"
-              aria-label={COPY.composer.send}
-              disabled={!canSend}
-              onClick={() => void send()}
+              data-testid="starter-chip"
+              disabled={locked}
+              onClick={() => {
+                setDraft(insertChip(draft, c, IDEA_MAX_CHARS));
+                inputRef.current?.focus({ preventScroll: true });
+              }}
               className={cn(
-                "grid size-11 place-items-center rounded-full bg-accent text-ink transition-[transform,opacity,filter] duration-150",
-                "hover:brightness-110 active:scale-90 disabled:bg-surface disabled:text-muted disabled:opacity-100 motion-reduce:transition-none motion-reduce:active:scale-100",
+                "press inline-flex h-11 shrink-0 items-center rounded-pill border border-stage-line bg-stage-2 px-4 text-small font-medium whitespace-nowrap text-on-stage",
+                "[--press-overlay:rgb(255_255_255/0.1)] disabled:opacity-40",
               )}
             >
-              <ArrowUp aria-hidden="true" className="size-6" strokeWidth={2.5} />
+              {c}
             </button>
-          </div>
+          ))}
         </div>
-        <p
-          id={counterId}
+      )}
+
+      <div ref={rowRef} className="flex items-end gap-2">
+        <div
           className={cn(
-            "pointer-events-none absolute bottom-1.5 left-4 max-w-[calc(100%-96px)] truncate text-xs tabular-nums",
-            error ? "font-medium text-danger" : left <= 0 ? "text-danger" : left <= 20 ? "text-warn" : "text-muted",
+            "relative flex min-h-[52px] min-w-0 flex-1 items-center rounded-card border bg-stage-0/60 transition-colors duration-175",
+            error ? "border-danger" : "border-stage-line focus-within:border-light",
+            locked && "opacity-80",
           )}
-          role={error ? "alert" : undefined}
         >
-          {error ?? (locked ? "" : `${draft.length}/${IDEA_MAX_CHARS}`)}
-        </p>
+          <textarea
+            ref={inputRef}
+            data-testid="idea-input"
+            rows={1}
+            maxLength={IDEA_MAX_CHARS}
+            value={draft}
+            disabled={locked}
+            onChange={(e) => {
+              setDraft(e.target.value);
+              if (error) setError(null);
+            }}
+            onKeyDown={onKeyDown}
+            placeholder={locked ? lockedHint : COPY.composer.placeholder}
+            aria-label="Your idea"
+            aria-describedby={counterId}
+            aria-invalid={error ? true : undefined}
+            enterKeyHint="send"
+            autoComplete="off"
+            autoCapitalize="sentences"
+            className="block min-w-0 flex-1 resize-none bg-transparent px-3.5 py-3.5 text-body leading-6 text-on-stage placeholder:text-muted-on-stage focus:outline-none disabled:cursor-not-allowed"
+          />
+          <p
+            id={counterId}
+            className={cn(
+              "pointer-events-none",
+              left <= 40 && !locked ? "absolute right-3 -top-2.5 rounded-pill bg-stage-1 px-1.5 text-fine leading-5 tabular-nums" : "sr-only",
+              left <= 0 ? "text-danger" : left <= 20 ? "text-warn" : "text-muted-on-stage",
+            )}
+          >
+            {left} characters left
+          </p>
+        </div>
+        <div className="relative grid size-[52px] shrink-0 place-items-center">
+          {cooling ? <Ring fraction={cd.fraction} size={52} stroke={3} className="absolute inset-0" /> : null}
+          <button
+            type="button"
+            data-testid="idea-send"
+            aria-label={COPY.composer.send}
+            disabled={!canSend}
+            onClick={() => void send()}
+            className="press grid size-12 place-items-center rounded-full bg-gold text-ink disabled:bg-stage-2 disabled:text-muted-on-stage"
+          >
+            <ArrowUp aria-hidden="true" className="size-6" strokeWidth={2.75} />
+          </button>
+        </div>
       </div>
     </div>
   );
-}
+});

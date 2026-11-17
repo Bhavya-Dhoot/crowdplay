@@ -1,18 +1,26 @@
 "use client";
-// STORM / DISTILL body: the scene strip on top and the live idea feed under it. Only the feed
-// scrolls. Own ideas sit on the right with a gold outline; bots wear the 🤖 badge; pending and
-// rejected ideas say so right under the bubble.
-import { ArrowDown, ChevronDown, Clapperboard, MessageSquareText, RotateCcw } from "lucide-react";
-import { memo, useCallback, useLayoutEffect, useRef, useState } from "react";
+// STORM / DISTILL body: the scene strip on top and the live idea feed under it. Only the feed scrolls.
+// Ideas are paper index cards: someone else's sit left with their name on the stage above them (bots wear the 🤖
+// badge), mine sit right with a gold edge, land with the spring and keep a small check once they are sent. A pending
+// or refused idea says so on the card itself. The feed memoizes (stable props), so typing never re-renders it, and it
+// renders the newest 100 ideas only. Its scroller ends 36 px under the dock's glass bar, so ideas slide behind it.
+import { ArrowDown, Check, ChevronDown, LoaderCircle, MessageSquareText, RotateCcw, TriangleAlert } from "lucide-react";
+import { memo, useCallback, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { Avatar } from "@/components/ui/Avatar";
 import { BotBadge } from "@/components/ui/BotBadge";
 import { cn } from "@/components/ui/cn";
+import { SPRING, springToLinear } from "@/components/ui/motionTokens";
+import { PaperCard } from "@/components/ui/PaperCard";
 import type { FeedIdea } from "@/lib/client/store";
 import { useReducedMotion } from "@/lib/client/useReducedMotion";
 import { friendlyError } from "@/lib/copy";
 import { nearBottom } from "./logic";
 import { PLAY_COPY } from "./playCopy";
 import styles from "./play.module.css";
+
+const RENDER_CAP = 100;
+const LAND = springToLinear(SPRING.land.stiffness, SPRING.land.damping);
+const LAND_STYLE = { "--land-ease": LAND.easing, "--land-ms": `${LAND.durationMs}ms` } as CSSProperties;
 
 // ---------- scene strip ----------
 
@@ -29,22 +37,21 @@ export function PromptStrip({ title, text, ideas, compact }: { title: string; te
         aria-controls={panelId}
         onClick={() => setOpen((o) => !o)}
         className={cn(
-          "flex w-full gap-3 rounded-card border border-line bg-surface-2 p-3 text-left transition-colors hover:border-muted motion-reduce:transition-none",
-          slim ? "min-h-11 items-center" : "min-h-[72px] items-start",
+          "press flex w-full gap-3 rounded-card border border-stage-line bg-stage-1 px-3.5 py-2.5 text-left [--press-overlay:rgb(255_255_255/0.06)]",
+          slim ? "min-h-11 items-center" : "min-h-[64px] items-start",
         )}
       >
-        <Clapperboard aria-hidden="true" className={cn("size-5 shrink-0 text-accent", !slim && "mt-0.5")} />
         <span className="min-w-0 flex-1">
-          <span className="block truncate font-display text-base leading-6 font-bold">{title}</span>
-          <span id={panelId} className={cn("text-sm leading-5 text-muted", slim ? "hidden" : open ? "block" : "line-clamp-2")}>
+          <span className="block truncate font-script text-body leading-6 font-semibold text-on-stage">{title}</span>
+          <span id={panelId} className={cn("font-script text-small leading-5 text-muted-on-stage", slim ? "hidden" : open ? "block" : "line-clamp-2")}>
             {text}
           </span>
         </span>
-        <span className={cn("flex shrink-0 items-end gap-1", slim ? "flex-row items-center" : "flex-col")}>
-          <span className="rounded-pill bg-bg px-2 py-0.5 text-xs font-semibold tabular-nums text-accent" aria-label={PLAY_COPY.play.storm.ideasCount(ideas)}>
+        <span className={cn("flex shrink-0 items-center gap-1.5", slim ? "flex-row" : "flex-col items-end")}>
+          <span className="rounded-pill bg-stage-2 px-2 py-0.5 text-fine font-semibold tabular-nums text-on-stage" aria-label={PLAY_COPY.play.storm.ideasCount(ideas)}>
             {ideas}
           </span>
-          <ChevronDown aria-hidden="true" className={cn("size-4 text-muted transition-transform duration-200 motion-reduce:transition-none", open && "rotate-180")} />
+          <ChevronDown aria-hidden="true" className={cn("size-4 text-muted-on-stage transition-transform duration-175 motion-reduce:transition-none", open && "rotate-180")} />
         </span>
       </button>
     </div>
@@ -64,29 +71,43 @@ const FeedItem = memo(function FeedItem({ idea, fresh, onEdit }: ItemProps) {
         data-testid="feed-item"
         data-mine="1"
         data-status={idea.status}
-        className={cn("flex flex-col items-end gap-1", fresh && styles.ideaIn)}
+        className={cn("flex flex-col items-end gap-1", fresh && styles.ideaMine)}
+        style={fresh ? LAND_STYLE : undefined}
       >
-        <p
+        <PaperCard
+          edge={rejected ? undefined : "gold"}
           className={cn(
-            "max-w-[86%] rounded-[16px] rounded-br-[4px] border bg-surface px-3.5 py-2 text-[15px] leading-snug break-words",
-            rejected ? "border-danger" : "border-accent shadow-[0_0_0_1px_var(--accent),0_8px_24px_-10px_rgb(255_210_63/0.45)]",
-            pending && "opacity-70",
+            "flex max-w-[88%] items-end gap-2 rounded-[16px] rounded-br-[4px] px-3.5 py-2.5 text-small leading-snug break-words",
+            rejected && "outline-2 -outline-offset-2 outline-danger-on-paper",
+            pending && "opacity-80",
           )}
         >
-          {idea.text}
-        </p>
-        {pending ? <span className="pr-1 text-xs text-muted">{PLAY_COPY.play.storm.sending}</span> : null}
+          <span className="min-w-0 flex-1">{idea.text}</span>
+          {idea.status === "sent" ? (
+            <>
+              <Check aria-hidden="true" className="mb-0.5 size-3.5 shrink-0 text-ink-muted" strokeWidth={3} />
+              <span className="sr-only">{PLAY_COPY.play.storm.sent}</span>
+            </>
+          ) : null}
+        </PaperCard>
+        {pending ? (
+          <span className="flex items-center gap-1.5 pr-1 text-fine text-muted-on-stage">
+            <LoaderCircle aria-hidden="true" className="size-3.5 animate-spin motion-reduce:animate-none" />
+            {PLAY_COPY.play.storm.sending}
+          </span>
+        ) : null}
         {rejected ? (
-          <span className="flex max-w-[86%] flex-col items-end gap-0.5 pr-1 text-right">
-            <span role="alert" className="text-xs font-medium text-danger">
+          <span className="flex max-w-[88%] flex-col items-end gap-0.5 pr-1 text-right">
+            <span role="alert" className="flex items-start gap-1.5 text-small leading-snug font-semibold text-danger">
+              <TriangleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
               {friendlyError(idea.rejectCode ?? "BAD_REQUEST")}
             </span>
             <button
               type="button"
               onClick={() => onEdit(idea.text)}
-              className="-mr-2 inline-flex min-h-11 items-center gap-1.5 rounded-pill px-3 text-xs font-semibold text-accent hover:bg-surface-2"
+              className="press -mr-2 inline-flex min-h-11 items-center gap-1.5 rounded-pill px-3 text-small font-semibold text-on-stage [--press-overlay:rgb(255_255_255/0.1)]"
             >
-              <RotateCcw aria-hidden="true" className="size-3.5" />
+              <RotateCcw aria-hidden="true" className="size-4" />
               {PLAY_COPY.play.storm.tryAgain}
             </button>
           </span>
@@ -97,12 +118,12 @@ const FeedItem = memo(function FeedItem({ idea, fresh, onEdit }: ItemProps) {
   return (
     <li data-testid="feed-item" data-status={idea.status} className={cn("flex items-end gap-2", fresh && styles.ideaIn)}>
       <Avatar name={idea.name} size={28} className="mb-0.5" />
-      <div className="min-w-0 max-w-[86%]">
-        <p className="mb-0.5 flex items-center gap-1.5 pl-1 text-xs text-muted">
+      <div className="min-w-0 max-w-[88%]">
+        <p className="mb-0.5 flex items-center gap-1.5 pl-1 text-fine leading-5 text-muted-on-stage">
           <span className="truncate">{idea.name}</span>
           {idea.isBot ? <BotBadge /> : null}
         </p>
-        <p className="rounded-[16px] rounded-bl-[4px] bg-surface-2 px-3.5 py-2 text-[15px] leading-snug break-words">{idea.text}</p>
+        <PaperCard className="rounded-[16px] rounded-bl-[4px] px-3.5 py-2.5 text-small leading-snug break-words">{idea.text}</PaperCard>
       </div>
     </li>
   );
@@ -112,7 +133,7 @@ const FeedItem = memo(function FeedItem({ idea, fresh, onEdit }: ItemProps) {
 
 type FeedProps = { feed: FeedIdea[]; onEdit: (text: string) => void; dim?: boolean; closed?: boolean; ideasInRound?: number };
 
-export function IdeaFeed({ feed, onEdit, dim, closed, ideasInRound = 0 }: FeedProps) {
+export const IdeaFeed = memo(function IdeaFeed({ feed, onEdit, dim, closed, ideasInRound = 0 }: FeedProps) {
   const { storm } = PLAY_COPY.play;
   // An empty feed says what is true: nothing yet, ideas on their way (late join), or the storm is over.
   const empty = closed
@@ -126,6 +147,7 @@ export function IdeaFeed({ feed, onEdit, dim, closed, ideasInRound = 0 }: FeedPr
   const lastLen = useRef(0);
   const reduced = useReducedMotion();
   const [unseen, setUnseen] = useState(0);
+  const shown = feed.length > RENDER_CAP ? feed.slice(-RENDER_CAP) : feed;
 
   const toBottom = useCallback(
     (smooth: boolean) => {
@@ -166,19 +188,19 @@ export function IdeaFeed({ feed, onEdit, dim, closed, ideasInRound = 0 }: FeedPr
         tabIndex={0}
         role="region"
         aria-label="Ideas from the room"
-        className={cn("h-full overflow-y-auto overscroll-contain rounded-card px-0.5 py-1 transition-opacity duration-300 motion-reduce:transition-none", dim && "opacity-60")}
+        className={cn("h-full overflow-y-auto overscroll-contain rounded-card px-0.5 pt-1 pb-[var(--dock-pad,8px)] transition-opacity duration-300 motion-reduce:transition-none", dim && "opacity-60")}
       >
-        {feed.length === 0 ? (
-          <div className="grid h-full min-h-[160px] place-items-center text-center">
+        {shown.length === 0 ? (
+          <div className="grid h-full min-h-[160px] place-items-center pb-6 text-center">
             <div className="flex max-w-[26ch] flex-col items-center gap-2">
-              <MessageSquareText aria-hidden="true" className="size-8 text-muted" />
-              <p className="font-display text-lg font-bold">{empty.title}</p>
-              <p className="text-sm text-muted">{empty.body}</p>
+              <MessageSquareText aria-hidden="true" className="size-8 text-muted-on-stage" />
+              <p className="font-display text-lead leading-tight font-bold">{empty.title}</p>
+              <p className="text-small text-muted-on-stage">{empty.body}</p>
             </div>
           </div>
         ) : (
           <ul className="flex min-h-full flex-col justify-end gap-2.5">
-            {feed.map((idea) => (
+            {shown.map((idea) => (
               <FeedItem key={idea.key} idea={idea} fresh={idea.at > mountedAt} onEdit={onEdit} />
             ))}
           </ul>
@@ -192,7 +214,7 @@ export function IdeaFeed({ feed, onEdit, dim, closed, ideasInRound = 0 }: FeedPr
             setUnseen(0);
             toBottom(true);
           }}
-          className="absolute bottom-2 left-1/2 inline-flex min-h-11 -translate-x-1/2 items-center gap-1.5 rounded-pill bg-accent px-4 text-sm font-semibold text-ink shadow-lg shadow-black/50"
+          className="press absolute bottom-12 left-1/2 inline-flex min-h-11 -translate-x-1/2 items-center gap-1.5 rounded-pill bg-paper px-4 text-small font-semibold text-ink shadow-contact"
         >
           <ArrowDown aria-hidden="true" className="size-4" />
           {PLAY_COPY.play.storm.newIdeas}
@@ -200,4 +222,4 @@ export function IdeaFeed({ feed, onEdit, dim, closed, ideasInRound = 0 }: FeedPr
       ) : null}
     </div>
   );
-}
+});

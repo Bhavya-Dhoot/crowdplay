@@ -1,13 +1,82 @@
-/* Motion that only the player screens need. Everything has a still, readable reduced-motion form. */
+/* Motion that only the player screens need. Everything has a still, readable reduced-motion form
+   (fades only, no travel, scale or rotation). Transform and opacity only. */
 
-/* A new idea lands in the feed. */
+/* Someone else's idea lands in the feed. */
 .ideaIn {
   animation: idea-in 240ms var(--ease-out) both;
 }
 @keyframes idea-in {
   from {
     opacity: 0;
-    transform: translateY(10px) scale(0.96);
+    transform: translateY(10px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* My idea lands with the spring (the one arrival in the feed that means something). --land-ease/--land-ms come from SPRING.land. */
+.ideaMine {
+  animation: idea-land var(--land-ms, 500ms) var(--land-ease, var(--ease-out)) both;
+  transform-origin: 100% 100%;
+}
+@keyframes idea-land {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.88);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* A refused idea: a small shake of the input row. */
+.shake {
+  animation: shake 320ms var(--ease-arrive) both;
+}
+@keyframes shake {
+  0%,
+  100% {
+    transform: none;
+  }
+  20% {
+    transform: translateX(-5px);
+  }
+  40% {
+    transform: translateX(5px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  80% {
+    transform: translateX(3px);
+  }
+}
+
+/* The admit-one ticket on /join: two paper parts with a punched notch on each side of the perforation. The crisp
+   drop-shadow lives on the wrapper because a mask would clip a box-shadow. */
+.ticketWrap {
+  filter: drop-shadow(0 1px 0 var(--paper-edge)) drop-shadow(0 10px 8px rgb(0 0 0 / 0.32));
+}
+.ticketTop {
+  -webkit-mask: radial-gradient(circle 12px at 0 100%, #0000 97%, #000) left / 51% 100% no-repeat, radial-gradient(circle 12px at 100% 100%, #0000 97%, #000) right / 51% 100% no-repeat;
+  mask: radial-gradient(circle 12px at 0 100%, #0000 97%, #000) left / 51% 100% no-repeat, radial-gradient(circle 12px at 100% 100%, #0000 97%, #000) right / 51% 100% no-repeat;
+}
+.ticketStub {
+  -webkit-mask: radial-gradient(circle 12px at 0 0, #0000 97%, #000) left / 51% 100% no-repeat, radial-gradient(circle 12px at 100% 0, #0000 97%, #000) right / 51% 100% no-repeat;
+  mask: radial-gradient(circle 12px at 0 0, #0000 97%, #000) left / 51% 100% no-repeat, radial-gradient(circle 12px at 100% 0, #0000 97%, #000) right / 51% 100% no-repeat;
+}
+
+/* Small chips (Your vote, Yours) pop in when they appear. */
+.chipIn {
+  animation: chip-in var(--dur-fast) var(--ease-arrive) both;
+}
+@keyframes chip-in {
+  from {
+    opacity: 0;
+    transform: scale(0.88);
   }
   to {
     opacity: 1;
@@ -17,7 +86,7 @@
 
 /* "Reading 142 ideas…": a light sweeps across the words. */
 .shimmerText {
-  background: linear-gradient(100deg, var(--muted) 30%, var(--text) 50%, var(--muted) 70%);
+  background: linear-gradient(100deg, var(--muted-on-stage) 30%, var(--ink-on-stage) 50%, var(--muted-on-stage) 70%);
   background-size: 220% 100%;
   -webkit-background-clip: text;
   background-clip: text;
@@ -49,37 +118,12 @@
   }
 }
 
-/* Cursor that leads the typed narration. */
-.caret {
-  display: inline-block;
-  position: relative;
-  width: 0;
-  height: 1em;
-  vertical-align: text-bottom;
-}
-.caret::after {
-  content: "";
-  position: absolute;
-  left: 1px;
-  top: 0.12em;
-  width: 2px;
-  height: 0.95em;
-  border-radius: 1px;
-  background: var(--accent);
-  animation: blink 0.9s steps(1, end) infinite;
-}
-@keyframes blink {
-  50% {
-    opacity: 0;
-  }
-}
-
-/* Canon moment: slow gold rays behind the trophy. */
+/* Canon moment: slow ink rays on the gold. */
 .rays {
-  background: repeating-conic-gradient(from 0deg at 50% 42%, rgb(255 210 63 / 0.2) 0deg 7deg, transparent 7deg 20deg);
-  -webkit-mask-image: radial-gradient(60% 50% at 50% 42%, #000 0%, transparent 78%);
-  mask-image: radial-gradient(60% 50% at 50% 42%, #000 0%, transparent 78%);
-  animation: spin 40s linear infinite;
+  background: repeating-conic-gradient(from 0deg at 50% 46%, rgb(28 24 40 / 0.07) 0deg 7deg, transparent 7deg 20deg);
+  -webkit-mask-image: radial-gradient(70% 55% at 50% 46%, #000 0%, transparent 80%);
+  mask-image: radial-gradient(70% 55% at 50% 46%, #000 0%, transparent 80%);
+  animation: spin 50s linear infinite;
 }
 @keyframes spin {
   to {
@@ -87,7 +131,7 @@
   }
 }
 
-/* A thin bar that drains while the canon moment is up (2.5 s). */
+/* A thin bar that drains while the canon moment is up. */
 .drain {
   transform-origin: left center;
   animation: drain var(--ms, 2500ms) linear both;
@@ -125,21 +169,31 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ideaIn {
+  .ideaIn,
+  .ideaMine,
+  .chipIn {
+    animation: fade-only var(--dur-fast) linear both;
+  }
+  @keyframes fade-only {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  .shake {
     animation: none;
   }
   .shimmerText {
     animation: none;
     background: none;
     -webkit-text-fill-color: currentColor;
-    color: var(--muted);
+    color: var(--muted-on-stage);
   }
   .bob,
   .rays,
   .pulseDot {
-    animation: none;
-  }
-  .caret::after {
     animation: none;
   }
   .drain {

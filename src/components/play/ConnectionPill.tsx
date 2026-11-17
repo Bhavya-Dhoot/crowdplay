@@ -1,9 +1,9 @@
 "use client";
-// Same behaviour as the kit's ConnectionBanner (1 s grace, amber "Reconnecting…", green "Back online"
-// for 2 s) but the pill carries data-testid="connection-banner" so e2e can see it. Fixed to the top.
+// Same behaviour as the kit's ConnectionBanner (1 s grace, "Reconnecting…", "Back online" for 2 s) but the pill
+// carries data-testid="connection-banner" so e2e can see it. A glass layer fixed to the top; the status is the icon
+// (amber spinner / green check) plus the words, never the colour alone.
 import { Check, LoaderCircle } from "lucide-react";
 import { useEffect, useState } from "react";
-import { cn } from "@/components/ui/cn";
 import { COPY } from "@/lib/copy";
 import type { ConnectionStatus } from "@/lib/realtime/types";
 
@@ -35,15 +35,12 @@ export function ConnectionPill({ status }: { status: ConnectionStatus }) {
         <p
           data-testid="connection-banner"
           data-status={kind}
-          className={cn(
-            "toast inline-flex min-h-9 items-center gap-2 rounded-pill px-4 text-sm font-semibold text-ink shadow-lg shadow-black/40",
-            kind === "reconnecting" ? "bg-warn" : "bg-ok",
-          )}
+          className="toast glass inline-flex min-h-9 items-center gap-2 rounded-pill px-4 text-small font-semibold text-on-stage"
         >
           {kind === "reconnecting" ? (
-            <LoaderCircle aria-hidden="true" className="size-4 animate-spin motion-reduce:animate-none" />
+            <LoaderCircle aria-hidden="true" className="size-4 animate-spin text-warn motion-reduce:animate-none" />
           ) : (
-            <Check aria-hidden="true" className="size-4" />
+            <Check aria-hidden="true" className="size-4 text-ok" strokeWidth={3} />
           )}
           {kind === "reconnecting" ? COPY.connection.reconnecting : COPY.connection.online}
         </p>

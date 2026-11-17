@@ -3,6 +3,7 @@
 import type { I18nBundle, Phase, PublicOption, PublicState } from "@/lib/realtime/types";
 import { friendlyError, STORM_NUDGES } from "@/lib/copy";
 import { PRESETS } from "@/lib/presets";
+import { PLAY_COPY } from "./playCopy";
 
 export const IDEA_LIMIT = 140;
 
@@ -28,18 +29,34 @@ export function bodyKey(phase: Phase): BodyKey {
   }
 }
 
-/** Height of the dock's top slot (px) per phase; the slot animates between them. */
-export function dockHeight(phase: Phase): number {
+/** Which content fills the dock's top slot: the composer, the "reading ideas" status, the finale actions or nothing. */
+export type DockKey = "composer" | "distill" | "finale" | "none";
+
+export function dockKey(phase: Phase): DockKey {
   switch (phase) {
     case "PROMPT":
     case "STORM":
+      return "composer";
     case "DISTILL":
-      return 132;
+      return "distill";
     case "FINALE":
     case "ENDED":
-      return 116;
+      return "finale";
     default:
-      return 52;
+      return "none";
+  }
+}
+
+/** Minimum height (px) of the dock's top slot per phase, so the composer, the distill status and the finale actions never shift the page. */
+export function dockHeight(phase: Phase): number {
+  switch (dockKey(phase)) {
+    case "composer":
+    case "distill":
+      return 100;
+    case "finale":
+      return 56;
+    case "none":
+      return 0;
   }
 }
 
@@ -116,16 +133,29 @@ export function optionAria(o: PublicOption, label: string, percent: number, sele
   return parts.join(". ");
 }
 
-/** Characters of a narration to show after `elapsedMs`. Reaches the full text at `durationMs`. */
-export function typedLength(total: number, elapsedMs: number, durationMs: number): number {
-  if (total <= 0) return 0;
-  if (durationMs <= 0 || elapsedMs >= durationMs) return total;
-  return Math.max(0, Math.min(total, Math.floor((total * elapsedMs) / durationMs)));
-}
+export type ResultChip = { kind: "canon" | "called" | "mine"; text: string };
 
-/** How long typing the narration takes: ~28 ms a character, but never longer than `capMs`. */
-export function typingDuration(total: number, capMs = 6000): number {
-  return Math.min(capMs, Math.max(600, total * 28));
+/**
+ * The personal result under the winner (audit #12): "Your idea is canon" when my idea won, "You called it" when my
+ * vote won, "Your idea got 23%" when my idea was on the ballot and lost (best of my options). Empty when none applies.
+ */
+export function resultChips(i: {
+  winnerId: string | undefined;
+  votedId: string | null;
+  mineIds: readonly string[];
+  tally: Record<string, number> | undefined;
+  total: number | undefined;
+}): ResultChip[] {
+  if (!i.winnerId) return [];
+  const chips: ResultChip[] = [];
+  if (i.mineIds.includes(i.winnerId)) chips.push({ kind: "canon", text: PLAY_COPY.play.reveal.mineCanon });
+  if (i.votedId === i.winnerId) chips.push({ kind: "called", text: PLAY_COPY.play.reveal.called });
+  const lost = i.mineIds.filter((id) => id !== i.winnerId);
+  if (lost.length > 0 && !i.mineIds.includes(i.winnerId)) {
+    const best = Math.max(...lost.map((id) => votePercent(i.tally, i.total, id)));
+    chips.push({ kind: "mine", text: PLAY_COPY.play.reveal.mineGot(best) });
+  }
+  return chips;
 }
 
 /** True when a scroller sits within `slack` px of its bottom edge. */

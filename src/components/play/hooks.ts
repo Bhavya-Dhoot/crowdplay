@@ -1,7 +1,6 @@
 "use client";
 // Small browser hooks for the player screens.
-import { useEffect, useState, useSyncExternalStore } from "react";
-import { typedLength, typingDuration } from "./logic";
+import { useSyncExternalStore } from "react";
 
 // ---------- visual viewport (keyboard-safe layout) ----------
 
@@ -30,34 +29,6 @@ export function useVisualViewport(): ViewportBox | null {
   if (!key) return null;
   const [top, height] = key.split(":").map(Number);
   return { top, height, keyboard: typeof window !== "undefined" && window.innerHeight - height > 120 };
-}
-
-// ---------- typewriter ----------
-
-/**
- * How many characters of `text` to show. Instant when `instant` (reduced motion) or when the text
- * was already there at mount. Restarts when the text changes.
- */
-export function useTypewriter(text: string, instant: boolean): { shown: number; done: boolean } {
-  const [state, setState] = useState<{ text: string; shown: number }>({ text: "", shown: 0 });
-
-  useEffect(() => {
-    if (!text) return;
-    if (instant) return;
-    const duration = typingDuration(text.length);
-    const started = performance.now();
-    const id = setInterval(() => {
-      const shown = typedLength(text.length, performance.now() - started, duration);
-      setState({ text, shown });
-      if (shown >= text.length) clearInterval(id);
-    }, 40);
-    return () => clearInterval(id);
-  }, [text, instant]);
-
-  if (!text) return { shown: 0, done: true };
-  if (instant) return { shown: text.length, done: true };
-  const shown = state.text === text ? state.shown : 0;
-  return { shown, done: shown >= text.length };
 }
 
 // ---------- language ----------

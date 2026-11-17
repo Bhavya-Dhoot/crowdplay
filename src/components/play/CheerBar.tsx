@@ -1,9 +1,12 @@
 "use client";
-// Cheers (P8): a row of emoji buttons that never blocks anything, plus the emoji other people send
-// drifting up over the screen. Only mounted when features.cheers is on.
+// Cheers (P8), in two parts so they can never cover the composer (audit #15):
+//   <CheerFloat cheers/>   the emoji other people send, drifting up. It fills the feed area (clipped by it, aria-hidden,
+//                          pointer-events none, always below the dock), so nothing can pass over the textbox or Send.
+//   <CheerBar onCheer disabled/>   the row of emoji buttons inside the dock. Only mounted when features.cheers is on.
 import { useEffect, useRef, useState } from "react";
-import { m } from "@/components/ui/motion";
 import { cn } from "@/components/ui/cn";
+import { m } from "@/components/ui/motion";
+import { haptic } from "@/components/ui/motionTokens";
 import { CHEER_EMOJI } from "@/lib/copy";
 import type { CheerItem } from "@/lib/client/store";
 
@@ -19,7 +22,7 @@ function spot(id: string): number {
   return 8 + (h % 85);
 }
 
-export function CheerBar({ cheers, onCheer, disabled }: { cheers: CheerItem[]; onCheer: (emoji: string) => void; disabled: boolean }) {
+export function CheerFloat({ cheers }: { cheers: CheerItem[] }) {
   const [floating, setFloating] = useState<Floating[]>([]);
   const seen = useRef<Set<string>>(new Set());
   const primed = useRef(false);
@@ -53,39 +56,42 @@ export function CheerBar({ cheers, onCheer, disabled }: { cheers: CheerItem[]; o
   }, [cheers]);
 
   return (
-    <div className="relative">
-      <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-full h-44 overflow-hidden">
-        {floating.map((f) => (
-          <m.span
-            key={f.id}
-            initial={{ opacity: 0, y: 24, scale: 0.8 }}
-            animate={{ opacity: [0, 1, 1, 0], y: -150, scale: 1.15 }}
-            transition={{ duration: FLOAT_MS / 1000, ease: "easeOut", times: [0, 0.12, 0.7, 1] }}
-            className="absolute bottom-0 text-3xl"
-            style={{ left: `${f.x}%` }}
-          >
-            {f.emoji}
-          </m.span>
-        ))}
-      </div>
-      <div role="group" aria-label="Send a cheer" className="flex items-center justify-between">
-        {CHEER_EMOJI.map((e) => (
-          <button
-            key={e}
-            type="button"
-            data-testid={`cheer-${e}`}
-            aria-label={`Cheer ${e}`}
-            disabled={disabled}
-            onClick={() => onCheer(e)}
-            className={cn(
-              "grid size-11 place-items-center rounded-full text-[22px] leading-none transition-[transform,opacity,background-color] duration-150",
-              "hover:bg-surface-2 active:scale-90 disabled:opacity-40 motion-reduce:transition-none motion-reduce:active:scale-100",
-            )}
-          >
-            <span aria-hidden="true">{e}</span>
-          </button>
-        ))}
-      </div>
+    <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-[5] overflow-hidden">
+      {floating.map((f) => (
+        <m.span
+          key={f.id}
+          initial={{ opacity: 0, y: 24, scale: 0.8 }}
+          animate={{ opacity: [0, 1, 1, 0], y: -150, scale: 1.15 }}
+          transition={{ duration: FLOAT_MS / 1000, ease: "easeOut", times: [0, 0.12, 0.7, 1] }}
+          className="absolute bottom-12 text-3xl"
+          style={{ left: `${f.x}%` }}
+        >
+          {f.emoji}
+        </m.span>
+      ))}
+    </div>
+  );
+}
+
+export function CheerBar({ onCheer, disabled }: { onCheer: (emoji: string) => void; disabled: boolean }) {
+  return (
+    <div role="group" aria-label="Send a cheer" className="flex items-center justify-between px-1">
+      {CHEER_EMOJI.map((e) => (
+        <button
+          key={e}
+          type="button"
+          data-testid={`cheer-${e}`}
+          aria-label={`Cheer ${e}`}
+          disabled={disabled}
+          onClick={() => {
+            haptic("tap");
+            onCheer(e);
+          }}
+          className={cn("press grid size-11 place-items-center rounded-full text-[22px] leading-none", "[--press-overlay:rgb(255_255_255/0.12)] disabled:opacity-40")}
+        >
+          <span aria-hidden="true">{e}</span>
+        </button>
+      ))}
     </div>
   );
 }

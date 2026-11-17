@@ -1,17 +1,22 @@
 "use client";
-// VOTE body: three big option cards. Letter + icon + label, never colour alone. Tap selects (the
-// hook buzzes), the vote can change until the timer ends. Bars follow the live tally.
-import { Check, Sparkles, Zap } from "lucide-react";
-import type { ReactNode } from "react";
+// VOTE body: three full-width paper script cards, 12 px apart (design-v2). Each card is one <button>: a gel band on
+// top, the lettered GelDisc (never colour alone), the option in the script voice, a live bar with the percentage and
+// the supporter line. A tap selects it (haptic tap), shows the check and "Your vote", and can be changed until the
+// timer ends. The wildcard wears a WILDCARD stamp, a narrator's pick the narrator stamp. Your own idea gets a gold edge
+// and a "Yours" chip. Toasts sit at the top during VOTE (PlayerView); when my idea is on the ballot a lane above the
+// cards (ballotIdea) is where the gold "on the ballot" toast lands, so no toast ever covers a card (audit #5).
+import { Check, Sparkles } from "lucide-react";
 import { cn } from "@/components/ui/cn";
-import { Pill } from "@/components/ui/Pill";
-import { COPY } from "@/lib/copy";
-import type { OptionSlot, PublicOption, PublicState } from "@/lib/realtime/types";
+import { GelDisc, gelOf } from "@/components/ui/GelDisc";
+import { haptic } from "@/components/ui/motionTokens";
+import { paperCardClass } from "@/components/ui/PaperCard";
+import { Stamp } from "@/components/ui/Stamp";
+import type { PublicOption, PublicState } from "@/lib/realtime/types";
 import { optionAria, optionFlags, supportLine, votePercent, voteShare } from "./logic";
 import { PLAY_COPY } from "./playCopy";
+import styles from "./play.module.css";
 
-const BADGE: Record<OptionSlot, string> = { A: "bg-opt-a", B: "bg-opt-b", C: "bg-opt-c" };
-const FILL: Record<OptionSlot, string> = { A: "bg-opt-a", B: "bg-opt-b", C: "bg-opt-c" };
+const GEL_VAR = { A: "var(--gel-a)", B: "var(--gel-b)", C: "var(--gel-c)" } as const;
 
 type Props = {
   options: PublicOption[];
@@ -19,37 +24,35 @@ type Props = {
   votesTotal: number | undefined;
   selectedId: string | null;
   mineIds: string[];
+  /** My idea's text once the "on the ballot" receipt arrived: a lane above the cards that the gold toast lands on. */
+  ballotIdea: string | null;
   disabled: boolean;
   label: (o: PublicOption) => string;
   onVote: (optionId: string) => void;
 };
 
-export function OptionBadge({ slot, size = 40 }: { slot: OptionSlot; size?: number }) {
-  return (
-    <span
-      aria-hidden="true"
-      className={cn("relative grid shrink-0 place-items-center rounded-full font-display font-extrabold text-ink", BADGE[slot])}
-      style={{ width: size, height: size, fontSize: Math.round(size * 0.5) }}
-    >
-      {slot}
-      {slot === "C" ? (
-        <span className="absolute -right-1 -bottom-1 grid size-[45%] place-items-center rounded-full bg-bg text-wild">
-          <Zap className="size-[70%]" strokeWidth={3} fill="currentColor" />
-        </span>
-      ) : null}
-    </span>
-  );
-}
-
-export function VoteView({ options, tally, votesTotal, selectedId, mineIds, disabled, label, onVote }: Props) {
+export function VoteView({ options, tally, votesTotal, selectedId, mineIds, ballotIdea, disabled, label, onVote }: Props) {
   const ordered = [...options].sort((a, b) => a.slot.localeCompare(b.slot));
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2">
-      <p className="flex h-6 shrink-0 items-center justify-between text-sm text-muted">
-        <span>{PLAY_COPY.play.vote.heading}</span>
-        <span data-testid="votes-total" className="tabular-nums">{PLAY_COPY.play.vote.votes(votesTotal ?? 0)}</span>
+    <div className="flex h-full min-h-0 flex-col">
+      <p className="flex h-9 shrink-0 items-center justify-between gap-3 text-fine text-muted-on-stage">
+        <span className="min-w-0 truncate">{selectedId ? PLAY_COPY.play.vote.hintVoted : PLAY_COPY.play.vote.hint}</span>
+        <span data-testid="votes-total" className="shrink-0 tabular-nums">
+          {PLAY_COPY.play.vote.votes(votesTotal ?? 0)}
+        </span>
       </p>
-      <div role="group" aria-label={PLAY_COPY.play.vote.heading} className="grid min-h-0 flex-1 auto-rows-fr grid-cols-1 gap-2.5 overflow-y-auto overscroll-contain">
+      {ballotIdea ? (
+        <p data-testid="ballot-lane" className="mt-1 flex h-11 shrink-0 items-center gap-2 rounded-element border border-stage-line bg-stage-1 px-3 text-small text-on-stage">
+          <Sparkles aria-hidden="true" className="size-4 shrink-0 text-gold" />
+          <span className="shrink-0 font-semibold">{PLAY_COPY.play.vote.yours}</span>
+          <span className="min-w-0 truncate text-muted-on-stage">“{ballotIdea}”</span>
+        </p>
+      ) : null}
+      <div
+        role="group"
+        aria-label={PLAY_COPY.play.vote.heading}
+        className="-mx-1 grid min-h-0 flex-1 auto-rows-[minmax(124px,196px)] grid-cols-1 content-start gap-3 overflow-y-auto overscroll-contain px-1 pt-3 pb-[var(--dock-pad,8px)]"
+      >
         {ordered.map((o) => {
           const flags = optionFlags(o);
           const selected = selectedId === o.id;
@@ -58,11 +61,6 @@ export function VoteView({ options, tally, votesTotal, selectedId, mineIds, disa
           const share = voteShare(tally, votesTotal, o.id);
           const text = label(o);
           const support = supportLine(o);
-          const tags: ReactNode[] = [];
-          if (flags.wildcard) tags.push(<Pill key="w" tone="wild" size="sm"><Zap aria-hidden="true" className="size-3" strokeWidth={3} />{PLAY_COPY.play.vote.wildcard}</Pill>);
-          if (flags.narrator) tags.push(<Pill key="n" tone="neutral" size="sm">{COPY.reveal.narratorPick}</Pill>);
-          if (flags.boosted) tags.push(<Pill key="b" tone="wild" size="sm">{PLAY_COPY.play.vote.boosted}</Pill>);
-          if (selected) tags.push(<Pill key="s" tone="accent" size="sm"><Check aria-hidden="true" className="size-3" strokeWidth={3.5} />{PLAY_COPY.play.vote.yourVote}</Pill>);
           return (
             <button
               key={o.id}
@@ -73,44 +71,60 @@ export function VoteView({ options, tally, votesTotal, selectedId, mineIds, disa
               data-mine={mine ? "1" : undefined}
               aria-label={optionAria(o, text, pct, selected, mine)}
               disabled={disabled}
-              onClick={() => onVote(o.id)}
-              className={cn(
-                "relative flex min-h-[104px] flex-col justify-center gap-2.5 overflow-hidden rounded-card border-2 p-3.5 text-left",
-                "transition-[transform,border-color,background-color,box-shadow] duration-200 active:scale-[0.985] disabled:active:scale-100 motion-reduce:transition-none motion-reduce:active:scale-100",
-                selected
-                  ? "border-accent bg-surface-2 shadow-[0_0_0_1px_var(--accent)]"
-                  : o.slot === "C"
-                    ? "border-wild/45 bg-surface hover:border-wild"
-                    : "border-line bg-surface hover:border-muted",
-              )}
+              onClick={() => {
+                if (!selected) haptic("tap");
+                onVote(o.id);
+              }}
+              className={paperCardClass({
+                gel: gelOf(o.slot),
+                edge: mine ? "gold" : flags.wildcard ? "wild" : undefined,
+                pressable: true,
+                className: cn(
+                  "flex flex-col justify-center px-3.5 pt-5 pb-3.5 text-left text-ink",
+                  "disabled:pointer-events-none",
+                  selected && "shadow-[0_0_0_3px_var(--light),var(--paper-highlight),var(--contact-shadow)]",
+                ),
+              })}
             >
-              {mine ? (
-                <span className="absolute top-0 right-0 inline-flex items-center gap-1 rounded-bl-[14px] bg-accent px-3 py-1 text-xs font-bold text-ink">
-                  <Sparkles aria-hidden="true" className="size-3.5" />
-                  {PLAY_COPY.play.vote.yours}
-                </span>
-              ) : null}
+              {flags.wildcard ? <Stamp kind="wildcard" size="sm" delayMs={250} className="absolute -top-2.5 right-3 z-10" /> : null}
+              {flags.narrator ? <Stamp kind="narrator" size="sm" delayMs={250} className="absolute -top-2.5 right-3 z-10" /> : null}
               <span className="flex items-start gap-3">
-                <OptionBadge slot={o.slot} />
-                <span className={cn("min-w-0 flex-1", mine && "pr-14")}>
-                  {tags.length > 0 ? <span className="mb-1 flex flex-wrap gap-1.5">{tags}</span> : null}
-                  <span className="line-clamp-3 font-display text-[19px] leading-[1.2] font-bold break-words">{text}</span>
+                <GelDisc letter={o.slot} size={40} />
+                <span className="flex min-w-0 flex-1 flex-col gap-2.5">
+                  <span className="pt-0.5 font-script text-[20px] leading-[1.25] font-semibold break-words">
+                    <span className="line-clamp-3">{text}</span>
+                  </span>
+                  <span className="flex items-center gap-3" aria-hidden="true">
+                    <span className="relative h-2.5 flex-1 overflow-hidden rounded-pill bg-ink/10">
+                      <span
+                        className="absolute inset-0 origin-left rounded-pill transition-transform duration-300 ease-arrive motion-reduce:transition-none"
+                        style={{ background: GEL_VAR[o.slot], transform: `scaleX(${share})` }}
+                      />
+                    </span>
+                    <span className="w-11 text-right font-display text-lead leading-none font-extrabold tabular-nums">{pct}%</span>
+                  </span>
+                  <span aria-hidden="true" className="flex min-h-6 items-center justify-between gap-2">
+                    <span className="flex min-w-0 items-center gap-1.5 text-fine text-ink-muted">
+                      {support ? <span className="truncate">{support}</span> : null}
+                      {flags.boosted ? <span className="shrink-0 rounded-pill bg-gel-c px-2 py-0.5 font-semibold text-ink">{PLAY_COPY.play.vote.boosted}</span> : null}
+                    </span>
+                    <span className="flex shrink-0 items-center gap-1.5">
+                      {mine ? (
+                        <span className="inline-flex items-center gap-1 rounded-pill bg-gold px-2 py-0.5 text-fine font-bold text-ink">
+                          <Sparkles aria-hidden="true" className="size-3.5" />
+                          {PLAY_COPY.play.vote.yours}
+                        </span>
+                      ) : null}
+                      {selected ? (
+                        <span className={cn("inline-flex items-center gap-1 rounded-pill bg-ink px-2 py-0.5 text-fine font-bold text-paper", styles.chipIn)}>
+                          <Check aria-hidden="true" className="size-3.5" strokeWidth={3.5} />
+                          {PLAY_COPY.play.vote.yourVote}
+                        </span>
+                      ) : null}
+                    </span>
+                  </span>
                 </span>
               </span>
-              <span className="flex items-center gap-3" aria-hidden="true">
-                <span className="relative h-3 flex-1 overflow-hidden rounded-pill bg-bg">
-                  <span
-                    className={cn("absolute inset-y-0 left-0 rounded-pill transition-[width] duration-300 ease-out motion-reduce:transition-none", FILL[o.slot])}
-                    style={{ width: `${Math.round(share * 100)}%` }}
-                  />
-                </span>
-                <span className="w-12 text-right font-display text-lg leading-none font-extrabold tabular-nums">{pct}%</span>
-              </span>
-              {support ? (
-                <span aria-hidden="true" className="-mt-1 text-xs text-muted">
-                  {support}
-                </span>
-              ) : null}
             </button>
           );
         })}
