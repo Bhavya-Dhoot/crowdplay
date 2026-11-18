@@ -17,7 +17,7 @@ Orchestration plan: `plans/2026-11-17-crowdplay-build.md`. Gate artifact: `gates
 | 10 Hardening | done (mock) | e2e (10 tests) + 54 screenshots, Lighthouse, clean-checkout verify, Docker boot test, docs. |
 | 11 Live + polish | done | Live on Nexconn + OpenAI (smoke 11/11, contract, live shows); perf pass (narration critical path, indexes, /me); 2-minute judge demo (zero-gate start, judge-paced vote/reveal, honest bot nudge). |
 | 12 Design v3 | done | "Live Sketchnote" (plans/design-v3.md) on every surface; dead-code sweep; verify green, e2e 3x 10/10, Lighthouse 98/93/99 perf and 100 a11y; live show re-run passed on a degraded network. |
-| 13 Deploy | done | Live at https://crowdplay-rs7o.onrender.com (Render free, Singapore) on Neon; full Judge Mode show live; smoke 11/11 against the deployed URL. Left: confirm the Nexconn webhook, real-people show. |
+| 13 Deploy | done | Live at https://crowdplay-rs7o.onrender.com (Render free, Singapore) on Neon; full Judge Mode show live; smoke 11/11 against the deployed URL. Webhook confirmed (an idea sent over Nexconn only reached the ballot). Left: real-people show. |
 
 ## Blockers (human-only)
 - No credentials on the build machine (2026-11-17): `pnpm smoke:nexconn`, the Nexconn contract run, one live show with

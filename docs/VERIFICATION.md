@@ -321,13 +321,21 @@ APP_URL=https://crowdplay-rs7o.onrender.com pnpm smoke:nexconn
   U5: .../api/nexconn/webhook: unsigned POST -> HTTP 401 (rejected as it should be)
 ```
 
-Not yet confirmed: that Nexconn delivers `message:send` webhooks to the deployed URL (the Console setting cannot be read from here; with `INGEST_MODE=dual` ideas also arrive over HTTP), and a show with real people on real phones.
+Webhook (U5), 2026-11-19, after the founder set `https://crowdplay-rs7o.onrender.com/api/nexconn/webhook` with `message:send` in the Console. In a fresh `/try` show the page's `POST /api/rooms/*/ideas` was blocked in the browser, so an idea could reach the server only as a Nexconn message delivered by the webhook:
+
+```
+blocked POSTs: 1, /ideas network requests: 0   ("Webhook test: a goat opens the vault", sent over Nexconn only)
+GET /api/rooms/VTJPX/me     {"ideasThisRound":1,"myOptionIds":["op_4b7fuav8iqsw26mh"],...}
+GET /api/rooms/VTJPX/state  options: "Rush in during the guard rotation" | "Call in a fake fire alarm" | "Webhook test: a goat opens the vault"
+```
+
+The server stored the idea and put it on the ballot, so Nexconn delivered the `message:send` webhook and the signature check (App Secret) passed. Not yet run: a show with real people on real phones.
 
 ## 7. Human steps left (need a deploy or people)
 
 Done on 2026-11-17: `.env` with the Nexconn and OpenAI keys; `pnpm live:check` steps 1–4 (section 5); the public repo github.com/Bhavya-Dhoot/crowdplay.
 
-1. Done 2026-11-18: deployed at https://crowdplay-rs7o.onrender.com on Neon (section 6). Left: confirm the Nexconn webhook URL `https://crowdplay-rs7o.onrender.com/api/nexconn/webhook` (event `message:send`) in the Console. Deploy on Render's free tier from the Blueprint (README → Deploy → Render + Neon): New → Blueprint → `Bhavya-Dhoot/crowdplay`, paste the five asked values (Neon `DATABASE_URL`, Nexconn App Key twice, App Secret, OpenAI key). Then set the webhook URL `https://<service>.onrender.com/api/nexconn/webhook` (event `message:send`) in the Nexconn Console and re-run `pnpm smoke:nexconn` with `APP_URL` set to that URL to see the U5 webhook check.
+1. Done 2026-11-18: deployed at https://crowdplay-rs7o.onrender.com on Neon (section 6). The Nexconn webhook is set and confirmed delivering (section 6, 2026-11-19).
 2. One show with real people on real phones on the deployed URL; record it here.
 3. Run real sessions; capture `/impact` afterwards (the `impact-*.png` screenshots in `docs/screens/` are test data).
 4. Optional: add `ANTHROPIC_API_KEY` to make Claude the primary model (OpenAI then becomes the fallback).

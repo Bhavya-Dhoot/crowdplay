@@ -144,7 +144,8 @@ What this settles:
 - **U7:** the BALLOT toast appeared during VOTE on a phone that never opened a direct channel (the `/api/me` fallback poll only runs at REVEAL), so narrator direct messages reach Web clients.
 - **Ids with `_`** (`u_…`, `cp_narrator`) work end to end.
 - **Latency:** idea delivery is about 0.93–1.0 s with one 3.0 s outlier in 14 samples, measured from India to the Singapore data center. Our client sends over Nexconn immediately (in parallel with the HTTP post), so this is the provider path. It meets the 1 s target at the median, not at p95. Untested lever: ideas are registered as low-priority types (`CP:Idea`, `CP:Cheer`).
-- **Still not live-tested:** the message webhook (needs the deployed https URL in the Console; with `INGEST_MODE=dual` the HTTP path carries ideas meanwhile), more than 3 concurrent clients, and real phones on mobile networks.
+- **Webhook (U5) confirmed 2026-11-19** on the deployed URL: with the browser's HTTP idea request blocked, an idea sent over Nexconn alone was stored and put on the ballot, so `message:send` is delivered and signed with the App Secret (no separate webhook secret).
+- **Still not live-tested:** more than 3 concurrent human clients, and real phones on mobile networks.
 
 ## Live smoke results (2026-11-17T15:55:58.309Z)
 
