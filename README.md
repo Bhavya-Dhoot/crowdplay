@@ -258,16 +258,17 @@ The real output of the latest run is in [docs/VERIFICATION.md](docs/VERIFICATION
 
 CrowdPlay is designed for **one long-running Node container** (the round ticker, rate limiters and embedding cache live in the process) plus a managed Postgres. Render, Railway and Fly.io all work with the included `Dockerfile` (multi-stage, Node 22, runs `next start`, `HEALTHCHECK` on `/api/health`, runs as the non-root `node` user). The Docker image was built and run locally; the platform steps below have not yet been exercised against a real account.
 
-### Render, free tier (recommended: one Blueprint)
+### Render + Neon, free tier (recommended: one Blueprint)
 
-[`render.yaml`](render.yaml) describes everything: a Docker web service and a Render Postgres, both on the free plan in `singapore` (next to Nexconn's SG data center), with the health check, the non-secret settings, and a generated `SESSION_SECRET` and `ADMIN_TOKEN`.
+[`render.yaml`](render.yaml) describes the web service: Docker, free plan, `singapore` (next to Nexconn's SG data center), with the health check, the non-secret settings, and a generated `SESSION_SECRET` and `ADMIN_TOKEN`. The database is a free [Neon](https://neon.com) Postgres.
 
-1. Render dashboard: **New, Blueprint**, connect GitHub, pick `Bhavya-Dhoot/crowdplay`.
-2. Render asks for four values once: `NEXCONN_APP_KEY`, `NEXT_PUBLIC_NEXCONN_APP_KEY` (the same App Key again: Render passes it to the Docker build, which inlines it into the browser bundle), `NEXCONN_APP_SECRET` and `OPENAI_API_KEY`. Press **Apply**.
-3. Wait for the first build (several minutes) and open `https://<service>.onrender.com/api/health`: it should show `"realtimeMode":"nexconn"` and `"llmMode":"live"`. `APP_URL` is not needed: the app falls back to Render's `RENDER_EXTERNAL_URL`, so QR codes and share links already use the public URL.
-4. Nexconn console: set the webhook URL to `https://<service>.onrender.com/api/nexconn/webhook` with `message:send` (with `INGEST_MODE=dual` ideas also arrive over HTTP, so a show works before the webhook is set).
+1. Neon: create a project in **AWS Asia Pacific (Singapore)** and copy its connection string with **connection pooling off** (the direct one; one container needs no pooler). Paste it as it is: `sslmode=require` already gives a verified TLS connection with this `pg` version, and `sslmode=verify-full` is the same check without the startup warning.
+2. Render dashboard: **New, Blueprint**, connect GitHub, pick `Bhavya-Dhoot/crowdplay`.
+3. Render asks for five values once: `DATABASE_URL` (the Neon string), `NEXCONN_APP_KEY`, `NEXT_PUBLIC_NEXCONN_APP_KEY` (the same App Key again: Render passes it to the Docker build, which inlines it into the browser bundle), `NEXCONN_APP_SECRET` and `OPENAI_API_KEY`. Press **Apply**.
+4. Wait for the first build (several minutes) and open `https://<service>.onrender.com/api/health`: it should show `"realtimeMode":"nexconn"` and `"llmMode":"live"`. `APP_URL` is not needed: the app falls back to Render's `RENDER_EXTERNAL_URL`, so QR codes and share links already use the public URL.
+5. Nexconn console: set the webhook URL to `https://<service>.onrender.com/api/nexconn/webhook` with `message:send` (with `INGEST_MODE=dual` ideas also arrive over HTTP, so a show works before the webhook is set).
 
-Free-tier facts to know before a demo: the web service sleeps after 15 minutes without traffic and takes about a minute to wake (open the URL a minute before you need it); nothing is lost while it sleeps because all state is in Postgres. A free Render Postgres expires 30 days after creation, then has a 14-day grace period to upgrade before Render deletes it. One instance only, which is what the free plan gives you.
+Free-tier facts to know before a demo: the web service sleeps after 15 minutes without traffic and takes about a minute to wake (open the URL a minute before you need it); nothing is lost while it sleeps because all state is in Postgres. Neon's free plan has no 30-day expiry (Render's free Postgres does). Its compute suspends after 5 idle minutes and resumes in well under a second on the next query; while the app is awake its 250 ms round ticker keeps the compute awake too, which spends Neon's monthly allowance (100 CU-hours, about 400 hours at the smallest size) only while Render is awake. One instance only, which is what the free plan gives you.
 
 ### What every deploy needs
 

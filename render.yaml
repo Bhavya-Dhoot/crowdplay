@@ -1,9 +1,9 @@
-# Render Blueprint: one Docker web service + Render Postgres, both in Singapore (next to Nexconn's SG data centre).
+# Render Blueprint: one Docker web service in Singapore (next to Nexconn's SG data centre) on a Neon Postgres.
 # Deploy: Render dashboard -> New -> Blueprint -> pick this repo. Render asks once for every `sync: false` value.
 # Migrations run on boot; GET /api/health is the health check. APP_URL defaults to RENDER_EXTERNAL_URL.
-# Free tier: the web service sleeps after 15 min without traffic and takes about a minute to wake; a free Postgres
-# expires 30 days after creation (14-day grace to upgrade). The app keeps no state on local disk, so sleeping loses
-# nothing: every show lives in Postgres and the round engine catches up on the first request after waking.
+# Free tier: the web service sleeps after 15 min without traffic and takes about a minute to wake. Neon's free plan
+# does not expire; its compute suspends after 5 idle minutes and resumes on the next query. The app keeps no state
+# on local disk, so sleeping loses nothing: every show lives in Postgres and the round engine catches up on waking.
 services:
   - type: web
     name: crowdplay
@@ -13,10 +13,9 @@ services:
     dockerfilePath: ./Dockerfile
     healthCheckPath: /api/health
     envVars:
+      # Neon connection string (Singapore region, direct connection, ends in ?sslmode=require). Asked once.
       - key: DATABASE_URL
-        fromDatabase:
-          name: crowdplay-db
-          property: connectionString
+        sync: false
       - key: REALTIME_MODE
         value: nexconn
       - key: LLM_MODE
@@ -53,7 +52,3 @@ services:
         sync: false
       - key: OPENAI_API_KEY
         sync: false
-databases:
-  - name: crowdplay-db
-    plan: free
-    region: singapore

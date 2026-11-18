@@ -252,13 +252,34 @@ Refusing to start: REALTIME_MODE=mock in production. Set REALTIME_MODE=nexconn (
 exit code 1
 ```
 
-Not tested: the image with a real Postgres (`DATABASE_URL`) or on a hosting platform (the Render Blueprint in `render.yaml` is written from Render's docs and not yet applied).
+Not tested: the Docker image on a hosting platform (the Render Blueprint in `render.yaml` is written from Render's docs and not yet applied), or against Neon itself.
+
+### Real Postgres (2026-11-18, local `postgres:17-alpine` container, the Neon-style `pg` path)
+
+```
+$ E2E_DATABASE_URL=postgres://postgres:pg@localhost:55432/postgres pnpm e2e     # production build, DATABASE_URL set
+  10 passed (4.0m)
+$ psql: select count(*) from rooms; select count(*) from ideas;
+13
+508
+```
+
+Neon suspends its compute after 5 idle minutes, which closes every open connection. Simulated with `pg_terminate_backend` on all 11 server connections while the production build ran on that Postgres:
+
+```
+before: {"ok":true,"realtimeMode":"mock","llmMode":"mock","db":"pg","version":"0.1.0"}
+connections dropped: 11
+process alive after drop
+after:  {"ok":true,...,"db":"pg"}   room created after the drop; 2 rooms in Postgres; 10 "idle Postgres connection closed" warnings
+```
+
+The same drop on a bare `pg` Pool with no `error` listener (the code before this fix) ends the process: `error: terminating connection due to administrator command`, exit 1.
 
 ## 7. Human steps left (need a deploy or people)
 
 Done on 2026-11-17: `.env` with the Nexconn and OpenAI keys; `pnpm live:check` steps 1–4 (section 5); the public repo github.com/Bhavya-Dhoot/crowdplay.
 
-1. Deploy on Render's free tier from the Blueprint (README → Deploy → Render): New → Blueprint → `Bhavya-Dhoot/crowdplay`, paste the four asked values (Nexconn App Key twice, App Secret, OpenAI key). Then set the webhook URL `https://<service>.onrender.com/api/nexconn/webhook` (event `message:send`) in the Nexconn Console and re-run `pnpm smoke:nexconn` with `APP_URL` set to that URL to see the U5 webhook check.
+1. Create a free Neon project in Singapore and copy its direct connection string. Deploy on Render's free tier from the Blueprint (README → Deploy → Render + Neon): New → Blueprint → `Bhavya-Dhoot/crowdplay`, paste the five asked values (Neon `DATABASE_URL`, Nexconn App Key twice, App Secret, OpenAI key). Then set the webhook URL `https://<service>.onrender.com/api/nexconn/webhook` (event `message:send`) in the Nexconn Console and re-run `pnpm smoke:nexconn` with `APP_URL` set to that URL to see the U5 webhook check.
 2. One show with real people on real phones on the deployed URL; record it here.
 3. Run real sessions; capture `/impact` afterwards (the `impact-*.png` screenshots in `docs/screens/` are test data).
 4. Optional: add `ANTHROPIC_API_KEY` to make Claude the primary model (OpenAI then becomes the fallback).

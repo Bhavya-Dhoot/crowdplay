@@ -23,6 +23,9 @@ function open(): Holder {
   const url = env().DATABASE_URL;
   if (url) {
     const pool = new Pool({ connectionString: url, max: 10 });
+    // A hosted Postgres drops idle connections (Neon suspends its compute after 5 idle minutes; restarts do the same).
+    // Without a listener that 'error' event would crash the process; the pool simply opens a new connection next query.
+    pool.on("error", (err) => log.warn({ err }, "idle Postgres connection closed"));
     const db = drizzlePg(pool, { schema });
     return {
       db,
