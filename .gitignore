@@ -57,3 +57,6 @@ next-env.d.ts
 /.next-lh/
 /.next-live/
 /docs/live-results/dry-run-*
+
+# brag videos (large render outputs)
+brag-output/
