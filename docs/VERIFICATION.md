@@ -321,6 +321,18 @@ APP_URL=https://crowdplay-rs7o.onrender.com pnpm smoke:nexconn
   U5: .../api/nexconn/webhook: unsigned POST -> HTTP 401 (rejected as it should be)
 ```
 
+Two phones and the big screen on the deployed app, 2026-11-19 (`E2E_LIVE=1 E2E_BASE_URL=https://crowdplay-rs7o.onrender.com pnpm exec playwright test`, run from this laptop on the phone hotspot; result file `docs/live-results/live-2026-11-18T19-19-47-265Z.json`):
+
+```
+1 passed (1.3m)   room NPEZT, server {"realtimeMode":"nexconn","llmMode":"live","db":"pg"}
+join link and QR use crowdplay-rs7o.onrender.com (RENDER_EXTERNAL_URL)
+6 of 6 ideas reached the other phone and the screen over Nexconn: 704-1144 ms (seen by Playwright on this laptop)
+DISTILL 2893 ms, provider openai, no fallback; options on the phones 5.4 s after the storm closed
+narration visible 2.9 s after REVEAL; ballot toast seen on a phone; receipts ada 3, bo 1; 0 console errors or warnings
+```
+
+The spec pauses the show after the reveal instead of ending it and deletes its test users afterwards, so the public numbers stay real: `/api/impact` afterwards reads `realPeople 0, showsCompleted 0, ideas 0, sessions 0`. The two test rounds' DISTILL timings (2.9-3.1 s) are real measurements and remain in the latency figures. A first attempt passed every phase but lost the clean-up call to a dropped connection (`read ECONNRESET` on this laptop's hotspot); the clean-up now runs in `afterEach` with retries, and those users were deleted by hand with their own sessions.
+
 Webhook (U5), 2026-11-19, after the founder set `https://crowdplay-rs7o.onrender.com/api/nexconn/webhook` with `message:send` in the Console. In a fresh `/try` show the page's `POST /api/rooms/*/ideas` was blocked in the browser, so an idea could reach the server only as a Nexconn message delivered by the webhook:
 
 ```

@@ -4,9 +4,25 @@
 // LIVE_DRY_RUN=1 runs the same spec against the mock server to check the spec itself without credentials.
 import fs from "node:fs";
 import path from "node:path";
-import { expect, test, type Browser, type Page } from "@playwright/test";
+import { expect, test, type APIRequestContext, type Browser, type Page } from "@playwright/test";
 
 const DRY = process.env.LIVE_DRY_RUN === "1";
+// Against a deployed app (E2E_BASE_URL) the show is paused after the reveal instead of ended, and every test user
+// deletes their data afterwards (afterEach), so the public /impact numbers stay real (a finished show counts as completed).
+const REMOTE = !!process.env.E2E_BASE_URL;
+const testUsers: APIRequestContext[] = [];
+
+// Runs even when an assertion failed; retries because a dropped connection must not leave test users behind.
+test.afterEach(async () => {
+  if (!REMOTE) return;
+  for (const r of testUsers.splice(0)) {
+    for (let i = 0; i < 4; i++) {
+      const res = await r.delete("/api/session").catch(() => null);
+      if (res && (res.ok() || res.status() === 401)) break; // 401: already gone
+      await new Promise((done) => setTimeout(done, 2_000));
+    }
+  }
+});
 
 async function phone(browser: Browser, name: string, code: string, problems: string[]): Promise<Page> {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
@@ -17,6 +33,7 @@ async function phone(browser: Browser, name: string, code: string, problems: str
   await page.getByTestId("name-input").fill(name);
   await page.getByTestId("join-submit").click();
   await page.waitForURL(`**/play/${code}`);
+  testUsers.push(ctx.request);
   return page;
 }
 
@@ -42,6 +59,7 @@ test("live: one full round over Nexconn with two phones and the big screen", asy
   // Host through the API (the console itself is covered by the mock e2e suite).
   const host = (await browser.newContext()).request;
   expect((await host.post("/api/session", { data: { displayName: "Live Host" } })).ok()).toBe(true);
+  testUsers.push(host);
   const created = await (
     await host.post("/api/rooms", {
       data: {
@@ -58,6 +76,8 @@ test("live: one full round over Nexconn with two phones and the big screen", asy
   ).json();
   expect(created.ok, JSON.stringify(created)).toBe(true);
   const { code, hostKey, showId } = created as { code: string; hostKey: string; showId: string };
+  // QR codes and share links are built from APP_URL (RENDER_EXTERNAL_URL on Render): they must name the public host.
+  if (REMOTE) expect(created.links?.join, "join link uses the deployed URL").toContain(new URL(process.env.E2E_BASE_URL as string).host);
   const act = (action: string) => host.post(`/api/rooms/${code}/host`, { headers: { "x-host-key": hostKey }, data: { action } });
 
   const screen = await (await browser.newContext({ viewport: { width: 1280, height: 720 } })).newPage();
@@ -109,12 +129,16 @@ test("live: one full round over Nexconn with two phones and the big screen", asy
   const meA = await (await ada.context().request.get("/api/me")).json();
   const meB = await (await bo.context().request.get("/api/me")).json();
 
-  expect((await act("endShow")).ok()).toBe(true);
-  await waitPhase(ada, "FINALE", 30_000);
-  // The finale recap is written in the background; give it the narrator's time budget.
   type StoryBody = { show?: { storyTitle: string | null; recap: string | null; tagline: string | null } };
   let story: StoryBody = {};
-  for (let i = 0; i < 30 && !story.show?.recap; i++) {
+  if (REMOTE) {
+    expect((await act("pause")).ok()).toBe(true);
+  } else {
+    expect((await act("endShow")).ok()).toBe(true);
+    await waitPhase(ada, "FINALE", 30_000);
+  }
+  // The finale recap is written in the background; give it the narrator's time budget.
+  for (let i = 0; !REMOTE && i < 30 && !story.show?.recap; i++) {
     story = (await (await request.get(`/api/story/${showId}`)).json()) as StoryBody;
     if (!story.show?.recap) await ada.waitForTimeout(500);
   }
@@ -123,6 +147,7 @@ test("live: one full round over Nexconn with two phones and the big screen", asy
     at: new Date().toISOString(),
     dryRun: DRY,
     server: health,
+    target: REMOTE ? process.env.E2E_BASE_URL : "local build",
     roomCode: code,
     ideaLatencyMs: latency,
     stormEndToOptionsMs: optionsVisibleMs,

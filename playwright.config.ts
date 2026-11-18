@@ -30,7 +30,9 @@ if (!process.env.E2E_PORT) {
   process.env.E2E_PORT = String(port);
 }
 const PORT = Number(process.env.E2E_PORT);
-const baseURL = `http://localhost:${PORT}`;
+// E2E_BASE_URL=https://... runs against an already deployed app (no local server); used with E2E_LIVE=1.
+const REMOTE = process.env.E2E_BASE_URL?.replace(/\/+$/, "");
+const baseURL = REMOTE || `http://localhost:${PORT}`;
 
 // E2E_LIVE=1 (`pnpm live:check`): the live spec against the .next-live build with the real .env (Nexconn + AI).
 // LIVE_DRY_RUN=1 runs that spec against the mock e2e server to check the spec itself without credentials.
@@ -56,7 +58,7 @@ export default defineConfig({
     trace: "retain-on-failure",
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
-  webServer: {
+  webServer: REMOTE ? undefined : {
     command: serverCmd,
     url: `${baseURL}/api/health`,
     reuseExistingServer: false,

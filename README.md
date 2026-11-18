@@ -379,7 +379,7 @@ curl -s https://<host>/api/health
 # expect "ok":true, "realtimeMode":"nexconn", "llmMode":"live", "db":"pg"
 ```
 
-If `llmMode` says `mock`, the AI keys are missing. Then, from a machine with the same Nexconn variables, run `pnpm smoke:nexconn`; then run a two-device show against the deployment (host on a laptop, a phone as player) and check, in the server logs, that ideas arrive at `/api/nexconn/webhook`; finally open `/try` in an incognito window and on a fresh phone. The first live run answers the questions still open in `docs/NEXCONN_FINDINGS.md`; record the outcome there and in `docs/VERIFICATION.md`.
+If `llmMode` says `mock`, the AI keys are missing. Then `E2E_LIVE=1 E2E_BASE_URL=https://<host> pnpm exec playwright test` plays one round with two headless phones and the big screen against the deployment (it pauses that show and deletes its test users, so `/impact` stays real). Then, from a machine with the same Nexconn variables, run `pnpm smoke:nexconn`; then run a two-device show against the deployment (host on a laptop, a phone as player) and check, in the server logs, that ideas arrive at `/api/nexconn/webhook`; finally open `/try` in an incognito window and on a fresh phone. The first live run answers the questions still open in `docs/NEXCONN_FINDINGS.md`; record the outcome there and in `docs/VERIFICATION.md`.
 
 ## Limitations
 

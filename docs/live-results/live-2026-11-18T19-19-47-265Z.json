@@ -1,0 +1,57 @@
+{
+  "at": "2026-11-18T19:19:47.265Z",
+  "dryRun": false,
+  "server": {
+    "ok": true,
+    "realtimeMode": "nexconn",
+    "llmMode": "live",
+    "db": "pg",
+    "version": "0.1.0"
+  },
+  "target": "https://crowdplay-rs7o.onrender.com",
+  "roomCode": "NPEZT",
+  "ideaLatencyMs": [
+    {
+      "toPhone": 923,
+      "toScreen": 927
+    },
+    {
+      "toPhone": 915,
+      "toScreen": 915
+    },
+    {
+      "toPhone": 1144,
+      "toScreen": 1142
+    },
+    {
+      "toPhone": 1130,
+      "toScreen": 1130
+    },
+    {
+      "toPhone": 704,
+      "toScreen": 704
+    },
+    {
+      "toPhone": 783,
+      "toScreen": 778
+    }
+  ],
+  "stormEndToOptionsMs": 5390,
+  "distill": {
+    "ms": 2893,
+    "provider": "openai",
+    "fallbackUsed": false
+  },
+  "narrationVisibleAfterRevealMs": 2866,
+  "ballotToastSeenOnAPhone": true,
+  "receiptsOnMe": {
+    "ada": 3,
+    "bo": 1
+  },
+  "finale": {
+    "storyTitle": null,
+    "recapChars": 0,
+    "tagline": null
+  },
+  "consoleProblems": []
+}
