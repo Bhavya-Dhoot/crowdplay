@@ -252,6 +252,8 @@ Refusing to start: REALTIME_MODE=mock in production. Set REALTIME_MODE=nexconn (
 exit code 1
 ```
 
+Render's first Blueprint build (2026-11-18) failed at `COPY --from=build /app/public ./public`: `"/app/public": not found`. `public/` was empty on this machine and git does not track empty folders, so a clone has none; the local builds above passed only because the folder existed here. The app serves nothing from `public/`, so the line is gone. Re-checked from a fresh `git clone`: `docker build` exit 0; the container answers `/api/health` ok and `/`, `/try`, `/host`, `/impact`, `/how-it-works` and all 18 assets the landing page links with 200.
+
 Not tested: the Docker image on a hosting platform (the Render Blueprint in `render.yaml` is written from Render's docs and not yet applied), or against Neon itself.
 
 ### Real Postgres (2026-11-18, local `postgres:17-alpine` container, the Neon-style `pg` path)
