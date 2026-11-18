@@ -294,11 +294,40 @@ prod run:  next start with the real .env (Nexconn + OpenAI) on neondb
 
 The six e2e failures are this laptop's network, not Neon. The hotspot's DNS (172.20.10.1) intermittently fails to resolve the Neon host and answers "Query refused" for its direct endpoint, which 8.8.8.8 resolves. Every query also crosses 55-71 ms of VPN and hotspot. The suite runs phases at 30% speed and asserts timings that assume a database next to the app (for example the reconnect test missed its 5 s window by 21 ms). On Render in Singapore the app and Neon are in the same region. Not yet run: the suite from a host near Neon (the Render deploy).
 
+### Live deploy (2026-11-18, https://crowdplay-rs7o.onrender.com, Render free tier in Singapore + Neon)
+
+Two deploy bugs surfaced on the first real deploy, both fixed and pushed:
+
+1. Build: `COPY --from=build /app/public ./public` failed (`"/app/public": not found`), because git does not track the empty folder. Fixed in 72b8e4a (above).
+2. Browsers stuck on "Reconnecting…": `POST /api/session` handed browsers the App Key `"$NEXCONN_APP_KEY"`, the literal text entered for the second key variable (Render does not expand references). Nexconn answered `navi.json` 401 and `v1/config` 400 on every connect. Fixed in a6710b8: browsers now get `NEXCONN_APP_KEY`, and the duplicate variable is gone (D49).
+
+After a6710b8 went live:
+
+```
+GET /api/health   {"ok":true,"realtimeMode":"nexconn","llmMode":"live","db":"pg","version":"0.1.0"}   0.25-0.30 s
+GET / /try /host /impact /how-it-works   200 (0.18-1.5 s)
+browser: navi.json 200, v1/config 200, no "Reconnecting" banner
+
+/try (Judge Mode, one browser, 30 labelled bots), all three rounds over Nexconn with live OpenAI:
+  R1  STORM 42 ideas incl. "Bribe the vault with a pizza"; VOTE: two AI-written options + my idea as the wildcard;
+      REVEAL: "Pick the lock fast before the timer runs out" 37% (mine 27%, no nudge in round 1);
+      narration written live, credits "@Mystic Mittens 🤖, @Professor Plink 🤖, @Waffle Wizard 🤖 + 4 others"
+  R2  scene "Vent Drop, Second Lock" written from the R1 canon; vote ran without my idea
+  R3  "A pigeon flies off with the second key" took the wildcard slot, 62% with the disclosed demo nudge, CANON
+  FINALE  three scene summaries; Your night: 2 ideas sent, 2 on the ballot, 1 canon; canon makers labelled 🤖
+
+APP_URL=https://crowdplay-rs7o.onrender.com pnpm smoke:nexconn
+  11 passed, 0 load-bearing failed, 0 other failed, 0 warnings
+  U5: .../api/nexconn/webhook: unsigned POST -> HTTP 401 (rejected as it should be)
+```
+
+Not yet confirmed: that Nexconn delivers `message:send` webhooks to the deployed URL (the Console setting cannot be read from here; with `INGEST_MODE=dual` ideas also arrive over HTTP), and a show with real people on real phones.
+
 ## 7. Human steps left (need a deploy or people)
 
 Done on 2026-11-17: `.env` with the Nexconn and OpenAI keys; `pnpm live:check` steps 1–4 (section 5); the public repo github.com/Bhavya-Dhoot/crowdplay.
 
-1. The Neon project exists (Singapore, Postgres 18.7, migrated, empty; section 6). Reset the `neondb_owner` password, since the old one was shared in a chat log. Deploy on Render's free tier from the Blueprint (README → Deploy → Render + Neon): New → Blueprint → `Bhavya-Dhoot/crowdplay`, paste the five asked values (Neon `DATABASE_URL`, Nexconn App Key twice, App Secret, OpenAI key). Then set the webhook URL `https://<service>.onrender.com/api/nexconn/webhook` (event `message:send`) in the Nexconn Console and re-run `pnpm smoke:nexconn` with `APP_URL` set to that URL to see the U5 webhook check.
+1. Done 2026-11-18: deployed at https://crowdplay-rs7o.onrender.com on Neon (section 6). Left: confirm the Nexconn webhook URL `https://crowdplay-rs7o.onrender.com/api/nexconn/webhook` (event `message:send`) in the Console. Deploy on Render's free tier from the Blueprint (README → Deploy → Render + Neon): New → Blueprint → `Bhavya-Dhoot/crowdplay`, paste the five asked values (Neon `DATABASE_URL`, Nexconn App Key twice, App Secret, OpenAI key). Then set the webhook URL `https://<service>.onrender.com/api/nexconn/webhook` (event `message:send`) in the Nexconn Console and re-run `pnpm smoke:nexconn` with `APP_URL` set to that URL to see the U5 webhook check.
 2. One show with real people on real phones on the deployed URL; record it here.
 3. Run real sessions; capture `/impact` afterwards (the `impact-*.png` screenshots in `docs/screens/` are test data).
 4. Optional: add `ANTHROPIC_API_KEY` to make Claude the primary model (OpenAI then becomes the fallback).

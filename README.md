@@ -6,15 +6,15 @@ Built for the Nexconn Build Challenge 2026, track **Gaming & Live Streams**.
 
 ## Links
 
-Fill these in before submitting (see [Before submitting](#before-submitting)). The repo is public; nothing else below is deployed or recorded yet.
+Fill these in before submitting (see [Before submitting](#before-submitting)). The app is live on Render's free tier (it sleeps after 15 idle minutes; the first visit then takes about a minute). The video, PDF and GIF are not recorded yet.
 
 ```
-Live app:          <add after deploy>
-Judge Mode (/try): <add after deploy>/try
+Live app:          https://crowdplay-rs7o.onrender.com
+Judge Mode (/try): https://crowdplay-rs7o.onrender.com/try
 Repo:              https://github.com/Bhavya-Dhoot/crowdplay
 Demo video:        <add after upload>   (3:00 max, public or unlisted)
 Write-up PDF:      <export docs/WRITEUP.md to PDF>
-Nexconn App Key:   <add: the public App Key, never the App Secret>
+Nexconn App Key:   tdrvipkstz5q5   (public by design; Singapore data center)
 20-second GIF:     <add docs/demo.gif after recording a real or labelled-bot session>
 ```
 

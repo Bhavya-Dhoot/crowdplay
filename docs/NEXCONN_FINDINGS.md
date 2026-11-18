@@ -170,3 +170,28 @@ Run by `pnpm smoke:nexconn` against api.sg-light-api.com (primary) / api-b.sg-li
 | destroyChannel removes the test channel | U9 | PASS | yes | getOpenChannel now answers 23410 (does not exist) |
 
 All load-bearing checks passed.
+
+## Live smoke results (2026-11-18T17:59:50.380Z)
+
+Run by `pnpm smoke:nexconn` against api.sg-light-api.com (primary) / api-b.sg-light-api.com (backup). Test channel `cpsmokemwmfes6y` was created and destroyed.
+
+| Check | U | Result | Load-bearing | Detail |
+|---|---|---|---|---|
+| issueAccessToken for a plain user id | U1 | PASS | yes | token of 104 chars |
+| user ids the app really uses: u_<id> and cp_narrator (underscore) | U1 | PASS | yes | both accepted |
+| ensureChannel: create + longest keep-alive + priority sender | U9 | PASS | yes | destroyType 0, ttlMinutes 10080 |
+| publishState: metadata batch set + CP:State message, metadata read back | U2/U3/U4 | PASS | yes | 7 keys read back; CP:State accepted |
+| metadata key charset: is a '.' key (cp.phase) accepted? | U3 | INFO | no | 'cp.dot' -> code 1002 (rejected: keep underscores); 'cp_ok-1' -> 0; 4000-char value -> 0 |
+| RC:TxtMsg fallback envelope accepted by the server (NEXCONN_TEXT_ENVELOPE=1) | U4 | INFO | no | fallback sent; a never-registered custom type -> code 0. Whether Web clients receive it needs the two-browser show. |
+| publishTally + sendRoomMessage (bot idea, cheer, notice, moderation) | U4 | PASS | yes | all accepted by the server (client delivery needs the two-browser show) |
+| configurePriorities: CP:State/CP:Moderation priority, CP:Idea/CP:Cheer low priority | U6 | PASS | no | registered and read back |
+| narrator is on the channel's priority sender list | U6 | PASS | no | cp_narrator listed |
+| sendReceipt: direct message from the narrator, system message as fallback | U7 | PASS | yes | adapter returned true; direct code 0, system code 0. Accepted is not shown: confirm in a browser that the toast appears for a user who never opened that channel. |
+| countParticipants (participant list total) | U8 | PASS | yes | total 0 (an empty channel) |
+| mute / unmute / ban / unban a test user, read back from the lists | U8 | PASS | yes | all four actions accepted and visible in the lists |
+| profanity list: blocklist synced by configurePriorities, provider quota | U10 | INFO | no | 50 words on the provider list (list code 0); adding one more -> code 1019 (quota full or not permitted: the app-level filter stays authoritative) |
+| webhook URL reachability from this machine (the Console setting itself cannot be read) | U5 | INFO | no | https://crowdplay-rs7o.onrender.com/api/nexconn/webhook: unsigned POST -> HTTP 401 (rejected as it should be). Confirm the same URL and the message:send event in Console > Chat > Chat settings > Webhooks. |
+| Web SDK facts (package versions; metadata subscribe and join need a browser) | U1/U2 | INFO | no | @nexconn/chat 26.2.1, @nexconn/engine 26.2.1. Client behaviour is confirmed only by the two-browser live show. |
+| destroyChannel removes the test channel | U9 | PASS | yes | getOpenChannel now answers 23410 (does not exist) |
+
+All load-bearing checks passed.

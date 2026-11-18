@@ -13,11 +13,11 @@ Fields in <angle brackets> are for a human to fill; nothing else here is a place
 
 | | |
 |---|---|
-| Live app | `<add after deploy>` |
-| Judge Mode (alone, no host) | `<live app>/try` |
-| Repository | `<add public GitHub URL>` |
+| Live app | https://crowdplay-rs7o.onrender.com |
+| Judge Mode (alone, no host) | https://crowdplay-rs7o.onrender.com/try |
+| Repository | https://github.com/Bhavya-Dhoot/crowdplay |
 | Demo video | `<add after upload>` |
-| Nexconn App Key | `<add the public App Key; never the App Secret>` |
+| Nexconn App Key | `tdrvipkstz5q5` |
 
 ## 2. Problem
 
@@ -91,7 +91,7 @@ Nexconn is the only real-time transport in production. The app refuses to start 
 
 **Why Open Channels, metadata and priority controls fit.** A show needs one room with an unbounded audience and no per-user history to manage: Open Channels are built for that. Channel metadata is shared state that clients can read and subscribe to (per the SDK types), which suits "everyone sees the same phase and countdown" and live tallies; late joiners also get the current state over HTTP. Priority controls matter because ideas are the bulk traffic and must never crowd out the state that keeps the room in sync: ideas are marked low priority, while state and moderation types and the narrator sender are on the priority lists. Direct messages carry the personal receipts.
 
-**Confirmed live (automated browsers).** Every Nexconn call was written from the installed SDK types and docs, then run against a live app (Singapore data center): the smoke test passed 11/11, and in three full rounds with two headless phones and the big screen, custom `CP:*` messages reached the other clients, phase changes arrived over Nexconn while HTTP polling was off, and the narrator's direct-message receipt reached a phone that never opened that channel. The webhook path waits for a deployed URL; each risk still has a fallback built in (HTTP polling, a text-envelope mode, in-app receipts).
+**Confirmed live (automated browsers).** Every Nexconn call was written from the installed SDK types and docs, then run against a live app (Singapore data center): the smoke test passed 11/11, and in three full rounds with two headless phones and the big screen, custom `CP:*` messages reached the other clients, phase changes arrived over Nexconn while HTTP polling was off, and the narrator's direct-message receipt reached a phone that never opened that channel. The deployed app (Render, Singapore) passed the same smoke test and played a full Judge Mode show over Nexconn with live AI. Webhook delivery to the deployed URL is not yet confirmed (the URL answers, and rejects unsigned calls); ideas also arrive over HTTP (`INGEST_MODE=dual`), and each risk keeps a fallback (HTTP polling, a text-envelope mode, in-app receipts).
 
 ## 6. Architecture
 
