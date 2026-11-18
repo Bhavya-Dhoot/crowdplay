@@ -65,7 +65,7 @@ export async function POST(req: Request): Promise<Response> {
       realtime: {
         mode: e.REALTIME_MODE,
         ingest: e.INGEST_MODE,
-        appKey: e.NEXT_PUBLIC_NEXCONN_APP_KEY,
+        appKey: e.NEXCONN_APP_KEY, // public by design; the same key the server signs tokens for
         token,
         area: e.NEXT_PUBLIC_NEXCONN_AREA,
       },

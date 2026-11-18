@@ -69,7 +69,7 @@ Console (first hour):
 4. Security & Moderation: decide on "Moderate messages sent by server API" (it applies the profanity list to bots and the narrator too).
 5. Chat > Chat settings > Webhooks: URL `https://<deploy>/api/nexconn/webhook`, event `message:send`. (`pre_messaging` is not used.)
 6. If "Domain allowlist for Web clients" is on, add `localhost` and the deploy origin.
-7. `.env`: `NEXCONN_APP_KEY`, `NEXCONN_APP_SECRET`, `NEXCONN_PRIMARY_API_DOMAIN`, `NEXCONN_SECONDARY_API_DOMAIN`, `NEXT_PUBLIC_NEXCONN_APP_KEY`, `NEXT_PUBLIC_NEXCONN_AREA`, `APP_URL` (the public URL). `NEXCONN_TEXT_ENVELOPE=1` only if the show proves registered custom types do not reach clients.
+7. `.env`: `NEXCONN_APP_KEY`, `NEXCONN_APP_SECRET`, `NEXCONN_PRIMARY_API_DOMAIN`, `NEXCONN_SECONDARY_API_DOMAIN`, `NEXT_PUBLIC_NEXCONN_AREA`, `APP_URL` (the public URL). `NEXCONN_TEXT_ENVELOPE=1` only if the show proves registered custom types do not reach clients.
 
 Commands:
 

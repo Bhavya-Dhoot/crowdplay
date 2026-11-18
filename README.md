@@ -170,7 +170,6 @@ Copy `.env.example` to `.env` (Next.js also reads `.env.local`). Empty values co
 | `NEXCONN_APP_SECRET` | - | Nexconn App Secret. Signs server API calls and webhook checks. Server only. | `REALTIME_MODE=nexconn` (checked at boot) |
 | `NEXCONN_PRIMARY_API_DOMAIN` | - | Server API base URL of your data center, e.g. `https://api.<region>...` from the console. | `REALTIME_MODE=nexconn` (checked at boot) |
 | `NEXCONN_SECONDARY_API_DOMAIN` | - | Backup API domain; the SDK fails over to it. | `REALTIME_MODE=nexconn` (checked at boot) |
-| `NEXT_PUBLIC_NEXCONN_APP_KEY` | - | Same App Key, public. `POST /api/session` hands it to browsers. Also a Docker build arg. | `REALTIME_MODE=nexconn` (not checked at boot; browsers cannot connect without it) |
 | `NEXT_PUBLIC_NEXCONN_AREA` | - | Web SDK data-center code: an `AreaCode` key (`BJ`, `SG`, `NA`, `SA`, `OM`) or its number. Must match the App Key's data center and the API domains. Also a Docker build arg. | `REALTIME_MODE=nexconn` |
 | `NEXCONN_WEBHOOK_SECRET` | - | If set, replaces the App Secret as the webhook signing secret. | Only if the console gives a separate one |
 | `NEXCONN_TEXT_ENVELOPE` | `0` | `1`: send `RC:TxtMsg` envelopes instead of `CP:*` custom types (fallback if custom types do not reach Web clients). | Only if the live two-browser show proves it is needed |
@@ -264,7 +263,7 @@ CrowdPlay is designed for **one long-running Node container** (the round ticker,
 
 1. Neon: create a project in **AWS Asia Pacific (Singapore)** and copy its connection string as Neon shows it (the pooled one, ending in `?sslmode=require&channel_binding=require`) and paste it as it is. It gives a TLS 1.3 connection with a verified certificate; `sslmode=verify-full` is the same check without the startup warning.
 2. Render dashboard: **New, Blueprint**, connect GitHub, pick `Bhavya-Dhoot/crowdplay`.
-3. Render asks for five values once: `DATABASE_URL` (the Neon string), `NEXCONN_APP_KEY`, `NEXT_PUBLIC_NEXCONN_APP_KEY` (the same App Key again: Render passes it to the Docker build, which inlines it into the browser bundle), `NEXCONN_APP_SECRET` and `OPENAI_API_KEY`. Press **Apply**.
+3. Render asks for four values once: `DATABASE_URL` (the Neon string), `NEXCONN_APP_KEY`, `NEXCONN_APP_SECRET` and `OPENAI_API_KEY`. Paste the values themselves: Render does not expand `$NAME` references. Press **Apply**.
 4. Wait for the first build (several minutes) and open `https://<service>.onrender.com/api/health`: it should show `"realtimeMode":"nexconn"` and `"llmMode":"live"`. `APP_URL` is not needed: the app falls back to Render's `RENDER_EXTERNAL_URL`, so QR codes and share links already use the public URL.
 5. Nexconn console: set the webhook URL to `https://<service>.onrender.com/api/nexconn/webhook` with `message:send` (with `INGEST_MODE=dual` ideas also arrive over HTTP, so a show works before the webhook is set).
 
@@ -280,7 +279,7 @@ Free-tier facts to know before a demo: the web service sleeps after 15 minutes w
    INGEST_MODE=dual
    NEXCONN_APP_KEY=...  NEXCONN_APP_SECRET=...
    NEXCONN_PRIMARY_API_DOMAIN=https://...  NEXCONN_SECONDARY_API_DOMAIN=https://...
-   NEXT_PUBLIC_NEXCONN_APP_KEY=...  NEXT_PUBLIC_NEXCONN_AREA=SG
+   NEXT_PUBLIC_NEXCONN_AREA=SG
    ANTHROPIC_API_KEY=...  OPENAI_API_KEY=...  OPENAI_FAST_MODEL=...
    SESSION_SECRET=<32+ random characters, e.g. openssl rand -hex 32>
    ADMIN_TOKEN=<random>
@@ -288,7 +287,7 @@ Free-tier facts to know before a demo: the web service sleeps after 15 minutes w
    APP_URL=https://<your public host>
    ```
    Do not set `ALLOW_MOCK_IN_PROD`. `NEXT_PUBLIC_NEXCONN_AREA` must be the data center of your App Key.
-3. **Build args for the `NEXT_PUBLIC_*` values.** Pass `NEXT_PUBLIC_NEXCONN_APP_KEY`, `NEXT_PUBLIC_NEXCONN_AREA` and (optional, for the footer's GitHub link) `NEXT_PUBLIC_REPO_URL` as Docker build args, and also set the first two as runtime variables: the server reads them at runtime and hands them to browsers in `POST /api/session`, while `NEXT_PUBLIC_REPO_URL` is only read at build time. They are public values; secrets are never build args.
+3. **Build args for the `NEXT_PUBLIC_*` values.** Pass `NEXT_PUBLIC_NEXCONN_AREA` and (optional, for the footer's GitHub link) `NEXT_PUBLIC_REPO_URL` as Docker build args, and also set the area as a runtime variable: the server reads it at runtime and hands it to browsers in `POST /api/session`, together with the public `NEXCONN_APP_KEY`, while `NEXT_PUBLIC_REPO_URL` is only read at build time. They are public values; secrets are never build args.
 4. **Webhook.** In the Nexconn console set the webhook URL to `https://<host>/api/nexconn/webhook` and subscribe to `message:send`.
 5. **Health check** path `/api/health` (returns 503 when the database is unreachable).
 6. **Exactly one instance.**
@@ -319,7 +318,6 @@ Free-tier facts to know before a demo: the web service sleeps after 15 minutes w
      dockerfile = "Dockerfile"
 
      [build.args]
-       NEXT_PUBLIC_NEXCONN_APP_KEY = "<public App Key>"
        NEXT_PUBLIC_NEXCONN_AREA = "SG"
        NEXT_PUBLIC_REPO_URL = "https://github.com/<you>/<repo>"
 
@@ -327,7 +325,6 @@ Free-tier facts to know before a demo: the web service sleeps after 15 minutes w
      REALTIME_MODE = "nexconn"
      LLM_MODE = "live"
      INGEST_MODE = "dual"
-     NEXT_PUBLIC_NEXCONN_APP_KEY = "<public App Key>"
      NEXT_PUBLIC_NEXCONN_AREA = "SG"
      APP_URL = "https://<app>.fly.dev"
 

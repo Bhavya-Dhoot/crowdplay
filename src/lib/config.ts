@@ -23,7 +23,6 @@ const EnvSchema = z.object({
   NEXCONN_APP_SECRET: optional,
   NEXCONN_PRIMARY_API_DOMAIN: optional,
   NEXCONN_SECONDARY_API_DOMAIN: optional,
-  NEXT_PUBLIC_NEXCONN_APP_KEY: optional,
   NEXT_PUBLIC_NEXCONN_AREA: optional,
   NEXCONN_WEBHOOK_SECRET: optional,
 

@@ -2,7 +2,7 @@
 // Nexconn adapter when REALTIME_CONTRACT=nexconn and the Nexconn credentials are present (skipped otherwise):
 //
 //   REALTIME_CONTRACT=nexconn NEXCONN_APP_KEY=... NEXCONN_APP_SECRET=... \
-//   NEXCONN_PRIMARY_API_DOMAIN=... NEXCONN_SECONDARY_API_DOMAIN=... NEXT_PUBLIC_NEXCONN_APP_KEY=... \
+//   NEXCONN_PRIMARY_API_DOMAIN=... NEXCONN_SECONDARY_API_DOMAIN=... \
 //   pnpm exec vitest run src/tests/integration/realtime-contract.test.ts
 //
 // The Nexconn run needs a runtime where the Nexconn Web SDK works (it is only used to listen).
@@ -123,7 +123,7 @@ async function nexconnHarness(): Promise<Harness> {
         },
       });
       for (const ev of EVENTS) client.on(ev, (d) => push(ev, d));
-      await client.connect({ mode: "nexconn", userId, appKey: process.env.NEXT_PUBLIC_NEXCONN_APP_KEY ?? process.env.NEXCONN_APP_KEY, token, area: process.env.NEXT_PUBLIC_NEXCONN_AREA });
+      await client.connect({ mode: "nexconn", userId, appKey: process.env.NEXCONN_APP_KEY, token, area: process.env.NEXT_PUBLIC_NEXCONN_AREA });
       await client.joinRoom(channelId);
       return listener;
     },

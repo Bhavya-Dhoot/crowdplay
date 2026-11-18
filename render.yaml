@@ -43,10 +43,8 @@ services:
         generateValue: true
       - key: ADMIN_TOKEN
         generateValue: true
-      # Asked once when the Blueprint is created. NEXT_PUBLIC_NEXCONN_APP_KEY takes the same value as NEXCONN_APP_KEY.
+      # Asked once when the Blueprint is created. The App Key is public: browsers get it from POST /api/session.
       - key: NEXCONN_APP_KEY
-        sync: false
-      - key: NEXT_PUBLIC_NEXCONN_APP_KEY
         sync: false
       - key: NEXCONN_APP_SECRET
         sync: false
