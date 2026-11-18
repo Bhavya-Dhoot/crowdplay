@@ -275,11 +275,28 @@ after:  {"ok":true,...,"db":"pg"}   room created after the drop; 2 rooms in Post
 
 The same drop on a bare `pg` Pool with no `error` listener (the code before this fix) ends the process: `error: terminating connection due to administrator command`, exit 1.
 
+### Neon (2026-11-18, the founder's project in AWS ap-southeast-1, pooled endpoint, run from this laptop on a phone hotspot)
+
+```
+probe:     server_version 18.7, client TLSv1.3 TLS_AES_256_GCM_SHA384, certificate verified, query round trip 55-71 ms from here
+e2e:       E2E_DATABASE_URL=<neon>/crowdplay_e2e pnpm e2e   (scratch database, dropped afterwards)
+           4 passed, 6 failed (7.8m); Neon stored 11 rooms, 378 ideas, 69 users
+           81 server errors, all "getaddrinfo ENOTFOUND <neon host>"; 0 other database errors
+drop:      8 Neon server connections terminated: process alive, room created before and after; the pooler absorbed
+           the drop, so the app saw no connection error
+migrate:   DATABASE_URL=<neon>/neondb pnpm db:migrate  ->  migrations applied; 12 tables, 0 rows
+prod run:  next start with the real .env (Nexconn + OpenAI) on neondb
+           /api/health {"ok":true,"realtimeMode":"nexconn","llmMode":"live","db":"pg"} in 82-150 ms; / 200; /impact 200;
+           0 error log lines; neondb still 0 rows
+```
+
+The six e2e failures are this laptop's network, not Neon. The hotspot's DNS (172.20.10.1) intermittently fails to resolve the Neon host and answers "Query refused" for its direct endpoint, which 8.8.8.8 resolves. Every query also crosses 55-71 ms of VPN and hotspot. The suite runs phases at 30% speed and asserts timings that assume a database next to the app (for example the reconnect test missed its 5 s window by 21 ms). On Render in Singapore the app and Neon are in the same region. Not yet run: the suite from a host near Neon (the Render deploy).
+
 ## 7. Human steps left (need a deploy or people)
 
 Done on 2026-11-17: `.env` with the Nexconn and OpenAI keys; `pnpm live:check` steps 1–4 (section 5); the public repo github.com/Bhavya-Dhoot/crowdplay.
 
-1. Create a free Neon project in Singapore and copy its direct connection string. Deploy on Render's free tier from the Blueprint (README → Deploy → Render + Neon): New → Blueprint → `Bhavya-Dhoot/crowdplay`, paste the five asked values (Neon `DATABASE_URL`, Nexconn App Key twice, App Secret, OpenAI key). Then set the webhook URL `https://<service>.onrender.com/api/nexconn/webhook` (event `message:send`) in the Nexconn Console and re-run `pnpm smoke:nexconn` with `APP_URL` set to that URL to see the U5 webhook check.
+1. The Neon project exists (Singapore, Postgres 18.7, migrated, empty; section 6). Reset the `neondb_owner` password, since the old one was shared in a chat log. Deploy on Render's free tier from the Blueprint (README → Deploy → Render + Neon): New → Blueprint → `Bhavya-Dhoot/crowdplay`, paste the five asked values (Neon `DATABASE_URL`, Nexconn App Key twice, App Secret, OpenAI key). Then set the webhook URL `https://<service>.onrender.com/api/nexconn/webhook` (event `message:send`) in the Nexconn Console and re-run `pnpm smoke:nexconn` with `APP_URL` set to that URL to see the U5 webhook check.
 2. One show with real people on real phones on the deployed URL; record it here.
 3. Run real sessions; capture `/impact` afterwards (the `impact-*.png` screenshots in `docs/screens/` are test data).
 4. Optional: add `ANTHROPIC_API_KEY` to make Claude the primary model (OpenAI then becomes the fallback).

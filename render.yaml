@@ -13,7 +13,7 @@ services:
     dockerfilePath: ./Dockerfile
     healthCheckPath: /api/health
     envVars:
-      # Neon connection string (Singapore region, direct connection, ends in ?sslmode=require). Asked once.
+      # Neon connection string (Singapore region, the pooled string as Neon shows it). Asked once.
       - key: DATABASE_URL
         sync: false
       - key: REALTIME_MODE

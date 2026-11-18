@@ -262,7 +262,7 @@ CrowdPlay is designed for **one long-running Node container** (the round ticker,
 
 [`render.yaml`](render.yaml) describes the web service: Docker, free plan, `singapore` (next to Nexconn's SG data center), with the health check, the non-secret settings, and a generated `SESSION_SECRET` and `ADMIN_TOKEN`. The database is a free [Neon](https://neon.com) Postgres.
 
-1. Neon: create a project in **AWS Asia Pacific (Singapore)** and copy its connection string with **connection pooling off** (the direct one; one container needs no pooler). Paste it as it is: `sslmode=require` already gives a verified TLS connection with this `pg` version, and `sslmode=verify-full` is the same check without the startup warning.
+1. Neon: create a project in **AWS Asia Pacific (Singapore)** and copy its connection string as Neon shows it (the pooled one, ending in `?sslmode=require&channel_binding=require`) and paste it as it is. It gives a TLS 1.3 connection with a verified certificate; `sslmode=verify-full` is the same check without the startup warning.
 2. Render dashboard: **New, Blueprint**, connect GitHub, pick `Bhavya-Dhoot/crowdplay`.
 3. Render asks for five values once: `DATABASE_URL` (the Neon string), `NEXCONN_APP_KEY`, `NEXT_PUBLIC_NEXCONN_APP_KEY` (the same App Key again: Render passes it to the Docker build, which inlines it into the browser bundle), `NEXCONN_APP_SECRET` and `OPENAI_API_KEY`. Press **Apply**.
 4. Wait for the first build (several minutes) and open `https://<service>.onrender.com/api/health`: it should show `"realtimeMode":"nexconn"` and `"llmMode":"live"`. `APP_URL` is not needed: the app falls back to Render's `RENDER_EXTERNAL_URL`, so QR codes and share links already use the public URL.
