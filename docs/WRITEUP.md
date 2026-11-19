@@ -162,17 +162,7 @@ How the numbers will be collected: run public sessions of about ten minutes (six
 - **Wedges:** Discord community nights, D&D streams, college fests, classroom "what if" lessons.
 - **Why it grows Nexconn:** every paid show adds monthly active users and concurrent connections on Nexconn, and the product uses the parts of Nexconn that large rooms need (Open Channels, metadata, priority controls, direct messages). LLM cost per round is roughly flat, because the model sees capped cluster samples rather than every message; embedding cost grows with the number of ideas.
 
-## 10. Honest limits
-
-- **Live, but small.** Every live run used the real Nexconn API and OpenAI with automated browsers, not people: three browsers (two phones, one screen) from India to the Singapore data center, first against a local server, then against the deployed app. Idea delivery was 0.93–1.04 s locally (one 3.0 s outlier in 14 samples) and 0.70–1.14 s on the deployed app (6 samples), so the 1 s target holds at the median, not at p95. Crowds and mobile networks are not tested yet; the 300-sender load test is mock-only.
-- **Capacity.** Nexconn's free plan allows 50 concurrent open channels. The 500 concurrent connections we designed for (rooms stop admitting at 450 by default) assume Chat Growth Credit; the public pages we could read state only 2,000 MAU and a connection allowance of 5% of the MAU tier, so 500 is not confirmed. The load test used 300 simulated senders, not 300 connections.
-- **The webhook body is unsigned,** so a captured header set authenticates any body for as long as the timestamp is accepted. We limit the timestamp to 5 minutes, parse strictly, deduplicate, and re-validate every idea as if it came over HTTP. Other clients can forge channel metadata, so browsers use it as a hint and trust only the narrator's messages and the HTTP state.
-- **LLM latency is the main risk to the 8 s target;** the fallbacks keep rounds finishing but would show heuristic-quality options.
-- **Single instance.** Timers, rate limits and caches live in the server process; the deploy is one container plus Postgres. Two instances were not tested.
-- **Smaller items:** TTS audio sits on local disk (off by default); Nexconn tokens are not refreshed during a show; the multilingual and TTS flags have not been run live; `/try` boosts the judge's idea into the wildcard slot (shown as "boosted in demo") and its bots vote at random, so the wildcard does not always win.
-- **Not built:** accounts, payments, native apps, video streaming.
-
-## 11. Prior work
+## 10. Prior work
 
 No code written before the challenge window was reused. The first commit in the repository is dated **2026-11-17 01:29:43 +0530** and the history after it is the in-window record. A product spec pack (PRD, tech spec, UX spec, AI prompts, build plan) dated 15 Nov 2026 predates the first commit and contains no code.
 
