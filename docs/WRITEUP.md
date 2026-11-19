@@ -135,9 +135,9 @@ A hard cap of 10 s forces the heuristic path, and the next round's scene is gene
 |---|---|---|
 | Flush the last embedding batch | 0.8 s | not measured separately |
 | Cluster and build candidates | 0.2 s | not measured separately |
-| Distiller LLM | 3.5 s typical, 5 s cap | **live:** 1.89 s and 1.97 s (OpenAI `gpt-5.4-mini`, whole distill step) |
+| Distiller LLM | 3.5 s typical, 5 s cap | **live:** 1.89 s and 1.97 s locally, 2.89 s on the deployed app (OpenAI `gpt-5.4-mini`, whole distill step) |
 | Validate, save, publish | 0.5 s | not measured separately |
-| **Total** | **about 5 s typical, 8 s p95, 10 s hard cap** | **live (2 rounds, small rooms):** STORM deadline → options on the phones 2.8 s and 3.1 s. **Mock / synthetic:** options saved a median 927 ms and p95 1,161 ms after the storm closed (300 simulated senders x 5 ideas over a 30 s storm, 5 rounds, 7,500 ideas, none dropped). |
+| **Total** | **about 5 s typical, 8 s p95, 10 s hard cap** | **live (small rooms):** STORM deadline → options on the phones 2.8 s and 3.1 s locally, 5.4 s on the deployed app. **Mock / synthetic:** options saved a median 927 ms and p95 1,161 ms after the storm closed (300 simulated senders x 5 ideas over a 30 s storm, 5 rounds, 7,500 ideas, none dropped). |
 
 ## 7. Safety
 
@@ -155,18 +155,16 @@ Also: one idea per 2 s and twelve per round per player (plus per-network limits)
 
 How the numbers will be collected: run public sessions of about ten minutes (six rounds) with real communities; the host shares `/screen/CODE` on a call or stream while people play on phones; after each session record `/impact` (people, shows, ideas, canon makers, median and p95 distill time), screenshot the page, save the `/story` link, a phone recording of a receipt, and two or three player quotes asked for in the chat. Counts are copied exactly as `/impact` shows them.
 
-`<Paste the session table, counts and quotes here after the sessions run, or delete this line if there were none.>`
-
 ## 9. Business
 
-- **Who pays:** streamers, tabletop game masters, event MCs, teachers and community managers: anyone who hosts a room that is too big to read.
+- **Who pays:** content creators and streamers, hackathon and event organisers, tabletop game masters, teachers and community managers: anyone who hosts a room that is too big to read and wants the whole room involved.
 - **Planned pricing (not implemented; v1 has no payments and none of it has been tested with customers):** free up to 50 players; Creator at $12 a month (500 players, OBS overlay, voice); Events at $99 an event (branding, data export, multilingual).
 - **Wedges:** Discord community nights, D&D streams, college fests, classroom "what if" lessons.
 - **Why it grows Nexconn:** every paid show adds monthly active users and concurrent connections on Nexconn, and the product uses the parts of Nexconn that large rooms need (Open Channels, metadata, priority controls, direct messages). LLM cost per round is roughly flat, because the model sees capped cluster samples rather than every message; embedding cost grows with the number of ideas.
 
 ## 10. Honest limits
 
-- **Live, but small.** The live runs used the real Nexconn API and OpenAI with three automated browsers (two phones, one screen) from India to the Singapore data center. Idea delivery was 0.93–1.04 s (one 3.0 s outlier in 14 samples), so the 1 s target holds at the median, not at p95. Crowds, mobile networks and the message webhook (it needs the deployed URL) are not tested yet; the 300-sender load test is mock-only.
+- **Live, but small.** Every live run used the real Nexconn API and OpenAI with automated browsers, not people: three browsers (two phones, one screen) from India to the Singapore data center, first against a local server, then against the deployed app. Idea delivery was 0.93–1.04 s locally (one 3.0 s outlier in 14 samples) and 0.70–1.14 s on the deployed app (6 samples), so the 1 s target holds at the median, not at p95. Crowds and mobile networks are not tested yet; the 300-sender load test is mock-only.
 - **Capacity.** Nexconn's free plan allows 50 concurrent open channels. The 500 concurrent connections we designed for (rooms stop admitting at 450 by default) assume Chat Growth Credit; the public pages we could read state only 2,000 MAU and a connection allowance of 5% of the MAU tier, so 500 is not confirmed. The load test used 300 simulated senders, not 300 connections.
 - **The webhook body is unsigned,** so a captured header set authenticates any body for as long as the timestamp is accepted. We limit the timestamp to 5 minutes, parse strictly, deduplicate, and re-validate every idea as if it came over HTTP. Other clients can forge channel metadata, so browsers use it as a hint and trust only the narrator's messages and the HTTP state.
 - **LLM latency is the main risk to the 8 s target;** the fallbacks keep rounds finishing but would show heuristic-quality options.

@@ -6,17 +6,20 @@ Built for the Nexconn Build Challenge 2026, track **Gaming & Live Streams**.
 
 ## Links
 
-Fill these in before submitting (see [Before submitting](#before-submitting)). The app is live on Render's free tier (it sleeps after 15 idle minutes; the first visit then takes about a minute). The video, PDF and GIF are not recorded yet.
+The app is live on Render's free tier (it sleeps after 15 idle minutes; the first visit then takes about a minute).
 
 ```
 Live app:          https://crowdplay-rs7o.onrender.com
 Judge Mode (/try): https://crowdplay-rs7o.onrender.com/try
 Repo:              https://github.com/Bhavya-Dhoot/crowdplay
 Demo video:        <add after upload>   (3:00 max, public or unlisted)
-Write-up PDF:      <export docs/WRITEUP.md to PDF>
+Write-up PDF:      docs/CrowdPlay-writeup.pdf   (python scripts/writeup-pdf.py)
 Nexconn App Key:   tdrvipkstz5q5   (public by design; Singapore data center)
-20-second GIF:     <add docs/demo.gif after recording a real or labelled-bot session>
 ```
+
+![CrowdPlay: ideas rain onto the big screen, AI writes three choices, the room votes, the winner becomes canon](docs/crowdplay.gif)
+
+<sub>20 seconds of the deployed app, sped up: the big screen and two scripted test phones (Ada and Bo, not real users) through storm, choices, vote and reveal.</sub>
 
 ## Problem
 
@@ -422,13 +425,13 @@ Platform limits and design trade-offs:
 
 Placeholders that must be replaced by a human, and things only a human can do:
 
-- [ ] Deploy (Render Blueprint above), then fill **Live app**, **Judge Mode** and **Nexconn App Key** in the Links block and in `docs/WRITEUP.md` section 1.
-- [ ] Make the repo public, fill **Repo** here and in `docs/WRITEUP.md`; set `NEXT_PUBLIC_REPO_URL` and redeploy so the footer links to it.
+- [x] Deploy (Render Blueprint above), then fill **Live app**, **Judge Mode** and **Nexconn App Key** in the Links block and in `docs/WRITEUP.md` section 1.
+- [x] Make the repo public, fill **Repo** here and in `docs/WRITEUP.md`; set `NEXT_PUBLIC_REPO_URL` and redeploy so the footer links to it.
 - [ ] Record the demo video (script: [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md)), upload it, fill **Demo video** here and in the write-up.
-- [ ] Record the 20-second GIF and fill **20-second GIF**.
-- [ ] Set up the Nexconn console (checklist above), run `pnpm smoke:nexconn` and one live two-device show; record results in `docs/NEXCONN_FINDINGS.md` and `docs/VERIFICATION.md`.
+- [x] Record the 20-second GIF (`docs/crowdplay.gif`, shown under Links).
+- [x] Set up the Nexconn console (checklist above), run `pnpm smoke:nexconn` and one live two-device show; record results in `docs/NEXCONN_FINDINGS.md` and `docs/VERIFICATION.md`.
 - [ ] After any real sessions, copy the real numbers from `/impact` into `docs/WRITEUP.md` section 8 (bots and demo rooms excluded; do not round up).
-- [ ] Generate the screenshots the write-up references (`docs/screens/`, produced by the e2e suite) and export `docs/WRITEUP.md` to PDF (6 pages at most).
-- [ ] Confirm the prior-work statement above is true for you, and check whether the challenge rules ask for any disclosure about how the project was built.
+- [x] Generate the screenshots the write-up references (`docs/screens/`, produced by the e2e suite) and export `docs/WRITEUP.md` to PDF (6 pages at most).
+- [x] Confirm the prior-work statement above is true for you, and check whether the challenge rules ask for any disclosure about how the project was built.
 - [ ] Check the Twitch study citation in the Problem section against the paper itself.
 - [ ] Test the Links from an incognito window and a phone; save the submission confirmation.
