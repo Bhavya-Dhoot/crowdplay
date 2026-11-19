@@ -16,7 +16,7 @@ Fields in <angle brackets> are for a human to fill; nothing else here is a place
 | Live app | https://crowdplay-rs7o.onrender.com |
 | Judge Mode (alone, no host) | https://crowdplay-rs7o.onrender.com/try |
 | Repository | https://github.com/Bhavya-Dhoot/crowdplay |
-| Demo video | `<add after upload>` |
+| Demo video | https://youtu.be/Tl84lni7kO0 |
 | Nexconn App Key | `tdrvipkstz5q5` |
 
 ## 2. Problem

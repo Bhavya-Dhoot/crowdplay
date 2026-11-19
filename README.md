@@ -12,7 +12,7 @@ The app is live on Render's free tier (it sleeps after 15 idle minutes; the firs
 Live app:          https://crowdplay-rs7o.onrender.com
 Judge Mode (/try): https://crowdplay-rs7o.onrender.com/try
 Repo:              https://github.com/Bhavya-Dhoot/crowdplay
-Demo video:        <add after upload>   (3:00 max, public or unlisted)
+Demo video:        https://youtu.be/Tl84lni7kO0   (2:05, narrated)
 Write-up PDF:      docs/CrowdPlay-writeup.pdf   (python scripts/writeup-pdf.py)
 Nexconn App Key:   tdrvipkstz5q5   (public by design; Singapore data center)
 ```
@@ -427,7 +427,7 @@ Placeholders that must be replaced by a human, and things only a human can do:
 
 - [x] Deploy (Render Blueprint above), then fill **Live app**, **Judge Mode** and **Nexconn App Key** in the Links block and in `docs/WRITEUP.md` section 1.
 - [x] Make the repo public, fill **Repo** here and in `docs/WRITEUP.md`; set `NEXT_PUBLIC_REPO_URL` and redeploy so the footer links to it.
-- [ ] Record the demo video (script: [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md)), upload it, fill **Demo video** here and in the write-up.
+- [x] Record the demo video (script: [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md)), upload it, fill **Demo video** here and in the write-up.
 - [x] Record the 20-second GIF (`docs/crowdplay.gif`, shown under Links).
 - [x] Set up the Nexconn console (checklist above), run `pnpm smoke:nexconn` and one live two-device show; record results in `docs/NEXCONN_FINDINGS.md` and `docs/VERIFICATION.md`.
 - [ ] After any real sessions, copy the real numbers from `/impact` into `docs/WRITEUP.md` section 8 (bots and demo rooms excluded; do not round up).
